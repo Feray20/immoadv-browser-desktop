@@ -7,7 +7,6 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import * as tar from 'tar';
-import extractZip from 'extract-zip';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 
@@ -95,20 +94,59 @@ async function pdfjs() {
   const dest = path.join(vendor, 'pdfjs');
   if (fs.existsSync(path.join(dest, 'web', 'viewer.html'))) return;
   // neueste Version über die Weiterleitung von GitHub (ohne API-Limit)
-  const res = await fetch('https://github.com/mozilla/pdf.js/releases/latest', { redirect: 'manual' });
-  const tag = (res.headers.get('location') || '').split('/').pop();
+  const res = await fetch('https://github.com/mozilla/pdf.js/releases/latest', { redirect: 'follow', headers: { 'User-Agent': 'immoadv-build' } });
+  await res.arrayBuffer().catch(() => {});
+  const tag = (res.url || '').split('/').pop();
   if (!/^v\d+\.\d+\.\d+$/.test(tag)) throw new Error('PDF.js-Version nicht gefunden');
   const ver = tag.slice(1);
   console.log(`PDF.js ${ver}`);
   const zip = path.join(vendor, `pdfjs-${ver}-dist.zip`);
   fs.writeFileSync(zip, await get(`https://github.com/mozilla/pdf.js/releases/download/${tag}/pdfjs-${ver}-dist.zip`));
   fs.rmSync(dest, { recursive: true, force: true });
-  await extractZip(zip, { dir: dest });
+  fs.mkdirSync(dest, { recursive: true });
+  // Windows 10/11 und macOS bringen „tar“ mit, das auch ZIP entpackt
+  execFileSync('tar', ['-xf', zip, '-C', dest], { stdio: 'inherit' });
   fs.rmSync(zip);
+  if (!fs.existsSync(path.join(dest, 'web', 'viewer.html'))) throw new Error('PDF.js unvollständig entpackt');
 }
 
 fs.mkdirSync(vendor, { recursive: true });
-await pdfjs();
+try {
+  console.log('Lade PDF.js …');
+  await pdfjs();
+
+} catch (e) { out = e.stdout ? e.stdout.toString() : ''; }
+    if (!/\[GNUPG:\] VALIDSIG /.test(out) || !out.includes(TOR_KEY)) {
+      throw new Error('Signatur des Tor-Pakets ungültig – Abbruch.');
+    }
+    console.log('Tor-Signatur geprüft.');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+
+async function pdfjs() {
+  const dest = path.join(vendor, 'pdfjs');
+  if (fs.existsSync(path.join(dest, 'web', 'viewer.html'))) return;
+  // neueste Version über die Weiterleitung von GitHub (ohne API-Limit)
+  const res = await fetch('https://github.com/mozilla/pdf.js/releases/latest', { redirect: 'follow', headers: { 'User-Agent': 'immoadv-build' } });
+  await res.arrayBuffer().catch(() => {});
+  const tag = (res.url || '').split('/').pop();
+  if (!/^v\d+\.\d+\.\d+$/.test(tag)) throw new Error('PDF.js-Version nicht gefunden');
+  const ver = tag.slice(1);
+  console.log(`PDF.js ${ver}`);
+  const zip = path.join(vendor, `pdfjs-${ver}-dist.zip`);
+  fs.writeFileSync(zip, await get(`https://github.com/mozilla/pdf.js/releases/download/${tag}/pdfjs-${ver}-dist.zip`));
+  fs.rmSync(dest, { recursive: true, force: true });
+  fs.mkdirSync(dest, { recursive: true });
+  // Windows 10/11 und macOS bringen „tar“ mit, das auch ZIP entpackt
+  execFileSync('tar', ['-xf', zip, '-C', dest], { stdio: 'inherit' });
+  fs.rmSync(zip);
+  if (!fs.existsSync(path.join(dest, 'web', 'viewer.html'))) throw new Error('PDF.js unvollständig entpackt');
+}
+
+fs.mkdirSync(vendor, { recursive: true });
+try {
+  console.log('Lade PDF.js …');
+  await pdfjs();
 if (platform === 'win') {
   await torBundle('windows', 'x86_64', path.join(vendor, 'tor', 'win-x64'));
 } else {
@@ -118,3 +156,7 @@ if (platform === 'win') {
   }
 }
 console.log('Fertig: vendor/ ist bereit.');
+} catch (e) {
+  console.error('FEHLER:', e && e.stack || e);
+  process.exit(1);
+}
