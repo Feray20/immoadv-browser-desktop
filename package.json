@@ -11,8 +11,8 @@
     "vendor": "node scripts/fetch-vendor.mjs",
     "start": "electron .",
     "test": "node --test test/calculator.test.js",
-    "dist:win": "node scripts/fetch-vendor.mjs win x64 && electron-builder --win --x64 --publish always",
-    "dist:mac": "node scripts/fetch-vendor.mjs mac universal && electron-builder --mac --universal --publish always"
+    "dist:win": "node scripts/fetch-vendor.mjs win x64 && node scripts/ensure-release.mjs && electron-builder --win --x64 --publish always",
+    "dist:mac": "node scripts/fetch-vendor.mjs mac universal && node scripts/ensure-release.mjs && electron-builder --mac --universal --publish always"
   },
   "dependencies": {
     "electron-updater": ">=6.3.0"
