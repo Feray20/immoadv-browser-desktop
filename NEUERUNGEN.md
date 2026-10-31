@@ -1,3 +1,5 @@
-- Updates zuverlässiger: ein Klick auf „Update jetzt installieren“ lädt, installiert und startet neu
-- Fortschrittsbalken beim Laden des Updates; bei schwacher Tor-Route wird automatisch erneut versucht
-- Mac: Update öffnet direkt das Installationsfenster
+- Kurzfassung jeder Seite mit einem Klick (✦ oder Strg+J) – wird nur auf deinem Computer erstellt
+- Merkliste für Inserate: Objekte merken und Preis, €/m², Rendite und Cashflow vergleichen
+- Schnellbefehle mit Strg+K: Befehle, Tabs und Lesezeichen sofort finden
+- Tracking wird aus Links automatisch entfernt (utm, fbclid …), „Sauberen Link kopieren“
+- Bildschirmfoto der Seite direkt in deinen Download-Ordner

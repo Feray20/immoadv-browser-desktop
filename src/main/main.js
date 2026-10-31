@@ -1,5 +1,5 @@
 // ImmoAdv Browser – Hauptprozess (Windows & Mac)
-const { app, BrowserWindow, WebContentsView, ipcMain, Menu, dialog, shell, systemPreferences, nativeTheme, session } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, Menu, dialog, shell, systemPreferences, nativeTheme, session, clipboard } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
@@ -7,8 +7,9 @@ const store = require('./store');
 const tor = require('./tor');
 const pdf = require('./pdf');
 const updater = require('./updater');
-const { createBrowsingSession, tabPreferences, hostOf, proxyFor, GOOGLE_DIRECT, GOOGLE_LOGIN_HOSTS } = require('./privacy');
+const { cleanURL, createBrowsingSession, tabPreferences, hostOf, proxyFor, GOOGLE_DIRECT, GOOGLE_LOGIN_HOSTS } = require('./privacy');
 const { LISTING_SCRIPT } = require('../shared/listing');
+const { SUMMARY_SCRIPT } = require('../shared/summary');
 
 // ---------- Grundschutz vor dem Start ----------
 app.setName('ImmoAdv Browser');
@@ -270,6 +271,8 @@ function handleShortcut(e, input) {
   if (input.shift && k === 'b') { e.preventDefault(); send('toggle-bookmarkbar'); return; }
   const map = {
     f: () => { win.webContents.focus(); send('find-open'); },
+    k: () => { win.webContents.focus(); send('palette-open'); },
+    j: () => { win.webContents.focus(); send('open-panel', 'summary'); },
     '+': () => zoom(t, 0.5), '=': () => zoom(t, 0.5), '-': () => zoom(t, -0.5), '0': () => zoom(t, null),
     t: () => newTab(), w: () => t && closeTab(t.id), l: () => { win.webContents.focus(); send('focus-address'); },
     r: () => t?.view.webContents.reload(), s: () => t?.kind === 'pdf' && savePDF(t),
@@ -325,6 +328,7 @@ function registerIPC() {
     update: updater.state(), version: app.getVersion(),
     settings: store.all(), tor: tor.state, platform: process.platform,
     frequent: (store.get('frequent') || []).slice(0, 8),
+    watchlist: store.get('watchlist') || [],
     downloadDirName: store.get('downloadDir') ? path.basename(store.get('downloadDir')) : null
   }));
   on('layout', (_e, l) => { layout = { ...layout, ...l }; positionViews(); });
@@ -335,6 +339,34 @@ function registerIPC() {
   on('find-stop', () => { const t = active(); if (t) t.view.webContents.stopFindInPage('clearSelection'); });
   on('zoom', (_e, step) => zoom(active(), step));
   on('reopen-tab', () => reopenTab());
+  handle('summary', async () => {
+    const t = active();
+    if (!t || t.kind !== 'web' || !t.url || t.waiting) return null;
+    try { return await t.view.webContents.executeJavaScriptInIsolatedWorld(1003, [{ code: SUMMARY_SCRIPT }]); } catch { return null; }
+  });
+  // Merkliste – nur auf diesem Computer
+  handle('watch:add', (_e, item) => {
+    const list = (store.get('watchlist') || []).filter((w) => w.url !== item.url);
+    list.unshift({ ...item, id: crypto.randomUUID(), added: Date.now() });
+    store.set('watchlist', list.slice(0, 50));
+    return store.get('watchlist');
+  });
+  handle('watch:remove', (_e, id) => { store.set('watchlist', (store.get('watchlist') || []).filter((w) => w.id !== id)); return store.get('watchlist'); });
+  handle('link:copy', () => {
+    const t = active();
+    if (!t || t.kind !== 'web' || !t.url) return false;
+    clipboard.writeText(cleanURL(t.url));
+    return true;
+  });
+  handle('screenshot', async () => {
+    const t = active();
+    if (!t || !t.url) return null;
+    const img = await t.view.webContents.capturePage();
+    const name = `Bildschirmfoto ${hostOf(t.url) || 'Seite'} ${new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '-')}.png`;
+    const target = uniquePath(downloadDir(), name);
+    fs.writeFileSync(target, img.toPNG());
+    return path.basename(downloadDir());
+  });
   handle('frequent:clear', () => { store.set('frequent', []); send('frequent', []); return true; });
   on('navigate', (_e, input) => {
     let t = active();
@@ -363,7 +395,7 @@ function registerIPC() {
   handle('downloadDir:default', () => { store.set('downloadDir', app.getPath('downloads')); return path.basename(app.getPath('downloads')); });
   handle('downloadDir:open', () => shell.openPath(downloadDir()));
   handle('settings:set', (_e, obj) => {
-    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar'];
+    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks'];
     for (const k of Object.keys(obj)) if (allowed.includes(k)) store.set(k, obj[k]);
     return store.all();
   });
@@ -408,6 +440,10 @@ function showMenu() {
       { label: 'Originalgröße', accelerator: 'CmdOrCtrl+0', click: () => zoom(active(), null) }
     ] },
     { label: 'Lesezeichenleiste ein/aus', accelerator: 'CmdOrCtrl+Shift+B', click: () => send('toggle-bookmarkbar') },
+    { label: 'Zusammenfassen', accelerator: 'CmdOrCtrl+J', enabled: t?.kind === 'web' && !!t.url, click: () => send('open-panel', 'summary') },
+    { label: 'Merkliste & Vergleich', click: () => send('open-panel', 'watch') },
+    { label: 'Bildschirmfoto der Seite', enabled: !!t?.url, click: () => send('screenshot') },
+    { label: 'Schnellbefehle …', accelerator: 'CmdOrCtrl+K', click: () => send('palette-open') },
     { label: 'Download-Ordner öffnen', click: () => shell.openPath(downloadDir()) },
     ...(t?.kind === 'web' && t.url ? [{ label: 'Im Standard-Browser öffnen (ohne Tor)', click: () => openExternal(t) }] : []),
     { type: 'separator' },

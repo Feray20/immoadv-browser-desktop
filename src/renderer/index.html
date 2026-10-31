@@ -23,6 +23,7 @@
       <button id="immoBtn" class="pill hidden">Immobilien-Check</button>
       <button id="pdfSave" class="pill hidden">PDF speichern</button>
       <button id="googleBtn" class="pill hidden" title="Google lässt die Anmeldung hier nicht zu">Im Standard-Browser anmelden</button>
+      <button id="summaryBtn" class="icon" title="Zusammenfassen (Strg+J)">✦</button>
       <button id="bookmarkBtn" class="icon" title="Lesezeichen">☆</button>
       <button id="bookmarksPanelBtn" class="icon" title="Alle Lesezeichen">▤</button>
       <button id="menuBtn" class="icon" title="Menü">⋯</button>
@@ -84,6 +85,14 @@
       <p>Wähle einmal einen Ordner – zum Beispiel deinen ImmoAdv-Ordner. Danach wird jeder Download automatisch dort gespeichert. Ändern kannst du das jederzeit in den Einstellungen.</p>
       <button id="obChoose" class="primary">Ordner auswählen</button>
       <button id="obDefault" class="link">Normalen Download-Ordner verwenden</button>
+    </div>
+  </div>
+
+  <div id="palette" class="palette-wrap hidden">
+    <div class="palette">
+      <input id="paletteInput" type="text" spellcheck="false" autocomplete="off" placeholder="Befehl, Tab oder Lesezeichen …">
+      <div id="paletteList"></div>
+      <p class="palette-foot">↑ ↓ wählen · Enter ausführen · Esc schließen</p>
     </div>
   </div>
 

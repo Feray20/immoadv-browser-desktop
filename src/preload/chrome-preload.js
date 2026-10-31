@@ -40,5 +40,12 @@ contextBridge.exposeInMainWorld('immo', {
   onTor: on('tor'),
   onToast: on('toast'),
   onFocusAddress: on('focus-address'),
-  onOpenPanel: on('open-panel')
+  onOpenPanel: on('open-panel'),
+  summary: () => ipcRenderer.invoke('summary'),
+  watchAdd: (item) => ipcRenderer.invoke('watch:add', item),
+  watchRemove: (id) => ipcRenderer.invoke('watch:remove', id),
+  screenshot: () => ipcRenderer.invoke('screenshot'),
+  copyCleanLink: () => ipcRenderer.invoke('link:copy'),
+  onPaletteOpen: on('palette-open'),
+  onScreenshot: on('screenshot')
 });

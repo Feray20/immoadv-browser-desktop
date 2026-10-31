@@ -16,6 +16,7 @@ let update = { status: 'idle' };
 let appVersion = '';
 let updatePopDismissed = null;
 let installRequested = false;
+let watchlist = [];
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const eur = (v, d = 0) => (v ?? 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: d, maximumFractionDigits: d });
@@ -198,7 +199,7 @@ function openPanel(kind) {
   panel = kind;
   $('panel').classList.remove('hidden');
   requestAnimationFrame(() => $('panel').classList.add('open'));
-  ({ immo: renderImmo, bookmarks: renderBookmarks, settings: renderSettings })[kind]();
+  ({ immo: renderImmo, bookmarks: renderBookmarks, settings: renderSettings, summary: renderSummary, watch: renderWatch })[kind]();
   pushLayout();
 }
 function closePanel() {
@@ -235,9 +236,16 @@ function renderImmo() {
     </div>
     <div class="group" id="iResult"></div>
     <button class="primary" id="iSave">Als PDF speichern</button>
+    <button class="secondary" id="iWatch">♡ Auf die Merkliste</button>
     <p class="hint">Unverbindliche Beispielrechnung, keine Finanzierungs- oder Steuerberatung. Alles wird nur auf diesem Computer berechnet.</p>`;
   $('panelBody').querySelectorAll('input,select').forEach((el) => el.addEventListener('input', updateImmo));
   $('iSave').onclick = saveImmo;
+  $('iWatch').onclick = async () => {
+    const i = immoInput(); const r = C.calculate(i);
+    watchlist = await api.watchAdd({ url: t?.url || '', title: l.title || t?.title || 'Inserat', city: [l.zip, l.city].filter(Boolean).join(' '), source: l.source || '',
+      price: i.price, area: i.area, rent: i.coldRent, land: i.land, total: r.total, sqm: r.pricePerSqm, brutto: r.brutto, cashflow: r.cashflow, rate: r.rate });
+    toast('Auf der Merkliste – Vergleich unter ⋯ → Merkliste');
+  };
   updateImmo();
 }
 
@@ -295,6 +303,101 @@ async function saveImmo() {
   catch { toast('Speichern fehlgeschlagen'); }
 }
 
+// ---------- Kurzfassung (lokal) ----------
+async function renderSummary() {
+  const t = activeTab();
+  $('panelTitle').textContent = 'Kurzfassung';
+  if (!t || t.kind !== 'web' || !t.url) { $('panelBody').innerHTML = '<p class="hint">Öffne zuerst eine Webseite.</p>'; return; }
+  $('panelBody').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton short"></div>';
+  const s = await api.summary();
+  if (panel !== 'summary') return;
+  if (!s || !s.points.length) { $('panelBody').innerHTML = '<p class="hint">Auf dieser Seite gibt es nicht genug Fließtext für eine Kurzfassung.</p>'; return; }
+  const l = t.listing;
+  const facts = l ? `<div class="group"><h3>Eckdaten</h3>${[
+    ['Kaufpreis', l.isRent ? null : l.price], ['Miete', l.rent || (l.isRent ? l.price : null)], ['Wohnfläche', l.area ? l.area + ' m²' : null],
+    ['Zimmer', l.rooms], ['Ort', [l.zip, l.city].filter(Boolean).join(' ')]].filter(([, v]) => v)
+    .map(([k, v]) => `<div class="row"><span>${k}</span><b>${esc(String(v))}</b></div>`).join('')}</div>` : '';
+  $('panelBody').innerHTML = `
+    <p><b>${esc(s.title || t.title)}</b><br><span class="hint">${s.words.toLocaleString('de-DE')} Wörter · ca. ${s.minutes} Min. Lesezeit → hier in 30 Sekunden</span></p>
+    ${facts}
+    <div class="group"><h3>Das Wichtigste</h3><ul class="points">${s.points.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>
+    <button class="secondary" id="sumCopy">Kurzfassung kopieren</button>
+    <p class="hint">Wird nur auf diesem Computer erstellt – kein Text verlässt den Browser.</p>`;
+  $('sumCopy').onclick = () => { navigator.clipboard.writeText(s.points.map((p) => '• ' + p).join('\n')).then(() => toast('Kopiert')); };
+}
+
+// ---------- Merkliste & Vergleich ----------
+function renderWatch() {
+  $('panelTitle').textContent = 'Merkliste';
+  if (!watchlist.length) {
+    $('panelBody').innerHTML = '<p class="hint">Noch leer. Öffne ein Inserat → „Immobilien-Check“ → „♡ Auf die Merkliste“. Hier kannst du dann bis zu 50 Objekte nebeneinander vergleichen.</p>';
+    return;
+  }
+  const best = (key, low) => { const v = watchlist.map((w) => w[key]).filter((x) => x != null && x !== 0); return v.length > 1 ? (low ? Math.min(...v) : Math.max(...v)) : null; };
+  const bSqm = best('sqm', true), bBrutto = best('brutto'), bCash = best('cashflow');
+  $('panelBody').innerHTML = watchlist.map((w) => `
+    <div class="watch">
+      <div class="watch-head"><a href="#" data-url="${esc(w.url)}">${esc(w.title)}</a><button class="icon" data-del="${esc(w.id)}" title="Entfernen">✕</button></div>
+      <div class="hint">${esc([w.city, w.source].filter(Boolean).join(' · '))}</div>
+      <div class="kpis">
+        <div><span>Preis</span><b>${w.price ? eur(w.price) : '–'}</b></div>
+        <div class="${w.sqm && w.sqm === bSqm ? 'best' : ''}"><span>€/m²</span><b>${w.sqm ? eur(w.sqm) : '–'}</b></div>
+        <div class="${w.brutto && w.brutto === bBrutto ? 'best' : ''}"><span>Rendite</span><b>${w.brutto != null ? pct(w.brutto) : '–'}</b></div>
+        <div class="${w.cashflow != null && w.cashflow === bCash ? 'best' : ''}"><span>Cashflow</span><b class="${w.cashflow == null ? '' : w.cashflow >= 0 ? 'pos' : 'neg'}">${w.cashflow != null ? eur(w.cashflow) : '–'}</b></div>
+      </div>
+    </div>`).join('') + '<p class="hint">Grün = bester Wert der Liste. Gespeichert nur auf diesem Computer.</p>';
+  $('panelBody').querySelectorAll('[data-url]').forEach((a) => { a.onclick = (e) => { e.preventDefault(); if (a.dataset.url) api.newTab(a.dataset.url); }; });
+  $('panelBody').querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { watchlist = await api.watchRemove(b.dataset.del); renderWatch(); }; });
+}
+
+// ---------- Schnellbefehle (Strg+K) ----------
+let paletteItems = [], paletteSel = 0;
+function paletteCommands() {
+  const t = activeTab();
+  const cmds = [
+    ['Neuer Tab', 'Strg+T', () => api.newTab()],
+    ['Zusammenfassen', 'Strg+J', () => openPanel('summary'), t?.kind === 'web' && t.url],
+    ['Immobilien-Check', '', () => openPanel('immo'), !!t?.listing],
+    ['Merkliste & Vergleich', '', () => openPanel('watch')],
+    ['Auf Seite suchen', 'Strg+F', openFind, !!t?.url],
+    ['Sauberen Link kopieren (ohne Tracking)', '', async () => toast((await api.copyCleanLink()) ? 'Link ohne Tracking kopiert' : 'Kein Link'), t?.kind === 'web' && t.url],
+    ['Bildschirmfoto der Seite', '', takeShot, !!t?.url],
+    ['PDF öffnen & unterschreiben', '', () => api.openPDF()],
+    ['Neue Identität', '', () => api.newIdentity()],
+    ['Geschlossenen Tab wieder öffnen', 'Strg+Umschalt+T', () => api.reopenTab()],
+    ['Lesezeichenleiste ein/aus', 'Strg+Umschalt+B', toggleBar],
+    ['Download-Ordner öffnen', '', () => api.openDownloadDir()],
+    ['Einstellungen', '', () => openPanel('settings')]
+  ].filter((c) => c[3] === undefined || c[3]).map(([label, key, run]) => ({ label, key, run, kind: 'Befehl' }));
+  const tabsList = (state.tabs || []).map((x) => ({ label: x.title || x.url || 'Tab', key: '', kind: 'Tab', run: () => api.selectTab(x.id) }));
+  const bms = (settings.bookmarks || []).map((b) => ({ label: b.title, key: '', kind: 'Lesezeichen', run: () => api.navigate(b.url) }));
+  return [...cmds, ...tabsList, ...bms];
+}
+function renderPalette() {
+  const q = $('paletteInput').value.trim().toLowerCase();
+  const all = paletteCommands();
+  paletteItems = q ? all.filter((c) => c.label.toLowerCase().includes(q)) : all.slice(0, 12);
+  if (q && !paletteItems.length) paletteItems = [{ label: `„${$('paletteInput').value.trim()}“ privat suchen`, kind: 'Suche', key: 'Enter', run: () => api.navigate($('paletteInput').value.trim()) }];
+  paletteSel = Math.min(paletteSel, paletteItems.length - 1);
+  $('paletteList').innerHTML = paletteItems.map((c, i) => `<div class="pal-item ${i === paletteSel ? 'sel' : ''}" data-i="${i}"><span class="k">${c.kind}</span><span class="l">${esc(c.label)}</span><span class="s">${c.key || ''}</span></div>`).join('');
+  $('paletteList').querySelectorAll('.pal-item').forEach((el) => { el.onmousedown = (e) => { e.preventDefault(); runPalette(+el.dataset.i); }; });
+}
+function openPalette() {
+  overlayOpen = true; pushLayout();
+  $('palette').classList.remove('hidden'); $('paletteInput').value = ''; paletteSel = 0; renderPalette(); $('paletteInput').focus();
+}
+function closePalette() { $('palette').classList.add('hidden'); overlayOpen = !$('onboarding').classList.contains('hidden'); pushLayout(); }
+function runPalette(i) { const c = paletteItems[i]; closePalette(); if (c) c.run(); }
+$('paletteInput').addEventListener('input', () => { paletteSel = 0; renderPalette(); });
+$('paletteInput').addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); paletteSel = Math.min(paletteItems.length - 1, paletteSel + 1); renderPalette(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); paletteSel = Math.max(0, paletteSel - 1); renderPalette(); }
+  else if (e.key === 'Enter') { e.preventDefault(); runPalette(paletteSel); }
+  else if (e.key === 'Escape') closePalette();
+});
+$('palette').addEventListener('mousedown', (e) => { if (e.target === $('palette')) closePalette(); });
+async function takeShot() { const f = await api.screenshot(); toast(f ? `Bildschirmfoto in „${f}“ gespeichert` : 'Kein Bildschirmfoto möglich'); }
+
 // Lesezeichen
 function renderBookmarks() {
   $('panelTitle').textContent = 'Lesezeichen';
@@ -337,6 +440,7 @@ function renderSettings() {
     <div class="group"><h3>Startseite & Leiste</h3>
       ${sw('bookmarkBar', 'Lesezeichenleiste anzeigen')}
       ${sw('rememberFrequent', 'Häufig besuchte Seiten merken (nur lokal)')}
+      ${sw('cleanLinks', 'Tracking aus Links entfernen (utm, fbclid …)')}
     </div>
     <button class="secondary" id="sFreqClear">„Häufig besucht“ löschen</button>
     <div class="group"><h3>Google</h3>
@@ -420,6 +524,7 @@ $('menuBtn').onclick = () => api.menu();
 $('immoBtn').onclick = () => (panel === 'immo' ? closePanel() : openPanel('immo'));
 $('pdfSave').onclick = () => api.savePDF();
 $('googleBtn').onclick = () => api.openExternal();
+$('summaryBtn').onclick = () => (panel === 'summary' ? closePanel() : openPanel('summary'));
 $('bookmarksPanelBtn').onclick = () => (panel === 'bookmarks' ? closePanel() : openPanel('bookmarks'));
 $('panelClose').onclick = closePanel;
 $('bookmarkBtn').onclick = async () => {
@@ -437,6 +542,8 @@ document.addEventListener('keydown', (e) => {
   if (k === 't' && e.shiftKey) { e.preventDefault(); api.reopenTab(); return; }
   if (k === 'b' && e.shiftKey) { e.preventDefault(); toggleBar(); return; }
   if (k === 'f') { e.preventDefault(); openFind(); return; }
+  if (k === 'k') { e.preventDefault(); openPalette(); return; }
+  if (k === 'j') { e.preventDefault(); openPanel('summary'); return; }
   if (k === 't') { e.preventDefault(); api.newTab(); }
   if (k === 'l') { e.preventDefault(); $('address').focus(); }
   if (k === 'w') { e.preventDefault(); const t = activeTab(); if (t) api.closeTab(t.id); }
@@ -457,6 +564,8 @@ api.onTor((s) => { torState = s; renderTor(); });
 api.onToast(toast);
 api.onFrequent((f) => { frequent = f; renderFrequent(); });
 api.onFindOpen(openFind);
+api.onPaletteOpen(openPalette);
+api.onScreenshot(takeShot);
 api.onFindResult((r) => { $('findCount').textContent = r.total ? `${r.active}/${r.total}` : 'Keine Treffer'; });
 api.onToggleBookmarkBar(toggleBar);
 async function toggleBar() { settings = await api.setSettings({ bookmarkBar: settings.bookmarkBar === false }); renderBookmarkBar(); }
@@ -473,7 +582,7 @@ api.onOpenPanel(openPanel);
 
 (async () => {
   const s = await api.state();
-  settings = s.settings; torState = s.tor; update = s.update || update; appVersion = s.version || ''; frequent = s.frequent || [];
+  settings = s.settings; torState = s.tor; update = s.update || update; appVersion = s.version || ''; frequent = s.frequent || []; watchlist = s.watchlist || [];
   state.platform = s.platform; state.downloadDirName = s.downloadDirName;
   document.body.classList.add(s.platform === 'darwin' ? 'mac' : 'win');
   renderTor(); renderFavorites(); renderBookmarkBar(); renderFrequent(); renderGreeting(); renderToolbar();

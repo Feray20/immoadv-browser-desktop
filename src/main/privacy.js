@@ -17,6 +17,18 @@ const TRACKERS = [
   'appsflyer.com', 'adjust.com', 'kochava.com'
 ];
 
+// Tracking-Zusätze in Links (Kampagnen-/Klick-IDs) – werden vor dem Laden entfernt
+const TRACK_PARAMS = /^(utm_[a-z_]+|fbclid|gclid|gclsrc|dclid|gbraid|wbraid|msclkid|mc_cid|mc_eid|igshid|igsh|yclid|ttclid|twclid|li_fat_id|_hsenc|_hsmi|__hssc|__hstc|__hsfp|hsctatracking|oly_enc_id|oly_anon_id|vero_id|vero_conv|rb_clickid|s_cid|mkt_tok|_openstat|wickedid|epik|srsltid|sc_cid|trk|trkCampaign|ga_[a-z_]+)$/i;
+function cleanURL(url) {
+  try {
+    const u = new URL(url);
+    if (!u.search || /(^|\.)google\.[a-z.]+$/.test(u.hostname) && u.pathname.startsWith('/o/oauth')) return url;
+    let changed = false;
+    for (const k of [...u.searchParams.keys()]) if (TRACK_PARAMS.test(k)) { u.searchParams.delete(k); changed = true; }
+    return changed ? u.toString() : url;
+  } catch { return url; }
+}
+
 const isTracker = (host) => TRACKERS.some((d) => host === d || host.endsWith('.' + d));
 const hostOf = (u) => { try { return new URL(u).hostname; } catch { return ''; } };
 const site = (h) => h.split('.').slice(-2).join('.');
@@ -62,6 +74,11 @@ async function createBrowsingSession(torOn, socksPort) {
       upgraded.add(secure);
       return cb({ redirectURL: secure });
     }
+    // Tracking-Zusätze aus aufgerufenen Seiten entfernen
+    if (opts.cleanLinks !== false && (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame')) {
+      const clean = cleanURL(url);
+      if (clean !== url) return cb({ redirectURL: clean });
+    }
     // Tracker nur blockieren, wenn sie von einer fremden Seite geladen werden
     if (opts.blockTrackers && details.resourceType !== 'mainFrame' && isTracker(host)) {
       const page = hostOf(details.webContents?.getURL() || details.referrer || '');
@@ -98,4 +115,4 @@ function tabPreferences(ses) {
   };
 }
 
-module.exports = { createBrowsingSession, tabPreferences, userAgent, hostOf, proxyFor, GOOGLE_DIRECT, GOOGLE_LOGIN_HOSTS };
+module.exports = { cleanURL, createBrowsingSession, tabPreferences, userAgent, hostOf, proxyFor, GOOGLE_DIRECT, GOOGLE_LOGIN_HOSTS };

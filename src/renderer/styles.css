@@ -219,3 +219,30 @@ h2 small { font-size: 12px; font-weight: 500; opacity: .7; margin-left: 6px; }
 .upprogress { height: 6px; border-radius: 3px; background: rgba(11,31,58,.1); overflow: hidden; margin: 14px 0 4px; }
 #upBar { height: 100%; width: 0; background: linear-gradient(90deg, #19C2B0, #2fe39a); transition: width .4s ease; }
 #upInstall:disabled { opacity: .75; cursor: default; }
+
+/* ================= 1.0.4 ================= */
+.points { margin: 0; padding-left: 18px; display: grid; gap: 10px; line-height: 1.5; font-size: 13.5px; }
+.points li::marker { color: #19C2B0; }
+.skeleton { height: 14px; border-radius: 7px; margin: 14px 0; background: linear-gradient(90deg, rgba(11,31,58,.06), rgba(11,31,58,.14), rgba(11,31,58,.06)); background-size: 200% 100%; animation: shimmer 1.1s linear infinite; }
+.skeleton.short { width: 60%; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.watch { padding: 12px 0; border-bottom: 1px solid rgba(11,31,58,.08); }
+.watch-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.watch-head a { font-weight: 650; color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-head a:hover { text-decoration: underline; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.kpis div { background: rgba(11,31,58,.05); border-radius: 9px; padding: 6px 8px; display: grid; gap: 2px; }
+.kpis span { font-size: 10.5px; opacity: .65; }
+.kpis b { font-size: 12.5px; }
+.kpis .best { background: rgba(47,227,154,.18); box-shadow: inset 0 0 0 1px rgba(25,194,176,.5); }
+.palette-wrap { position: fixed; inset: 0; z-index: 50; display: grid; justify-items: center; align-items: start; padding-top: 14vh; background: rgba(11,31,58,.28); backdrop-filter: blur(3px); }
+.palette { width: min(620px, calc(100vw - 32px)); background: rgba(255,255,255,.97); color: #0f1b2d; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.35); overflow: hidden; animation: popin .16s ease-out; }
+@keyframes popin { from { transform: translateY(-6px) scale(.98); opacity: 0; } }
+.palette input { width: 100%; box-sizing: border-box; border: 0; outline: 0; padding: 18px 20px; font: inherit; font-size: 17px; background: transparent; border-bottom: 1px solid rgba(11,31,58,.08); }
+#paletteList { max-height: 50vh; overflow-y: auto; padding: 6px; }
+.pal-item { display: grid; grid-template-columns: 86px 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+.pal-item .k { font-size: 11px; color: #5b6b82; }
+.pal-item .s { font-size: 11.5px; color: #5b6b82; }
+.pal-item .l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-item.sel { background: linear-gradient(90deg, rgba(42,91,215,.12), rgba(25,194,176,.12)); }
+.palette-foot { margin: 0; padding: 8px 16px 10px; font-size: 11px; color: #5b6b82; border-top: 1px solid rgba(11,31,58,.06); }
