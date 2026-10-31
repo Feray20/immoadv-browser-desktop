@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('immo', {
   downloadUpdate: () => ipcRenderer.invoke('update:download'),
   installUpdate: () => ipcRenderer.invoke('update:install'),
   setAutoUpdate: (on) => ipcRenderer.invoke('update:auto', on),
+  showUpdateLog: () => ipcRenderer.invoke('update:log'),
   onUpdate: on('update'),
   find: (text, forward, next) => ipcRenderer.send('find', { text, forward, next }),
   findStop: () => ipcRenderer.send('find-stop'),

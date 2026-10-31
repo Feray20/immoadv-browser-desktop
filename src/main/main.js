@@ -22,7 +22,8 @@ app.commandLine.appendSwitch('disable-features', 'NetworkPrediction,InterestFeed
 const TOR_ON = !!store.get('torEnabled');
 if (TOR_ON) {
   // Keine einzige DNS-Anfrage am Tor vorbei: lokale Namensauflösung komplett aus
-  const direct = DIRECT_HOSTS.map((h) => ` , EXCLUDE ${h}`).join('');
+  // Update-Server dürfen lokal aufgelöst werden – wird nur genutzt, wenn ein Update über Tor nicht klappt
+  const direct = [...DIRECT_HOSTS, ...updater.UPDATE_HOSTS].map((h) => ` , EXCLUDE ${h}`).join('');
   app.commandLine.appendSwitch('host-resolver-rules', 'MAP * ~NOTFOUND , EXCLUDE 127.0.0.1' + direct);
 }
 pdf.registerScheme();
@@ -332,6 +333,7 @@ function registerIPC() {
   handle('update:download', () => updater.download());
   handle('update:install', () => updater.install());
   handle('update:auto', (_e, on) => updater.setAuto(on));
+  handle('update:log', () => { const f = updater.logPath(); if (fs.existsSync(f)) shell.showItemInFolder(f); return fs.existsSync(f); });
   handle('state', () => ({
     update: updater.state(), version: app.getVersion(),
     settings: store.all(), tor: tor.state, platform: process.platform,
@@ -417,7 +419,7 @@ function registerIPC() {
   handle('downloadDir:default', () => { store.set('downloadDir', app.getPath('downloads')); return path.basename(app.getPath('downloads')); });
   handle('downloadDir:open', () => shell.openPath(downloadDir()));
   handle('settings:set', (_e, obj) => {
-    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks', 'youtubeDirect'];
+    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks', 'youtubeDirect', 'updateFallback'];
     for (const k of Object.keys(obj)) if (allowed.includes(k)) store.set(k, obj[k]);
     return store.all();
   });
@@ -517,6 +519,8 @@ app.whenReady().then(async () => {
   // sobald Tor seinen Port meldet, wird er als Proxy gesetzt
   tor.on('socks', (port) => { browsingSession.setProxy(proxyFor(port)); });
   tor.on('state', (s) => { send('tor', s); if (s.status === 'connected') flushWaiting(); });
+  // Tor so früh wie möglich starten – parallel zum Aufbau des Fensters
+  if (TOR_ON) tor.start({ useBridges: store.get('useBridges'), customBridges: store.get('customBridges') });
   await createWindow();
 
   updater.init({
@@ -532,16 +536,18 @@ app.whenReady().then(async () => {
     }
   });
 
-  if (TOR_ON) {
-    tor.start({ useBridges: store.get('useBridges'), customBridges: store.get('customBridges') });
-  } else {
-    send('tor', { status: 'disabled', progress: 0, message: 'Tor ist aus' });
-  }
+  if (!TOR_ON) send('tor', { status: 'disabled', progress: 0, message: 'Tor ist aus' });
 });
 
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => tor.stop());
+let torStopped = false;
+app.on('before-quit', (e) => {
+  if (torStopped || !tor.proc) return;
+  e.preventDefault();
+  torStopped = true;
+  tor.stopGracefully().finally(() => app.quit());
+});
 app.on('web-contents-created', (_e, wc) => {
   // Sicherheitsnetz: niemals Node-Rechte oder <webview> für Webinhalte
   wc.on('will-attach-webview', (e) => e.preventDefault());

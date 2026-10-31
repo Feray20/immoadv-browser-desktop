@@ -20,6 +20,7 @@ const defaults = {
   frequent: [],
   watchlist: [],
   youtubeDirect: false,        // YouTube & Google ohne Tor (keine Roboter-Prüfung, aber echte IP für Google)
+  updateFallback: true,        // Update notfalls ohne Tor laden, wenn GitHub die Tor-Adresse sperrt
   cleanLinks: true,            // Tracking-Zusätze (utm, fbclid …) aus Links entfernen
   downloadDir: null,           // wird beim ersten Start gewählt
   bookmarks: [

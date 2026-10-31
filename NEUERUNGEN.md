@@ -1,3 +1,3 @@
-- „Ich bin kein Roboter“ bei Google/YouTube: neue Leiste mit „Neue Tor-Route“ – ein Klick, meistens ist die Prüfung weg
-- Neue Einstellung „YouTube & Google ohne Tor“ (aus ab Werk): keine Roboter-Prüfung mehr, alle anderen Seiten bleiben anonym
-- Google-/YouTube-Anmeldung öffnet sich automatisch im normalen Browser, wenn Google diesen Browser ablehnt
+- Tor startet viel schneller: die Liste der Tor-Knoten wird gespeichert, ab dem zweiten Start meist in wenigen Sekunden verbunden
+- Seiten laden schneller: Zwischenspeicher im Arbeitsspeicher (beim Beenden gelöscht), Conflux-Routen, hängende Verbindungen werden früher umgeleitet
+- Updates zuverlässiger: verständliche Fehlermeldung, Update-Protokoll, und falls GitHub die Tor-Adresse sperrt, wird nur das Update direkt geladen (abschaltbar)

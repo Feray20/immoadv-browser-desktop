@@ -60,7 +60,9 @@ const proxyFor = (port) => ({
 });
 
 async function createBrowsingSession(torOn, socksPort) {
-  const ses = session.fromPartition('immoadv-' + crypto.randomUUID(), { cache: false });
+  // ohne „persist:“ liegt alles nur im Arbeitsspeicher – der Zwischenspeicher macht Seiten über Tor deutlich schneller
+  // (Bilder, Skripte, Schriften werden nicht bei jedem Klick neu durch Tor geladen) und ist beim Beenden weg
+  const ses = session.fromPartition('immoadv-' + crypto.randomUUID(), { cache: true });
   if (torOn) await ses.setProxy(proxyFor(socksPort));
   ses.setUserAgent(userAgent(), 'de-DE,de;q=0.9');
   ses.setSpellCheckerEnabled(false);                       // würde Wörterbücher von Google laden

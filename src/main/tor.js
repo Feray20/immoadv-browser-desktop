@@ -42,8 +42,12 @@ class TorService extends EventEmitter {
       '--DataDirectory', dataDir,
       '--ClientOnly', '1',
       '--SafeSocks', '1',
-      '--AvoidDiskWrites', '1',
-      '--Log', 'notice stdout'
+      // Liste der Tor-Knoten sofort speichern → nächster Start meist in wenigen Sekunden statt von null
+      '--AvoidDiskWrites', '0',
+      '--Log', 'notice stdout',
+      // schneller: hängende Verbindungen früher über eine andere Route versuchen, Conflux (zwei Wege parallel) an
+      '--CircuitStreamTimeout', '15',
+      '--ConfluxEnabled', '1'
     ];
     const geo = path.join(dir, 'data');
     if (fs.existsSync(path.join(geo, 'geoip'))) args.push('--GeoIPFile', path.join(geo, 'geoip'), '--GeoIPv6File', path.join(geo, 'geoip6'));
@@ -110,7 +114,10 @@ class TorService extends EventEmitter {
   }
 
   /** Neue Tor-Route (NEWNYM) über den Steuer-Port */
-  async newIdentity() {
+  newIdentity() { return this.control('SIGNAL NEWNYM'); }
+
+  /** Befehl an Tors Steuer-Port (mit Cookie-Anmeldung) */
+  async control(command) {
     try {
       const f = fs.readFileSync(path.join(app.getPath('userData'), 'tor', 'controlport'), 'utf8');
       this.controlPort = parseInt(f.split(':').pop(), 10) || 0;
@@ -129,13 +136,24 @@ class TorService extends EventEmitter {
         if (/^5\d\d/m.test(out)) { sock.destroy(); resolve(false); }
       });
       sock.on('error', () => resolve(false));
-      sock.write(`AUTHENTICATE ${cookie}\r\nSIGNAL NEWNYM\r\n`);
+      sock.write(`AUTHENTICATE ${cookie}\r\n${command}\r\n`);
     });
   }
 
   stop() {
     this.state.status = 'stopped';
     if (this.proc) { this.proc.kill(); this.proc = null; }
+  }
+
+  /** Sauber beenden: Tor speichert dabei seinen Stand – der nächste Start geht dadurch viel schneller */
+  async stopGracefully() {
+    if (!this.proc) return;
+    const proc = this.proc;
+    this.state.status = 'stopped';
+    const exited = new Promise((r) => proc.once('exit', r));
+    await Promise.race([this.control('SIGNAL HALT'), new Promise((r) => setTimeout(r, 800))]);
+    await Promise.race([exited, new Promise((r) => setTimeout(r, 1500))]);
+    if (this.proc) { try { this.proc.kill(); } catch {} this.proc = null; }
   }
 
   set(status, progress, message) {

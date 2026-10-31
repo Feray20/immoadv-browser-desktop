@@ -437,8 +437,12 @@ function renderSettings() {
       <div class="row"><span>Version</span><b>${esc(appVersion)}</b></div>
       <div class="row"><span>Automatische Updates</span><label class="switch"><input type="checkbox" id="sAutoUp" ${settings.autoUpdate !== false ? 'checked' : ''}><span></span></label></div>
       <div class="row"><span>Status</span><span id="sUpStatus">${esc(updateText())}</span></div>
+      ${update.message && ['retry', 'error', 'available'].includes(update.status) ? `<p class="hint">${esc(update.message)}</p>` : ''}
+      ${sw('updateFallback', 'Update notfalls ohne Tor laden')}
+      <p class="hint">Nur der Update-Download geht dann direkt zu GitHub – dein Surfen bleibt über Tor.</p>
     </div>
-    <button class="secondary" id="sUpBtn">${update.status === 'ready' ? 'Update jetzt starten' : update.status === 'available' ? 'Update laden' : 'Jetzt nach Updates suchen'}</button>
+    <button class="secondary" id="sUpBtn">${update.status === 'ready' ? 'Update jetzt installieren' : update.status === 'available' ? 'Update jetzt installieren' : 'Jetzt nach Updates suchen'}</button>
+    <button class="link" id="sUpLog">Update-Protokoll anzeigen</button>
     <div class="group"><h3>Startseite & Leiste</h3>
       ${sw('bookmarkBar', 'Lesezeichenleiste anzeigen')}
       ${sw('rememberFrequent', 'Häufig besuchte Seiten merken (nur lokal)')}
@@ -475,6 +479,7 @@ function renderSettings() {
   $('sIdentity').onclick = () => api.newIdentity();
   $('sFreqClear').onclick = async () => { await api.clearFrequent(); frequent = []; renderFrequent(); toast('Liste gelöscht'); };
   $('sAutoUp').onchange = async () => { await api.setAutoUpdate($('sAutoUp').checked); settings.autoUpdate = $('sAutoUp').checked; };
+  $('sUpLog').onclick = async () => { if (!(await api.showUpdateLog())) toast('Noch kein Protokoll vorhanden'); };
   $('sUpBtn').onclick = () => (update.status === 'ready' ? api.installUpdate() : update.status === 'available' ? (installRequested = true, api.downloadUpdate()) : api.checkUpdate());
   $('sChoose').onclick = async () => { const n = await api.chooseDownloadDir(); if (n) { state.downloadDirName = n; $('sDir').textContent = n; toast(`Downloads gehen jetzt nach „${n}“`); } };
   $('sOpenDir').onclick = () => api.openDownloadDir();
