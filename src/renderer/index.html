@@ -17,7 +17,7 @@
       <button id="forward" class="icon" title="Vor">›</button>
       <button id="reload" class="icon" title="Neu laden">↻</button>
       <form id="addressForm">
-        <span id="torBadge" title="Tor-Status"></span>
+        <span id="torPill" class="torpill"><span id="torBadge" title="Tor-Status"></span><span id="torText">Verbindet</span></span>
         <input id="address" type="text" spellcheck="false" autocomplete="off" placeholder="Suchen oder Adresse eingeben">
       </form>
       <button id="immoBtn" class="pill hidden">Immobilien-Check</button>
@@ -27,20 +27,33 @@
       <button id="bookmarksPanelBtn" class="icon" title="Alle Lesezeichen">▤</button>
       <button id="menuBtn" class="icon" title="Menü">⋯</button>
     </div>
+    <div id="findbar" class="findbar hidden">
+      <input id="findInput" type="text" spellcheck="false" placeholder="Auf dieser Seite suchen">
+      <span id="findCount"></span>
+      <button id="findPrev" class="icon" title="Vorheriger Treffer">‹</button>
+      <button id="findNext" class="icon" title="Nächster Treffer">›</button>
+      <button id="findClose" class="icon" title="Schließen">✕</button>
+    </div>
+    <div id="bookmarkbar" class="bookmarkbar"></div>
   </header>
 
   <main id="content">
     <section id="start" class="fade">
       <div class="start-inner">
+        <div class="brand"><img src="emblem.png" alt=""><span>ImmoAdv <b>Browser</b></span></div>
         <p id="today" class="today"></p>
         <h1 id="greeting">Willkommen</h1>
-        <p id="startStatus">Tor startet …</p>
+        <p class="status-pill"><span class="dot"></span><span id="startStatus">Tor startet …</span></p>
         <form id="startSearch" class="start-search">
           <span>⌕</span>
           <input id="startInput" type="text" spellcheck="false" autocomplete="off" placeholder="Privat suchen oder Adresse eingeben">
         </form>
         <h2>Favoriten</h2>
         <div id="favorites"></div>
+        <div id="frequentWrap" class="hidden">
+          <h2>Häufig besucht <small>nur auf diesem Computer</small></h2>
+          <div id="frequent"></div>
+        </div>
         <div class="privacy">
           <h2>Datenschutz</h2>
           <p id="privTor">Alle Seiten laufen über Tor</p>
@@ -50,6 +63,12 @@
       </div>
     </section>
     <div id="errorBox" class="notice hidden"></div>
+    <div id="waitBox" class="waitbox hidden">
+      <div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="track"/><circle id="waitArc" cx="60" cy="60" r="52" class="arc"/></svg><img src="emblem.png" alt=""></div>
+      <h2>Sichere Verbindung wird aufgebaut</h2>
+      <p id="waitText">0 %</p>
+      <p class="hint" id="waitHost"></p>
+    </div>
   </main>
   <div id="loadbar"></div>
 

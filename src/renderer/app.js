@@ -10,6 +10,8 @@ let torState = { status: 'off', progress: 0, message: '' };
 let panel = null;           // 'immo' | 'bookmarks' | 'settings' | null
 let overlayOpen = false;
 let shownGoogleHint = false;
+let frequent = [];
+let dragIndex = null;
 let update = { status: 'idle' };
 let appVersion = '';
 let updatePopDismissed = null;
@@ -66,8 +68,9 @@ function renderToolbar() {
   $('bookmarkBtn').textContent = marked ? '★' : '☆';
   $('bookmarkBtn').disabled = !t?.url || t.kind === 'pdf';
 
+  renderWait();
   const showStart = !t || (!t.url && t.kind !== 'pdf');
-  $('start').classList.toggle('hidden', !showStart && !t?.error);
+  $('start').classList.toggle('hidden', !showStart && !t?.error && !t?.waiting);
   $('errorBox').classList.toggle('hidden', !t?.error);
   $('errorBox').textContent = t?.error || '';
   if (panel === 'immo' && !t?.listing) closePanel();
@@ -86,11 +89,91 @@ function renderTor() {
   else if (torState.status === 'failed') { b.classList.add('bad'); text = torState.message; }
   else text = `Tor verbindet … ${torState.progress || 0} %`;
   b.title = text;
+  $('torText').textContent = !settings.torEnabled ? 'Tor aus' : torState.status === 'connected' ? 'Geschützt'
+    : torState.status === 'failed' ? 'Fehler' : `Verbindet ${torState.progress || 0} %`;
+  $('torPill').className = 'torpill ' + (b.className || '');
   $('startStatus').textContent = text;
+  document.querySelector('.status-pill .dot').style.background = !settings.torEnabled ? '#9aa4b2' : torState.status === 'connected' ? '#2fe39a' : torState.status === 'failed' ? '#ff5d5d' : '#f5a524';
+  renderWait();
   $('privTor').textContent = settings.torEnabled ? 'Alle Seiten laufen über Tor' : 'Tor ist aus – normaler Modus';
 }
 
 // ---------- Startseite ----------
+function renderWait() {
+  const t = activeTab();
+  const on = !!t?.waiting;
+  $('waitBox').classList.toggle('hidden', !on);
+  if (!on) return;
+  const p = torState.progress || 0;
+  $('waitText').textContent = `${p} % – die Seite öffnet sich automatisch`;
+  $('waitHost').textContent = t.url ? hostOf(t.url) : '';
+  $('waitArc').style.strokeDashoffset = String(327 - 327 * p / 100);
+}
+
+// ---------- Lesezeichenleiste (ziehen zum Sortieren) ----------
+function renderBookmarkBar() {
+  const bar = $('bookmarkbar');
+  bar.classList.toggle('hidden', settings.bookmarkBar === false);
+  bar.innerHTML = '';
+  const list = settings.bookmarks || [];
+  list.forEach((b, i) => {
+    const el = document.createElement('button');
+    el.className = 'bm-chip';
+    el.draggable = true;
+    el.title = b.url;
+    el.innerHTML = `<span class="ic">${esc(b.title.slice(0, 1).toUpperCase())}</span>${esc(b.title)}`;
+    el.onclick = (e) => (e.ctrlKey || e.metaKey ? api.newTab(b.url) : api.navigate(b.url));
+    el.onauxclick = (e) => { if (e.button === 1) api.newTab(b.url); };
+    el.addEventListener('dragstart', (e) => { dragIndex = i; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    el.addEventListener('dragend', () => { dragIndex = null; el.classList.remove('dragging'); bar.querySelectorAll('.over').forEach((x) => x.classList.remove('over')); });
+    el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('over'); });
+    el.addEventListener('dragleave', () => el.classList.remove('over'));
+    el.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      if (dragIndex === null || dragIndex === i) return;
+      const next = [...list];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(i, 0, moved);
+      settings = await api.setSettings({ bookmarks: next });
+      renderBookmarkBar(); renderFavorites();
+    });
+    bar.appendChild(el);
+  });
+  if (!list.length) bar.innerHTML = '<span class="hint">Mit ☆ Seiten hier ablegen – Reihenfolge per Ziehen ändern</span>';
+}
+
+function renderFrequent() {
+  $('frequentWrap').classList.toggle('hidden', !frequent.length || settings.rememberFrequent === false);
+  const box = $('frequent');
+  box.innerHTML = '';
+  for (const f of frequent) {
+    const el = document.createElement('button');
+    el.className = 'fav';
+    let host = f.url; try { host = new URL(f.url).hostname.replace(/^www\./, ''); } catch {}
+    el.innerHTML = `<span class="ic">${esc(host.slice(0, 1).toUpperCase())}</span><span>${esc(host)}</span>`;
+    el.onclick = () => api.navigate(f.url);
+    box.appendChild(el);
+  }
+}
+
+// ---------- Suche auf der Seite ----------
+function openFind() {
+  $('findbar').classList.remove('hidden');
+  $('findInput').focus(); $('findInput').select();
+}
+function closeFind() {
+  $('findbar').classList.add('hidden'); $('findCount').textContent = '';
+  api.findStop();
+}
+$('findInput').addEventListener('input', () => { const v = $('findInput').value; if (v) api.find(v, true, false); else { api.findStop(); $('findCount').textContent = ''; } });
+$('findInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); api.find($('findInput').value, !e.shiftKey, true); }
+  if (e.key === 'Escape') closeFind();
+});
+$('findNext').onclick = () => api.find($('findInput').value, true, true);
+$('findPrev').onclick = () => api.find($('findInput').value, false, true);
+$('findClose').onclick = closeFind;
+
 function renderGreeting() {
   const h = new Date().getHours();
   $('greeting').textContent = h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 17 ? 'Guten Tag' : h < 22 ? 'Guten Abend' : 'Gute Nacht';
@@ -222,7 +305,7 @@ function renderBookmarks() {
   $('panelBody').querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => {
     const next = list.filter((_, i) => i !== +b.dataset.del);
     settings = await api.setSettings({ bookmarks: next });
-    renderBookmarks(); renderFavorites(); renderToolbar();
+    renderBookmarks(); renderFavorites(); renderBookmarkBar(); renderToolbar();
   });
 }
 
@@ -250,6 +333,11 @@ function renderSettings() {
       <div class="row"><span>Status</span><span id="sUpStatus">${esc(updateText())}</span></div>
     </div>
     <button class="secondary" id="sUpBtn">${update.status === 'ready' ? 'Update jetzt starten' : update.status === 'available' ? 'Update laden' : 'Jetzt nach Updates suchen'}</button>
+    <div class="group"><h3>Startseite & Leiste</h3>
+      ${sw('bookmarkBar', 'Lesezeichenleiste anzeigen')}
+      ${sw('rememberFrequent', 'Häufig besuchte Seiten merken (nur lokal)')}
+    </div>
+    <button class="secondary" id="sFreqClear">„Häufig besucht“ löschen</button>
     <div class="group"><h3>Google</h3>
       ${sw('googleDirect', 'Google-Anmeldung ohne Tor erlauben')}
     </div>
@@ -266,11 +354,12 @@ function renderSettings() {
     <button class="secondary danger" id="sClear">Alle Tabs und Website-Daten löschen</button>`;
   $('panelBody').querySelectorAll('input[data-key]').forEach((el) => el.onchange = async () => {
     settings = await api.setSettings({ [el.dataset.key]: el.checked });
-    renderTor();
+    renderTor(); renderBookmarkBar(); renderFrequent();
     if (['torEnabled', 'useBridges', 'javaScript', 'googleDirect'].includes(el.dataset.key)) toast('Gilt nach Neustart des Programms');
   });
   $('sBridges').onchange = async () => { settings = await api.setSettings({ customBridges: $('sBridges').value }); toast('Gilt nach Neustart'); };
   $('sIdentity').onclick = () => api.newIdentity();
+  $('sFreqClear').onclick = async () => { await api.clearFrequent(); frequent = []; renderFrequent(); toast('Liste gelöscht'); };
   $('sAutoUp').onchange = async () => { await api.setAutoUpdate($('sAutoUp').checked); settings.autoUpdate = $('sAutoUp').checked; };
   $('sUpBtn').onclick = () => (update.status === 'ready' ? api.installUpdate() : update.status === 'available' ? api.downloadUpdate() : api.checkUpdate());
   $('sChoose').onclick = async () => { const n = await api.chooseDownloadDir(); if (n) { state.downloadDirName = n; $('sDir').textContent = n; toast(`Downloads gehen jetzt nach „${n}“`); } };
@@ -326,12 +415,15 @@ $('bookmarkBtn').onclick = async () => {
   const exists = list.some((b) => b.url === t.url);
   settings = await api.setSettings({ bookmarks: exists ? list.filter((b) => b.url !== t.url) : [...list, { title: t.title || hostOf(t.url), url: t.url }] });
   toast(exists ? 'Lesezeichen entfernt' : 'Lesezeichen gesichert');
-  renderFavorites(); renderToolbar(); if (panel === 'bookmarks') renderBookmarks();
+  renderFavorites(); renderBookmarkBar(); renderToolbar(); if (panel === 'bookmarks') renderBookmarks();
 };
 document.addEventListener('keydown', (e) => {
   const mod = state.platform === 'darwin' ? e.metaKey : e.ctrlKey;
   if (!mod) return;
   const k = e.key.toLowerCase();
+  if (k === 't' && e.shiftKey) { e.preventDefault(); api.reopenTab(); return; }
+  if (k === 'b' && e.shiftKey) { e.preventDefault(); toggleBar(); return; }
+  if (k === 'f') { e.preventDefault(); openFind(); return; }
   if (k === 't') { e.preventDefault(); api.newTab(); }
   if (k === 'l') { e.preventDefault(); $('address').focus(); }
   if (k === 'w') { e.preventDefault(); const t = activeTab(); if (t) api.closeTab(t.id); }
@@ -350,6 +442,11 @@ $('obDefault').onclick = async () => { state.downloadDirName = await api.useDefa
 api.onTabs((d) => { state.tabs = d.tabs; state.activeId = d.activeId; renderTabs(); renderToolbar(); });
 api.onTor((s) => { torState = s; renderTor(); });
 api.onToast(toast);
+api.onFrequent((f) => { frequent = f; renderFrequent(); });
+api.onFindOpen(openFind);
+api.onFindResult((r) => { $('findCount').textContent = r.total ? `${r.active}/${r.total}` : 'Keine Treffer'; });
+api.onToggleBookmarkBar(toggleBar);
+async function toggleBar() { settings = await api.setSettings({ bookmarkBar: settings.bookmarkBar === false }); renderBookmarkBar(); }
 api.onUpdate((u) => {
   update = u;
   if (panel === 'settings') renderSettings();
@@ -361,10 +458,10 @@ api.onOpenPanel(openPanel);
 
 (async () => {
   const s = await api.state();
-  settings = s.settings; torState = s.tor; update = s.update || update; appVersion = s.version || '';
+  settings = s.settings; torState = s.tor; update = s.update || update; appVersion = s.version || ''; frequent = s.frequent || [];
   state.platform = s.platform; state.downloadDirName = s.downloadDirName;
   document.body.classList.add(s.platform === 'darwin' ? 'mac' : 'win');
-  renderTor(); renderFavorites(); renderGreeting(); renderToolbar();
+  renderTor(); renderFavorites(); renderBookmarkBar(); renderFrequent(); renderGreeting(); renderToolbar();
   setInterval(renderGreeting, 60000);
   if (!s.settings.downloadDir) showOnboarding(true);
 })();

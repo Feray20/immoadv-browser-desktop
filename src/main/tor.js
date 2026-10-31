@@ -34,7 +34,7 @@ class TorService extends EventEmitter {
 
     const args = [
       // Ports vergibt Tor selbst (kein Wettlauf mit anderen Programmen um einen vorab gewählten Port)
-      '--SocksPort', 'auto IsolateDestAddr',
+      '--SocksPort', 'auto',
       '--ControlPort', 'auto',
       '--ControlPortWriteToFile', path.join(dataDir, 'controlport'),
       '__OwningControllerProcess', String(process.pid),   // Tor endet mit der App, auch nach einem Absturz
@@ -94,7 +94,8 @@ class TorService extends EventEmitter {
       .map((l) => l.replaceAll('${pt_path}', ptPath).replaceAll('${pt_extension}', ext));
 
     const own = String(custom || '').split(/\r?\n/).map((l) => l.trim().replace(/^Bridge\s+/i, '')).filter(Boolean);
-    const lines = own.length ? own : (cfg.bridges?.snowflake || []);
+    // obfs4 ist deutlich schneller als Snowflake; Snowflake bleibt als Ausweich dabei
+    const lines = own.length ? own : [...(cfg.bridges?.obfs4 || []), ...(cfg.bridges?.snowflake || [])];
     if (!lines.length || !plugins.length) return [];
 
     const needed = new Set(lines.map((l) => l.split(/\s+/)[0]));

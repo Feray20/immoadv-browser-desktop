@@ -14,7 +14,10 @@ const defaults = {
   javaScript: true,
   appLock: false,              // Touch ID beim Start (nur Mac)
   googleDirect: false,         // Google-Anmeldung ohne Tor (Google sperrt Tor oft)
-  autoUpdate: true,            // Updates automatisch laden und beim Beenden installieren
+  autoUpdate: true,
+  rememberFrequent: true,      // häufig besuchte Seiten auf der Startseite (nur lokal)
+  bookmarkBar: true,           // Lesezeichenleiste unter der Adresszeile
+  frequent: [],            // Updates automatisch laden und beim Beenden installieren
   downloadDir: null,           // wird beim ersten Start gewählt
   bookmarks: [
     { title: 'ImmoAdv', url: 'https://immoadv.de' },

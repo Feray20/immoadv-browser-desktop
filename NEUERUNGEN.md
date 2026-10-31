@@ -1,4 +1,6 @@
-- Neues Design: Webseiten schweben als Karte mit runden Ecken auf dem ImmoAdv-Fade
-- Startseite mit Begrüßung, Datum und großer privater Suche
-- Weiche Animationen für Seitenleiste, Hinweise und Tabs, Ladebalken unter der Leiste
-- Google-Anmeldung: automatischer Hinweis, wenn Google sie blockiert
+- Neues rundes ImmoAdv-Browser-Logo
+- Lesezeichenleiste unter der Adressleiste – Reihenfolge per Ziehen ändern (Strg+Umschalt+B ein/aus)
+- „Häufig besucht“ auf der Startseite – bleibt nur auf diesem Computer
+- Schnellerer Start: Seiten warten mit Fortschrittsring auf Tor und öffnen sich automatisch
+- Tor-Status jetzt als klare Anzeige („Verbindet 45 %“ / „Geschützt“)
+- Auf Seite suchen (Strg+F), Zoom (Strg +/−/0), geschlossenen Tab wieder öffnen (Strg+Umschalt+T)

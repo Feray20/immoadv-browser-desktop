@@ -31,7 +31,8 @@ const CHROME_HEIGHT = 84;      // Tab-Leiste + Adressleiste (wird vom Fenster ge
 let win = null;
 let browsingSession = null;
 let layout = { top: CHROME_HEIGHT, right: 0, hidden: false };
-const tabs = [];                // { id, view, kind: 'web'|'pdf', url, title, filePath, listing }
+const tabs = [];
+const closedStack = [];     // zuletzt geschlossene Tabs – nur im Arbeitsspeicher                // { id, view, kind: 'web'|'pdf', url, title, filePath, listing }
 let activeId = null;
 
 const send = (ch, data) => win && !win.isDestroyed() && win.webContents.send(ch, data);
@@ -97,8 +98,10 @@ function wireView(tab) {
     tab.listing = null; tab.googleBlocked = false;
     if (!/^https:\/\/accounts\.google\./.test(url)) tab.lastSiteUrl = url;   // Seite, von der die Anmeldung kam
     update();
+    rememberVisit(url, wc);
   });
   wc.on('did-navigate-in-page', update);
+  wc.on('found-in-page', (_e, r) => { if (tab.id === activeId) send('find-result', { active: r.activeMatchOrdinal, total: r.matches }); });
   wc.on('did-start-loading', () => { tab.loading = true; tab.error = null; pushTabs(); });
   wc.on('did-stop-loading', () => { tab.loading = false; pushTabs(); });
   wc.on('did-fail-load', (_e, code, _desc, _url, isMain) => {
@@ -144,14 +147,26 @@ function newTab(url, opts = {}) {
 function load(tab, url) {
   tab.url = url;
   tab.error = null;
+  // Solange Tor noch verbindet: Seite merken und automatisch öffnen, sobald die Verbindung steht
+  if (tab.kind === 'web' && TOR_ON && tor.state.status !== 'connected') {
+    tab.waiting = true; tab.pendingUrl = url;
+    positionViews(); pushTabs();
+    return;
+  }
+  tab.waiting = false; tab.pendingUrl = null;
   tab.view.webContents.loadURL(url).catch(() => {});
   positionViews();
+}
+
+function flushWaiting() {
+  for (const t of tabs) if (t.waiting && t.pendingUrl) load(t, t.pendingUrl);
 }
 
 function closeTab(id) {
   const i = tabs.findIndex((t) => t.id === id);
   if (i < 0) return;
   const [t] = tabs.splice(i, 1);
+  if (t.kind === 'web' && t.url) { closedStack.push(t.url); if (closedStack.length > 20) closedStack.shift(); }
   win.contentView.removeChildView(t.view);
   t.view.webContents.close();
   if (!tabs.length) newTab();
@@ -163,7 +178,7 @@ function positionViews() {
   if (!win) return;
   const [w, h] = win.getContentSize();
   for (const t of tabs) {
-    const show = t.id === activeId && !layout.hidden && !!t.url;
+    const show = t.id === activeId && !layout.hidden && !!t.url && !t.waiting;
     t.view.setVisible(show);
     // Webseite als schwebende Karte mit runden Ecken auf dem ImmoAdv-Fade
     const G = 8;
@@ -179,7 +194,7 @@ function pushTabs() {
       return {
         id: t.id, kind: t.kind, title: t.title, url: t.kind === 'pdf' ? '' : t.url,
         fileName: t.filePath ? path.basename(t.filePath) : null,
-        loading: !!t.loading, error: t.error || null, listing: t.listing || null, googleBlocked: !!t.googleBlocked,
+        loading: !!t.loading, waiting: !!t.waiting, zoom: t.zoom || 0, error: t.error || null, listing: t.listing || null, googleBlocked: !!t.googleBlocked,
         canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward()
       };
     })
@@ -251,12 +266,44 @@ function handleShortcut(e, input) {
   if (!mod) return;
   const k = input.key.toLowerCase();
   const t = active();
+  if (input.shift && k === 't') { e.preventDefault(); reopenTab(); return; }
+  if (input.shift && k === 'b') { e.preventDefault(); send('toggle-bookmarkbar'); return; }
   const map = {
+    f: () => { win.webContents.focus(); send('find-open'); },
+    '+': () => zoom(t, 0.5), '=': () => zoom(t, 0.5), '-': () => zoom(t, -0.5), '0': () => zoom(t, null),
     t: () => newTab(), w: () => t && closeTab(t.id), l: () => { win.webContents.focus(); send('focus-address'); },
     r: () => t?.view.webContents.reload(), s: () => t?.kind === 'pdf' && savePDF(t),
     '[': () => t?.view.webContents.navigationHistory.goBack(), ']': () => t?.view.webContents.navigationHistory.goForward()
   };
   if (map[k]) { e.preventDefault(); map[k](); }
+}
+
+function zoom(t, step) {
+  if (!t) return;
+  t.zoom = step === null ? 0 : Math.max(-3, Math.min(4, (t.zoom || 0) + step));
+  t.view.webContents.setZoomLevel(t.zoom);
+  send('toast', `Zoom ${Math.round(Math.pow(1.2, t.zoom) * 100)} %`);
+  pushTabs();
+}
+
+function reopenTab() {
+  const url = closedStack.pop();
+  if (url) newTab(url); else send('toast', 'Kein geschlossener Tab');
+}
+
+// Häufig besuchte Seiten: nur Adresse und Titel, nur auf diesem Computer, nie weitergegeben
+function rememberVisit(url, wc) {
+  if (!store.get('rememberFrequent')) return;
+  let u; try { u = new URL(url); } catch { return; }
+  if (!/^https?:$/.test(u.protocol) || /(^|\.)google\.|duckduckgo/.test(u.hostname)) return;
+  const key = u.origin;
+  const list = store.get('frequent') || [];
+  const item = list.find((x) => x.key === key);
+  if (item) { item.count++; item.last = Date.now(); item.title = wc.getTitle() || item.title; }
+  else list.push({ key, url: u.origin + '/', title: wc.getTitle() || u.hostname.replace(/^www\./, ''), count: 1, last: Date.now() });
+  list.sort((a, b) => b.count - a.count);
+  store.set('frequent', list.slice(0, 40));
+  send('frequent', store.get('frequent').slice(0, 8));
 }
 
 async function savePDF(t) {
@@ -277,9 +324,18 @@ function registerIPC() {
   handle('state', () => ({
     update: updater.state(), version: app.getVersion(),
     settings: store.all(), tor: tor.state, platform: process.platform,
+    frequent: (store.get('frequent') || []).slice(0, 8),
     downloadDirName: store.get('downloadDir') ? path.basename(store.get('downloadDir')) : null
   }));
   on('layout', (_e, l) => { layout = { ...layout, ...l }; positionViews(); });
+  on('find', (_e, { text, forward, next }) => {
+    const t = active(); if (!t || !text) return;
+    t.view.webContents.findInPage(text, { forward: forward !== false, findNext: !!next });
+  });
+  on('find-stop', () => { const t = active(); if (t) t.view.webContents.stopFindInPage('clearSelection'); });
+  on('zoom', (_e, step) => zoom(active(), step));
+  on('reopen-tab', () => reopenTab());
+  handle('frequent:clear', () => { store.set('frequent', []); send('frequent', []); return true; });
   on('navigate', (_e, input) => {
     let t = active();
     if (!t || t.kind === 'pdf') t = newTab();
@@ -307,7 +363,7 @@ function registerIPC() {
   handle('downloadDir:default', () => { store.set('downloadDir', app.getPath('downloads')); return path.basename(app.getPath('downloads')); });
   handle('downloadDir:open', () => shell.openPath(downloadDir()));
   handle('settings:set', (_e, obj) => {
-    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect'];
+    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar'];
     for (const k of Object.keys(obj)) if (allowed.includes(k)) store.set(k, obj[k]);
     return store.all();
   });
@@ -344,6 +400,14 @@ function showMenu() {
     { type: 'separator' },
     { label: 'PDF öffnen & unterschreiben …', click: () => openPDFDialog() },
     ...(t?.kind === 'pdf' ? [{ label: 'PDF speichern', accelerator: 'CmdOrCtrl+S', click: () => savePDF(t) }] : []),
+    { label: 'Auf Seite suchen …', accelerator: 'CmdOrCtrl+F', click: () => send('find-open') },
+    { label: 'Geschlossenen Tab wieder öffnen', accelerator: 'CmdOrCtrl+Shift+T', enabled: closedStack.length > 0, click: () => reopenTab() },
+    { label: 'Zoom', submenu: [
+      { label: 'Vergrößern', accelerator: 'CmdOrCtrl+Plus', click: () => zoom(active(), 0.5) },
+      { label: 'Verkleinern', accelerator: 'CmdOrCtrl+-', click: () => zoom(active(), -0.5) },
+      { label: 'Originalgröße', accelerator: 'CmdOrCtrl+0', click: () => zoom(active(), null) }
+    ] },
+    { label: 'Lesezeichenleiste ein/aus', accelerator: 'CmdOrCtrl+Shift+B', click: () => send('toggle-bookmarkbar') },
     { label: 'Download-Ordner öffnen', click: () => shell.openPath(downloadDir()) },
     ...(t?.kind === 'web' && t.url ? [{ label: 'Im Standard-Browser öffnen (ohne Tor)', click: () => openExternal(t) }] : []),
     { type: 'separator' },
@@ -394,7 +458,7 @@ app.whenReady().then(async () => {
   wireDownloads(browsingSession);
   // sobald Tor seinen Port meldet, wird er als Proxy gesetzt
   tor.on('socks', (port) => { browsingSession.setProxy(proxyFor(port)); });
-  tor.on('state', (s) => send('tor', s));
+  tor.on('state', (s) => { send('tor', s); if (s.status === 'connected') flushWaiting(); });
   await createWindow();
 
   updater.init({
