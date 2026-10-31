@@ -46,16 +46,45 @@ async function torBundle(osName, a, dest) {
 
 // Echtheit: Prüfsummen-Datei muss vom Signaturschlüssel der Tor-Browser-Entwickler signiert sein
 const TOR_KEY = 'EF6E286DDA85EA2A4BA7DE684E2C6E8793298290';
+
+function findGpg() {
+  const candidates = ['gpg', 'C:\\Program Files\\Git\\usr\\bin\\gpg.exe', 'C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe', '/opt/homebrew/bin/gpg', '/usr/local/bin/gpg'];
+  for (const c of candidates) {
+    try { execFileSync(c, ['--version'], { stdio: 'ignore' }); return c; } catch { /* nächster */ }
+  }
+  return null;
+}
+
+// Web Key Directory: Hash des Namens „torbrowser“ (SHA-1, z-base-32) → Schlüssel direkt von torproject.org
+function wkdHash(local) {
+  const alphabet = 'ybndrfg8ejkmcpqxot1uwisza345h769';
+  const bytes = crypto.createHash('sha1').update(local.toLowerCase()).digest();
+  let bits = '';
+  for (const b of bytes) bits += b.toString(2).padStart(8, '0');
+  let out = '';
+  for (let i = 0; i < bits.length; i += 5) out += alphabet[parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2)];
+  return out;
+}
+
 async function verifySignature(sumsText, sigBuf) {
+  const gpg = findGpg();
+  if (!gpg) { console.warn('WARNUNG: gpg nicht gefunden – nur SHA-256-Prüfung über HTTPS.'); return; }
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'torsig-'));
   try {
+    const h = wkdHash('torbrowser');
+    let key;
+    try { key = await get(`https://openpgpkey.torproject.org/.well-known/openpgpkey/torproject.org/hu/${h}?l=torbrowser`); }
+    catch { key = await get(`https://torproject.org/.well-known/openpgpkey/hu/${h}?l=torbrowser`); }
+    fs.writeFileSync(path.join(dir, 'key.gpg'), key);
     fs.writeFileSync(path.join(dir, 'sums.txt'), sumsText);
     fs.writeFileSync(path.join(dir, 'sums.txt.asc'), sigBuf);
     const home = ['--homedir', dir, '--batch', '--no-tty'];
-    // Schlüssel direkt vom Tor-Projekt (Web Key Directory), wie in der offiziellen Anleitung
-    execFileSync('gpg', [...home, '--auto-key-locate', 'nodefault,wkd', '--locate-keys', 'torbrowser@torproject.org'], { stdio: 'ignore' });
-    const out = execFileSync('gpg', [...home, '--status-fd', '1', '--verify', path.join(dir, 'sums.txt.asc'), path.join(dir, 'sums.txt')]).toString();
-    if (!out.includes(`VALIDSIG ${TOR_KEY}`) && !new RegExp(`VALIDSIG \\S+ .*${TOR_KEY}`).test(out)) {
+    execFileSync(gpg, [...home, '--import', path.join(dir, 'key.gpg')], { stdio: 'ignore' });
+    let out = '';
+    try {
+      out = execFileSync(gpg, [...home, '--status-fd', '1', '--verify', path.join(dir, 'sums.txt.asc'), path.join(dir, 'sums.txt')], { stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    } catch (e) { out = e.stdout ? e.stdout.toString() : ''; }
+    if (!/\[GNUPG:\] VALIDSIG /.test(out) || !out.includes(TOR_KEY)) {
       throw new Error('Signatur des Tor-Pakets ungültig – Abbruch.');
     }
     console.log('Tor-Signatur geprüft.');
