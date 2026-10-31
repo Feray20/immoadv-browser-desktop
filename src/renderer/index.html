@@ -32,8 +32,13 @@
   <main id="content">
     <section id="start" class="fade">
       <div class="start-inner">
-        <h1>ImmoAdv Browser</h1>
+        <p id="today" class="today"></p>
+        <h1 id="greeting">Willkommen</h1>
         <p id="startStatus">Tor startet …</p>
+        <form id="startSearch" class="start-search">
+          <span>⌕</span>
+          <input id="startInput" type="text" spellcheck="false" autocomplete="off" placeholder="Privat suchen oder Adresse eingeben">
+        </form>
         <h2>Favoriten</h2>
         <div id="favorites"></div>
         <div class="privacy">
@@ -46,6 +51,7 @@
     </section>
     <div id="errorBox" class="notice hidden"></div>
   </main>
+  <div id="loadbar"></div>
 
   <aside id="panel" class="hidden">
     <div class="panel-head"><h2 id="panelTitle"></h2><button id="panelClose" class="icon">✕</button></div>

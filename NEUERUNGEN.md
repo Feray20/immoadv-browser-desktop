@@ -1,4 +1,4 @@
-- Erste Version des ImmoAdv Browsers
-- Tor mit Snowflake-Brücken, Immobilien-Check, PDF-Werkzeug mit Unterschrift
-- Google-Anmeldung: optional ohne Tor oder im Standard-Browser
-- Automatische Updates
+- Neues Design: Webseiten schweben als Karte mit runden Ecken auf dem ImmoAdv-Fade
+- Startseite mit Begrüßung, Datum und großer privater Suche
+- Weiche Animationen für Seitenleiste, Hinweise und Tabs, Ladebalken unter der Leiste
+- Google-Anmeldung: automatischer Hinweis, wenn Google sie blockiert

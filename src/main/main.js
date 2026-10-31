@@ -67,6 +67,7 @@ function makeView(kind) {
     : tabPreferences(browsingSession);
   const view = new WebContentsView({ webPreferences: prefs });
   view.setBackgroundColor('#ffffff');
+  if (typeof view.setBorderRadius === 'function') view.setBorderRadius(14);
   return view;
 }
 
@@ -164,7 +165,9 @@ function positionViews() {
   for (const t of tabs) {
     const show = t.id === activeId && !layout.hidden && !!t.url;
     t.view.setVisible(show);
-    if (show) t.view.setBounds({ x: 0, y: layout.top, width: Math.max(0, w - layout.right), height: Math.max(0, h - layout.top) });
+    // Webseite als schwebende Karte mit runden Ecken auf dem ImmoAdv-Fade
+    const G = 8;
+    if (show) t.view.setBounds({ x: G, y: layout.top, width: Math.max(0, w - layout.right - G * 2), height: Math.max(0, h - layout.top - G) });
   }
 }
 

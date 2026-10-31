@@ -24,10 +24,12 @@ function pushLayout() {
   const top = $('chrome').offsetHeight;
   $('content').style.top = top + 'px';
   $('panel').style.top = top + 'px';
+  $('loadbar').style.top = (top - 3) + 'px';
   const t = activeTab();
   const hideWeb = overlayOpen || !!(t && t.error);
-  api.layout({ top, right: panel ? 380 : 0, hidden: hideWeb });
+  api.layout({ top, right: panel ? 388 : 0, hidden: hideWeb });
   document.body.classList.toggle('panel-open', !!panel);
+  document.body.classList.toggle('loading', !!(t && t.loading));
 }
 new ResizeObserver(pushLayout).observe($('chrome'));
 
@@ -89,6 +91,12 @@ function renderTor() {
 }
 
 // ---------- Startseite ----------
+function renderGreeting() {
+  const h = new Date().getHours();
+  $('greeting').textContent = h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 17 ? 'Guten Tag' : h < 22 ? 'Guten Abend' : 'Gute Nacht';
+  $('today').textContent = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
 function renderFavorites() {
   const box = $('favorites');
   box.innerHTML = '';
@@ -105,10 +113,15 @@ function renderFavorites() {
 function openPanel(kind) {
   panel = kind;
   $('panel').classList.remove('hidden');
+  requestAnimationFrame(() => $('panel').classList.add('open'));
   ({ immo: renderImmo, bookmarks: renderBookmarks, settings: renderSettings })[kind]();
   pushLayout();
 }
-function closePanel() { panel = null; $('panel').classList.add('hidden'); pushLayout(); }
+function closePanel() {
+  panel = null; $('panel').classList.remove('open');
+  setTimeout(() => { if (!panel) $('panel').classList.add('hidden'); }, 220);
+  pushLayout();
+}
 
 // Immobilien-Check
 function renderImmo() {
@@ -287,10 +300,13 @@ let toastTimer;
 function toast(text) {
   const t = $('toast');
   t.textContent = text; t.classList.remove('hidden');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 2400);
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.classList.add('hidden'), 250); }, 2400);
 }
 
 // ---------- Bedienelemente ----------
+$('startSearch').addEventListener('submit', (e) => { e.preventDefault(); const v = $('startInput').value.trim(); if (v) { api.navigate(v); $('startInput').value = ''; } });
 $('addressForm').addEventListener('submit', (e) => { e.preventDefault(); const v = $('address').value.trim(); if (v) { api.navigate(v); $('address').blur(); } });
 $('address').addEventListener('focus', () => { const t = activeTab(); if (t?.url && t.kind !== 'pdf') $('address').value = t.url; $('address').select(); });
 $('address').addEventListener('blur', renderToolbar);
@@ -348,6 +364,7 @@ api.onOpenPanel(openPanel);
   settings = s.settings; torState = s.tor; update = s.update || update; appVersion = s.version || '';
   state.platform = s.platform; state.downloadDirName = s.downloadDirName;
   document.body.classList.add(s.platform === 'darwin' ? 'mac' : 'win');
-  renderTor(); renderFavorites(); renderToolbar();
+  renderTor(); renderFavorites(); renderGreeting(); renderToolbar();
+  setInterval(renderGreeting, 60000);
   if (!s.settings.downloadDir) showOnboarding(true);
 })();
