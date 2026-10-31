@@ -1,0 +1,26 @@
+{
+  "name": "immoadv-browser",
+  "productName": "ImmoAdv Browser",
+  "version": "1.0.0",
+  "description": "Privater Browser mit eingebautem Tor, Immobilien-Check und PDF-Werkzeug",
+  "author": "Feray Korkmaz",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main/main.js",
+  "scripts": {
+    "vendor": "node scripts/fetch-vendor.mjs",
+    "start": "electron .",
+    "test": "node --test test/calculator.test.js",
+    "dist:win": "node scripts/fetch-vendor.mjs win x64 && electron-builder --win --x64 --publish always",
+    "dist:mac": "node scripts/fetch-vendor.mjs mac universal && electron-builder --mac --universal --publish always"
+  },
+  "dependencies": {
+    "electron-updater": ">=6.3.0"
+  },
+  "devDependencies": {
+    "electron": ">=38.0.0",
+    "electron-builder": ">=26.0.0",
+    "tar": "^7.4.0",
+    "extract-zip": "^2.0.1"
+  }
+}

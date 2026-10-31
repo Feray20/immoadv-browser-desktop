@@ -1,0 +1,55 @@
+# Baut den ImmoAdv Browser für Windows und Mac – automatisch bei jedem Push auf „main“ –
+# und veröffentlicht neue Versionen als GitHub-Release. Die installierten Programme aktualisieren sich daraus selbst.
+# Benötigt in CircleCI → Project Settings → Environment Variables: GH_TOKEN (GitHub-Token mit Schreibrecht auf Feray20/immoadv-browser-desktop).
+# Neue Version = in package.json "version" erhöhen (z. B. 1.0.1). Gleiche Versionsnummer wird nicht erneut veröffentlicht.
+version: 2.1
+
+orbs:
+  win: circleci/windows@5.1
+
+jobs:
+  windows:
+    executor: win/default
+    steps:
+      - checkout
+      - run: nvm install 22 && nvm use 22
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run:
+          name: Windows-Installer und Store-Paket bauen
+          command: npm run dist:win
+          environment:
+            CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - store_artifacts:
+          path: dist
+          destination: windows
+
+  mac:
+    macos:
+      xcode: "16.4.0"
+    resource_class: m4pro.medium
+    steps:
+      - checkout
+      - run: brew install gnupg node@22 && echo 'export PATH="$(brew --prefix node@22)/bin:$PATH"' >> "$BASH_ENV"
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run:
+          name: Mac-App (.dmg) bauen, signieren und beglaubigen
+          # benötigt in CircleCI → Project Settings → Environment Variables:
+          # CSC_LINK (Developer-ID-Zertifikat als Base64), CSC_KEY_PASSWORD,
+          # APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
+          command: |
+            if [ -z "$CSC_LINK" ]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; fi   # ohne Zertifikat: unsigniert bauen
+            npm run dist:mac
+      - store_artifacts:
+          path: dist
+          destination: mac
+
+workflows:
+  build:
+    jobs:
+      - windows:
+          filters: { branches: { only: main } }
+      - mac:
+          requires: [windows]          # nacheinander, damit beide Dateien im selben Release landen
+          filters: { branches: { only: main } }

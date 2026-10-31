@@ -1,0 +1,73 @@
+appId: de.immoadv.browser.desktop
+productName: ImmoAdv Browser
+copyright: © ImmoAdv
+directories:
+  output: dist
+  buildResources: build
+files:
+  - src/**/*
+  - package.json
+extraResources:
+  - from: vendor/pdfjs
+    to: pdfjs
+  - from: vendor/tor
+    to: tor
+asar: true
+
+# Updates: jede neue Version wird als GitHub-Release veröffentlicht; die Programme holen sie sich von dort.
+publish:
+  provider: github
+  owner: Feray20
+  repo: immoadv-browser-desktop
+  releaseType: release
+releaseInfo:
+  releaseNotesFile: NEUERUNGEN.md     # Text erscheint im Update-Pop-up
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+
+# ---------- Windows ----------
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis            # Installer zum Herunterladen (z. B. über „ImmoAdv Programme“)
+      arch: [x64]
+    - target: appx            # Paket für den Microsoft Store (Microsoft signiert kostenlos)
+      arch: [x64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: ImmoAdv Browser
+  artifactName: ImmoAdv-Browser-Setup-${version}.${ext}
+appx:
+  # Beide Werte EXAKT aus Partner Center → App → Produktidentität kopieren (Publisher sieht aus wie CN=XXXXXXXX-XXXX-…)
+  identityName: ImmoAdv.Browser
+  publisher: CN=BITTE-AUS-PARTNER-CENTER-EINTRAGEN
+  publisherDisplayName: Feray Korkmaz
+  displayName: ImmoAdv Browser
+  languages: [de-DE]
+  backgroundColor: "#0B1F3A"
+
+# ---------- Mac ----------
+mac:
+  icon: build/icon.png
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [universal]
+    - target: zip               # wird für automatische Updates am Mac gebraucht
+      arch: [universal]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  x64ArchFiles: "Contents/Resources/tor/**"
+dmg:
+  artifactName: ImmoAdv-Browser-${version}.${ext}
+  title: ImmoAdv Browser

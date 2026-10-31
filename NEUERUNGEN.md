@@ -1,0 +1,4 @@
+- Erste Version des ImmoAdv Browsers
+- Tor mit Snowflake-Brücken, Immobilien-Check, PDF-Werkzeug mit Unterschrift
+- Google-Anmeldung: optional ohne Tor oder im Standard-Browser
+- Automatische Updates

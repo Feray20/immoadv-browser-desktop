@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>ImmoAdv Browser</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header id="chrome">
+    <div id="tabstrip" class="drag">
+      <div id="tabs"></div>
+      <button id="newtab" class="icon nodrag" title="Neuer Tab (Strg/⌘+T)">＋</button>
+    </div>
+    <div id="toolbar">
+      <button id="back" class="icon" title="Zurück">‹</button>
+      <button id="forward" class="icon" title="Vor">›</button>
+      <button id="reload" class="icon" title="Neu laden">↻</button>
+      <form id="addressForm">
+        <span id="torBadge" title="Tor-Status"></span>
+        <input id="address" type="text" spellcheck="false" autocomplete="off" placeholder="Suchen oder Adresse eingeben">
+      </form>
+      <button id="immoBtn" class="pill hidden">Immobilien-Check</button>
+      <button id="pdfSave" class="pill hidden">PDF speichern</button>
+      <button id="googleBtn" class="pill hidden" title="Google lässt die Anmeldung hier nicht zu">Im Standard-Browser anmelden</button>
+      <button id="bookmarkBtn" class="icon" title="Lesezeichen">☆</button>
+      <button id="bookmarksPanelBtn" class="icon" title="Alle Lesezeichen">▤</button>
+      <button id="menuBtn" class="icon" title="Menü">⋯</button>
+    </div>
+  </header>
+
+  <main id="content">
+    <section id="start" class="fade">
+      <div class="start-inner">
+        <h1>ImmoAdv Browser</h1>
+        <p id="startStatus">Tor startet …</p>
+        <h2>Favoriten</h2>
+        <div id="favorites"></div>
+        <div class="privacy">
+          <h2>Datenschutz</h2>
+          <p id="privTor">Alle Seiten laufen über Tor</p>
+          <p>Kein Verlauf, keine Cookies nach dem Schließen</p>
+          <p>Tracker und Werbenetzwerke blockiert</p>
+        </div>
+      </div>
+    </section>
+    <div id="errorBox" class="notice hidden"></div>
+  </main>
+
+  <aside id="panel" class="hidden">
+    <div class="panel-head"><h2 id="panelTitle"></h2><button id="panelClose" class="icon">✕</button></div>
+    <div id="panelBody"></div>
+  </aside>
+
+  <div id="onboarding" class="overlay fade hidden">
+    <div class="card">
+      <div class="big">⬇</div>
+      <h1>Wohin sollen Downloads?</h1>
+      <p>Wähle einmal einen Ordner – zum Beispiel deinen ImmoAdv-Ordner. Danach wird jeder Download automatisch dort gespeichert. Ändern kannst du das jederzeit in den Einstellungen.</p>
+      <button id="obChoose" class="primary">Ordner auswählen</button>
+      <button id="obDefault" class="link">Normalen Download-Ordner verwenden</button>
+    </div>
+  </div>
+
+  <div id="updatePop" class="overlay hidden">
+    <div class="card update-card">
+      <div class="big">✨</div>
+      <h1 id="upTitle">Neue Version verfügbar</h1>
+      <h3>Neuerungen</h3>
+      <div id="upNotes" class="notes"></div>
+      <button id="upInstall" class="primary">Jetzt neu starten und installieren</button>
+      <button id="upLater" class="link">Später (wird beim Beenden installiert)</button>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+
+  <script src="../shared/calculator.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
