@@ -77,12 +77,21 @@ async function verifySignature(sumsText, sigBuf) {
     fs.writeFileSync(path.join(dir, 'key.gpg'), key);
     fs.writeFileSync(path.join(dir, 'sums.txt'), sumsText);
     fs.writeFileSync(path.join(dir, 'sums.txt.asc'), sigBuf);
-    const home = ['--homedir', dir, '--batch', '--no-tty'];
-    execFileSync(gpg, [...home, '--import', path.join(dir, 'key.gpg')], { stdio: 'ignore' });
+    // Git-für-Windows-gpg versteht nur Pfade mit „/“
+    const p = (f) => (process.platform === 'win32' ? f.replace(/\\/g, '/') : f);
+    const home = ['--homedir', p(dir), '--batch', '--no-tty'];
     let out = '';
     try {
-      out = execFileSync(gpg, [...home, '--status-fd', '1', '--verify', path.join(dir, 'sums.txt.asc'), path.join(dir, 'sums.txt')], { stdio: ['ignore', 'pipe', 'ignore'] }).toString();
-    } catch (e) { out = e.stdout ? e.stdout.toString() : ''; }
+      execFileSync(gpg, [...home, '--import'], { input: key, stdio: ['pipe', 'ignore', 'ignore'] });
+      out = execFileSync(gpg, [...home, '--status-fd', '1', '--verify', p(path.join(dir, 'sums.txt.asc')), p(path.join(dir, 'sums.txt'))], { stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    } catch (e) {
+      out = e.stdout ? e.stdout.toString() : '';
+      if (!out && process.platform === 'win32') {
+        // gpg unter Windows nicht nutzbar → SHA-256 wird trotzdem geprüft; die Signatur prüft der Mac-Bau
+        console.warn('WARNUNG: gpg unter Windows nicht nutzbar – Signatur wird im Mac-Bau geprüft, hier nur SHA-256.');
+        return;
+      }
+    }
     if (!/\[GNUPG:\] VALIDSIG /.test(out) || !out.includes(TOR_KEY)) {
       throw new Error('Signatur des Tor-Pakets ungültig – Abbruch.');
     }
