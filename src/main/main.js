@@ -1,5 +1,5 @@
 // ImmoAdv Browser – Hauptprozess (Windows & Mac)
-const { app, BrowserWindow, WebContentsView, ipcMain, Menu, dialog, shell, systemPreferences, nativeTheme, session, clipboard } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, Menu, dialog, shell, systemPreferences, nativeTheme, session, clipboard, Tray, nativeImage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
@@ -40,9 +40,72 @@ let activeId = null;
 const send = (ch, data) => win && !win.isDestroyed() && win.webContents.send(ch, data);
 const active = () => tabs.find((t) => t.id === activeId);
 
+// ---------- Hintergrund-Modus: Tor bleibt verbunden, das Fenster öffnet sofort ----------
+let reallyQuit = false;
+let tray = null;
+const startedHidden = process.argv.includes('--hidden') || (process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAsHidden);
+
+function applyBackground() {
+  const on = store.get('background') !== false;
+  if (app.isPackaged) {
+    try { app.setLoginItemSettings({ openAtLogin: on, openAsHidden: on, args: on ? ['--hidden'] : [] }); } catch { /* egal */ }
+  }
+  if (on && !tray) {
+    const img = nativeImage.createFromPath(path.join(__dirname, '..', 'renderer', 'emblem.png')).resize({ width: process.platform === 'darwin' ? 18 : 16 });
+    tray = new Tray(img);
+    tray.setToolTip('ImmoAdv Browser – Tor bereit');
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: 'ImmoAdv Browser öffnen', click: () => showWindow() },
+      { label: 'Neue Identität', click: () => newIdentity() },
+      { type: 'separator' },
+      { label: 'Beenden (Tor trennen)', click: () => { reallyQuit = true; app.quit(); } }
+    ]));
+    tray.on('click', () => showWindow());
+  } else if (!on && tray) { tray.destroy(); tray = null; }
+}
+
+function showWindow() {
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.show(); win.focus();
+  warmFavorites();
+}
+
+// Fenster schließen = alles vergessen wie bisher, nur Tor läuft weiter
+async function hideAndWipe() {
+  win.hide();
+  for (const t of tabs.splice(0)) { try { win.contentView.removeChildView(t.view); t.view.webContents.close(); } catch {} }
+  closedStack.length = 0;
+  const old = browsingSession;
+  browsingSession = await createBrowsingSession(TOR_ON, tor.socksPort);
+  wireDownloads(browsingSession);
+  try { await old.clearStorageData(); await old.clearCache(); old.closeAllConnections(); } catch {}
+  newTab();
+  if (!store.get('trayHintShown') && tray && process.platform === 'win32') {
+    store.set('trayHintShown', true);
+    tray.displayBalloon({ title: 'ImmoAdv Browser', content: 'Läuft im Hintergrund weiter, damit Tor sofort verbunden ist. Alle Seiten und Daten wurden gelöscht.' });
+  }
+}
+
+// Vorab verbinden: häufige Seiten und Lesezeichen sind beim Klick schon „warm“
+let warmTimer = null;
+function preconnect(origin) {
+  if (!browsingSession || (TOR_ON && tor.state.status !== 'connected')) return;
+  try { browsingSession.preconnect({ url: origin, numSockets: 1 }); } catch { /* ungültig */ }
+}
+function warmFavorites() {
+  if (TOR_ON && tor.state.status !== 'connected') return;
+  const urls = [...(store.get('bookmarks') || []).map((b) => b.url), ...(store.get('frequent') || []).slice(0, 6).map((f) => f.url)];
+  const origins = [...new Set(urls.map((u) => { try { return new URL(u).origin; } catch { return null; } }).filter(Boolean))].slice(0, 8);
+  origins.forEach((o, i) => setTimeout(() => preconnect(o), i * 150));
+  clearInterval(warmTimer);
+  warmTimer = setInterval(() => { if (win && win.isVisible()) warmFavorites(); }, 4 * 60 * 1000);
+}
+
 // ---------- Fenster ----------
 async function createWindow() {
   win = new BrowserWindow({
+    show: !startedHidden,
     width: 1360, height: 880, minWidth: 760, minHeight: 520,
     title: 'ImmoAdv Browser',
     backgroundColor: '#0B1F3A',
@@ -60,6 +123,11 @@ async function createWindow() {
   await win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   for (const ev of ['resize', 'maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'restore']) win.on(ev, positionViews);
   win.on('closed', () => { win = null; });
+  win.on('close', (e) => {
+    if (reallyQuit || store.get('background') === false) return;
+    e.preventDefault();
+    hideAndWipe();
+  });
   newTab();
 }
 
@@ -419,8 +487,9 @@ function registerIPC() {
   handle('downloadDir:default', () => { store.set('downloadDir', app.getPath('downloads')); return path.basename(app.getPath('downloads')); });
   handle('downloadDir:open', () => shell.openPath(downloadDir()));
   handle('settings:set', (_e, obj) => {
-    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks', 'youtubeDirect', 'updateFallback'];
+    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks', 'youtubeDirect', 'updateFallback', 'background'];
     for (const k of Object.keys(obj)) if (allowed.includes(k)) store.set(k, obj[k]);
+    if ('background' in obj) applyBackground();
     return store.all();
   });
   handle('report:save', async (_e, { html, fileName }) => saveReport(html, fileName));
@@ -507,6 +576,13 @@ app.whenReady().then(async () => {
   }
 
   registerIPC();
+  applyBackground();
+  // Link-Vorschau: fährt mit der Maus über einen Link, wird die Verbindung zu dieser Seite schon aufgebaut
+  let pcCount = 0; setInterval(() => { pcCount = 0; }, 60000);
+  ipcMain.on('preconnect', (e, origin) => {
+    if (!tabs.some((t) => t.view.webContents === e.sender) || ++pcCount > 30) return;
+    if (typeof origin === 'string' && /^https?:\/\/[^/]+$/.test(origin)) preconnect(origin);
+  });
 
   // Standard-Sitzung (Fenster, interne Anfragen): kein direkter Netzverkehr
   const def = session.defaultSession;
@@ -518,7 +594,7 @@ app.whenReady().then(async () => {
   wireDownloads(browsingSession);
   // sobald Tor seinen Port meldet, wird er als Proxy gesetzt
   tor.on('socks', (port) => { browsingSession.setProxy(proxyFor(port)); });
-  tor.on('state', (s) => { send('tor', s); if (s.status === 'connected') flushWaiting(); });
+  tor.on('state', (s) => { send('tor', s); if (s.status === 'connected') { flushWaiting(); warmFavorites(); } });
   // Tor so früh wie möglich starten – parallel zum Aufbau des Fensters
   if (TOR_ON) tor.start({ useBridges: store.get('useBridges'), customBridges: store.get('customBridges') });
   await createWindow();
@@ -539,10 +615,12 @@ app.whenReady().then(async () => {
   if (!TOR_ON) send('tor', { status: 'disabled', progress: 0, message: 'Tor ist aus' });
 });
 
-app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+app.on('second-instance', () => showWindow());
+app.on('activate', () => showWindow());
 app.on('window-all-closed', () => app.quit());
 let torStopped = false;
 app.on('before-quit', (e) => {
+  reallyQuit = true;
   if (torStopped || !tor.proc) return;
   e.preventDefault();
   torStopped = true;

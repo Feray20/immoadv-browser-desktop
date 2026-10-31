@@ -443,6 +443,10 @@ function renderSettings() {
     </div>
     <button class="secondary" id="sUpBtn">${update.status === 'ready' ? 'Update jetzt installieren' : update.status === 'available' ? 'Update jetzt installieren' : 'Jetzt nach Updates suchen'}</button>
     <button class="link" id="sUpLog">Update-Protokoll anzeigen</button>
+    <div class="group"><h3>Tempo</h3>
+      ${sw('background', 'Im Hintergrund bereithalten – Tor sofort verbunden')}
+      <p class="hint">Startet mit dem Computer unsichtbar und hält Tor verbunden (Symbol neben der Uhr). Beim Schließen des Fensters werden trotzdem alle Seiten und Daten gelöscht. Ganz beenden: Rechtsklick auf das Symbol → Beenden.</p>
+    </div>
     <div class="group"><h3>Startseite & Leiste</h3>
       ${sw('bookmarkBar', 'Lesezeichenleiste anzeigen')}
       ${sw('rememberFrequent', 'Häufig besuchte Seiten merken (nur lokal)')}

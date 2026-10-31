@@ -1,3 +1,4 @@
-- Tor startet viel schneller: die Liste der Tor-Knoten wird gespeichert, ab dem zweiten Start meist in wenigen Sekunden verbunden
-- Seiten laden schneller: Zwischenspeicher im Arbeitsspeicher (beim Beenden gelöscht), Conflux-Routen, hängende Verbindungen werden früher umgeleitet
-- Updates zuverlässiger: verständliche Fehlermeldung, Update-Protokoll, und falls GitHub die Tor-Adresse sperrt, wird nur das Update direkt geladen (abschaltbar)
+- Sofort startklar: der Browser hält Tor im Hintergrund verbunden (Symbol neben der Uhr) – Fenster öffnet ohne Wartezeit
+- Beim Schließen des Fensters werden weiterhin alle Seiten und Daten gelöscht
+- Schnellere Klicks: beim Zeigen auf einen Link wird die Verbindung schon vorbereitet
+- Lesezeichen und häufige Seiten werden vorab verbunden und öffnen spürbar schneller

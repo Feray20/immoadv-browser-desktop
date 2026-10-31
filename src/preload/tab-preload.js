@@ -23,3 +23,19 @@ contextBridge.executeInMainWorld({
     } catch (e) {}
   }
 });
+
+// Schneller laden: beim Zeigen auf einen Link zu einer anderen Seite wird die Verbindung schon vorbereitet
+// (nur Verbindungsaufbau über Tor, die Seite selbst wird erst beim Klick geladen)
+if (window.top === window) {
+  const { ipcRenderer } = require('electron');
+  const seen = new Set();
+  const hover = (e) => {
+    const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    let u; try { u = new URL(a.href, location.href); } catch (err) { return; }
+    if (!/^https?:$/.test(u.protocol) || u.origin === location.origin || seen.has(u.origin) || seen.size > 40) return;
+    seen.add(u.origin);
+    ipcRenderer.send('preconnect', u.origin);
+  };
+  window.addEventListener('mouseover', hover, { capture: true, passive: true });
+}
