@@ -1,4 +1,2 @@
-- Sofort startklar: der Browser hält Tor im Hintergrund verbunden (Symbol neben der Uhr) – Fenster öffnet ohne Wartezeit
-- Beim Schließen des Fensters werden weiterhin alle Seiten und Daten gelöscht
-- Schnellere Klicks: beim Zeigen auf einen Link wird die Verbindung schon vorbereitet
-- Lesezeichen und häufige Seiten werden vorab verbunden und öffnen spürbar schneller
+- Suchmaschine wählbar: DuckDuckGo, Startpage (Google-Ergebnisse, privat) oder Google
+- Tor startet automatisch neu, falls es beim Start hängen bleibt

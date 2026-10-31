@@ -23,7 +23,9 @@ class TorService extends EventEmitter {
   }
 
 
-  async start({ useBridges, customBridges }) {
+  async start(opts) {
+    const { useBridges, customBridges } = opts || {};
+    this.opts = opts;
     if (this.proc) return;
     const dir = TorService.bundleDir();
     const exe = path.join(dir, 'tor', process.platform === 'win32' ? 'tor.exe' : 'tor');
@@ -72,6 +74,7 @@ class TorService extends EventEmitter {
         const m = line.match(/Bootstrapped (\d+)%/);
         if (m) {
           const p = parseInt(m[1], 10);
+          if (p >= 100) this.retries = 0;
           this.set(p >= 100 ? 'connected' : 'starting', p, p >= 100 ? 'Sicher über Tor verbunden' : `Tor verbindet … ${p} %`);
         }
       }
@@ -82,7 +85,16 @@ class TorService extends EventEmitter {
     });
     this.proc.on('exit', (code) => {
       this.proc = null;
-      if (this.state.status !== 'stopped') this.set('failed', 0, `Tor wurde beendet (${code}). Bitte Programm neu starten.`);
+      if (this.state.status === 'stopped') return;
+      // z. B. altes Tor hält noch den Datenordner (nach Update/Absturz) → kurz warten und neu starten
+      this.retries = (this.retries || 0) + 1;
+      if (this.retries <= 3) {
+        this.socksPort = 0;
+        this.set('starting', 0, 'Tor startet neu …');
+        setTimeout(() => this.start(this.opts), 3000 * this.retries);
+        return;
+      }
+      this.set('failed', 0, `Tor wurde beendet (${code}). Bitte Programm neu starten.`);
     });
   }
 

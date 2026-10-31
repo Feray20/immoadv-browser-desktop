@@ -23,6 +23,7 @@ const defaults = {
   updateFallback: true,        // Update notfalls ohne Tor laden, wenn GitHub die Tor-Adresse sperrt
   background: true,            // im Hintergrund bereithalten: Tor bleibt verbunden, Fenster öffnet sofort
   trayHintShown: false,
+  searchEngine: 'duckduckgo',  // duckduckgo | startpage (Google-Ergebnisse, privat) | google
   cleanLinks: true,            // Tracking-Zusätze (utm, fbclid …) aus Links entfernen
   downloadDir: null,           // wird beim ersten Start gewählt
   bookmarks: [

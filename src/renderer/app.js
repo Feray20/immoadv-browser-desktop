@@ -447,6 +447,14 @@ function renderSettings() {
       ${sw('background', 'Im Hintergrund bereithalten – Tor sofort verbunden')}
       <p class="hint">Startet mit dem Computer unsichtbar und hält Tor verbunden (Symbol neben der Uhr). Beim Schließen des Fensters werden trotzdem alle Seiten und Daten gelöscht. Ganz beenden: Rechtsklick auf das Symbol → Beenden.</p>
     </div>
+    <div class="group"><h3>Suchmaschine</h3>
+      <div class="row"><span>Suchen mit</span><select id="sEngine">
+        <option value="duckduckgo" ${(settings.searchEngine || 'duckduckgo') === 'duckduckgo' ? 'selected' : ''}>DuckDuckGo (empfohlen)</option>
+        <option value="startpage" ${settings.searchEngine === 'startpage' ? 'selected' : ''}>Startpage – Google-Ergebnisse, privat</option>
+        <option value="google" ${settings.searchEngine === 'google' ? 'selected' : ''}>Google</option>
+      </select></div>
+      <p class="hint">Startpage liefert dieselben Ergebnisse wie Google, ohne dich zu verfolgen. Google selbst zeigt über Tor oft „Ich bin kein Roboter“ – dann „YouTube & Google ohne Tor“ einschalten.</p>
+    </div>
     <div class="group"><h3>Startseite & Leiste</h3>
       ${sw('bookmarkBar', 'Lesezeichenleiste anzeigen')}
       ${sw('rememberFrequent', 'Häufig besuchte Seiten merken (nur lokal)')}
@@ -483,6 +491,7 @@ function renderSettings() {
   $('sIdentity').onclick = () => api.newIdentity();
   $('sFreqClear').onclick = async () => { await api.clearFrequent(); frequent = []; renderFrequent(); toast('Liste gelöscht'); };
   $('sAutoUp').onchange = async () => { await api.setAutoUpdate($('sAutoUp').checked); settings.autoUpdate = $('sAutoUp').checked; };
+  $('sEngine').onchange = async () => { settings = await api.setSettings({ searchEngine: $('sEngine').value }); toast('Suchmaschine geändert'); };
   $('sUpLog').onclick = async () => { if (!(await api.showUpdateLog())) toast('Noch kein Protokoll vorhanden'); };
   $('sUpBtn').onclick = () => (update.status === 'ready' ? api.installUpdate() : update.status === 'available' ? (installRequested = true, api.downloadUpdate()) : api.checkUpdate());
   $('sChoose').onclick = async () => { const n = await api.chooseDownloadDir(); if (n) { state.downloadDirName = n; $('sDir').textContent = n; toast(`Downloads gehen jetzt nach „${n}“`); } };

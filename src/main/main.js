@@ -375,7 +375,7 @@ function reopenTab() {
 function rememberVisit(url, wc) {
   if (!store.get('rememberFrequent')) return;
   let u; try { u = new URL(url); } catch { return; }
-  if (!/^https?:$/.test(u.protocol) || /(^|\.)google\.|duckduckgo/.test(u.hostname)) return;
+  if (!/^https?:$/.test(u.protocol) || /(^|\.)google\.|duckduckgo|startpage\./.test(u.hostname)) return;
   const key = u.origin;
   const list = store.get('frequent') || [];
   const item = list.find((x) => x.key === key);
@@ -487,7 +487,7 @@ function registerIPC() {
   handle('downloadDir:default', () => { store.set('downloadDir', app.getPath('downloads')); return path.basename(app.getPath('downloads')); });
   handle('downloadDir:open', () => shell.openPath(downloadDir()));
   handle('settings:set', (_e, obj) => {
-    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks', 'youtubeDirect', 'updateFallback', 'background'];
+    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks', 'youtubeDirect', 'updateFallback', 'background', 'searchEngine'];
     for (const k of Object.keys(obj)) if (allowed.includes(k)) store.set(k, obj[k]);
     if ('background' in obj) applyBackground();
     return store.all();
@@ -512,6 +512,9 @@ function toURL(input) {
   if (/^https?:\/\//i.test(s)) return s;
   if (!/\s/.test(s) && /^[^\s/]+\.[a-z0-9-]{2,}(\/.*)?$/i.test(s)) return 'https://' + s;
   const q = encodeURIComponent(s);
+  const engine = store.get('searchEngine') || 'duckduckgo';
+  if (engine === 'google') return `https://www.google.com/search?q=${q}&hl=de`;
+  if (engine === 'startpage') return `https://www.startpage.com/do/search?q=${q}&language=deutsch`;
   return TOR_ON
     ? `https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/?q=${q}&kl=de-de`
     : `https://duckduckgo.com/?q=${q}&kl=de-de`;
