@@ -36,8 +36,7 @@ win:
   target:
     - target: nsis            # Installer zum Herunterladen (z. B. über „ImmoAdv Programme“)
       arch: [x64]
-    - target: appx            # Paket für den Microsoft Store (Microsoft signiert kostenlos)
-      arch: [x64]
+    # Microsoft-Store-Paket: „appx“ hier ergänzen, sobald die Werte aus Partner Center eingetragen sind
 nsis:
   oneClick: false
   perMachine: false

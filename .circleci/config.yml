@@ -32,10 +32,15 @@ jobs:
           when: on_fail
           shell: bash.exe
           command: |
-            [ -z "$GH_TOKEN" ] && exit 0
-            { echo '**CircleCI-Fehler (Windows) – letzte Zeilen:**'; echo '```'; tail -80 build.log 2>/dev/null; echo '```'; } > comment.md
+            [ -z "$GH_TOKEN" ] && { echo "GH_TOKEN fehlt"; exit 0; }
+            API="https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+            { echo '**CircleCI-Fehler (Windows) – letzte Zeilen:**'; echo '```'; tail -120 build.log 2>/dev/null; echo '```'; } > comment.md
             node -e 'console.log(JSON.stringify({body:require("fs").readFileSync("comment.md","utf8").slice(-60000)}))' > body.json
-            curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/commits/$CIRCLE_SHA1/comments" -d @body.json > /dev/null
+            CODE=$(curl -s -o resp.txt -w "%{http_code}" -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/commits/$CIRCLE_SHA1/comments" -d @body.json)
+            LAST=$(grep -iE "error|fehler|failed" build.log 2>/dev/null | tail -1 | tr -d '"\' | cut -c1-110)
+            node -e 'console.log(JSON.stringify({state:"error",context:"fehlerbericht/Windows",description:(process.argv[1]+" "+process.argv[2]).slice(0,139)}))' "Kommentar:$CODE" "$LAST" > st.json
+            curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/statuses/$CIRCLE_SHA1" -d @st.json
+            echo "Kommentar-Antwort: $CODE"; head -c 300 resp.txt
       - store_artifacts:
           path: dist
           destination: windows
@@ -61,10 +66,15 @@ jobs:
           name: Fehlerprotokoll an GitHub melden
           when: on_fail
           command: |
-            [ -z "$GH_TOKEN" ] && exit 0
-            { echo '**CircleCI-Fehler (Mac) – letzte Zeilen:**'; echo '```'; tail -80 build.log 2>/dev/null; echo '```'; } > comment.md
+            [ -z "$GH_TOKEN" ] && { echo "GH_TOKEN fehlt"; exit 0; }
+            API="https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+            { echo '**CircleCI-Fehler (Mac) – letzte Zeilen:**'; echo '```'; tail -120 build.log 2>/dev/null; echo '```'; } > comment.md
             node -e 'console.log(JSON.stringify({body:require("fs").readFileSync("comment.md","utf8").slice(-60000)}))' > body.json
-            curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/commits/$CIRCLE_SHA1/comments" -d @body.json > /dev/null
+            CODE=$(curl -s -o resp.txt -w "%{http_code}" -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/commits/$CIRCLE_SHA1/comments" -d @body.json)
+            LAST=$(grep -iE "error|fehler|failed" build.log 2>/dev/null | tail -1 | tr -d '"\' | cut -c1-110)
+            node -e 'console.log(JSON.stringify({state:"error",context:"fehlerbericht/Mac",description:(process.argv[1]+" "+process.argv[2]).slice(0,139)}))' "Kommentar:$CODE" "$LAST" > st.json
+            curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/statuses/$CIRCLE_SHA1" -d @st.json
+            echo "Kommentar-Antwort: $CODE"; head -c 300 resp.txt
       - store_artifacts:
           path: dist
           destination: mac
