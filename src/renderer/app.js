@@ -65,6 +65,8 @@ function renderToolbar() {
   $('immoBtn').classList.toggle('hidden', !t?.listing);
   $('pdfSave').classList.toggle('hidden', t?.kind !== 'pdf');
   $('googleBtn').classList.toggle('hidden', !t?.googleBlocked);
+  const cap = !!t?.captcha;
+  if ($('captchaBar').classList.contains('hidden') === cap) { $('captchaBar').classList.toggle('hidden', !cap); pushLayout(); }
   if (t?.googleBlocked && !shownGoogleHint) { shownGoogleHint = true; toast(settings.googleDirect ? 'Google lehnt diesen Browser ab – Anmeldung im Standard-Browser möglich' : 'Google sperrt die Anmeldung über Tor – in den Einstellungen „Google-Anmeldung ohne Tor“ erlauben oder im Standard-Browser anmelden'); }
   const marked = !!(t?.url && (settings.bookmarks || []).some((b) => b.url === t.url));
   $('bookmarkBtn').textContent = marked ? '★' : '☆';
@@ -445,6 +447,8 @@ function renderSettings() {
     <button class="secondary" id="sFreqClear">„Häufig besucht“ löschen</button>
     <div class="group"><h3>Google</h3>
       ${sw('googleDirect', 'Google-Anmeldung ohne Tor erlauben')}
+      ${sw('youtubeDirect', 'YouTube & Google ohne Tor')}
+      <p class="hint">Ohne Tor gibt es dort keine Roboter-Prüfung mehr – dafür sehen Google und dein Internetanbieter, dass du YouTube/Google nutzt. Alle anderen Seiten bleiben anonym. Startet den Browser neu.</p>
     </div>
     <p class="hint">Google sperrt Anmeldungen über Tor fast immer. Ist das an, läuft nur die Google-Anmeldeseite direkt – Google sieht dabei deine echte IP-Adresse (weiß nach dem Login aber ohnehin, wer du bist). Alles andere bleibt über Tor. Gilt nach Neustart.</p>
     <div class="group"><h3>Downloads</h3>
@@ -458,6 +462,11 @@ function renderSettings() {
     </div>
     <button class="secondary danger" id="sClear">Alle Tabs und Website-Daten löschen</button>`;
   $('panelBody').querySelectorAll('input[data-key]').forEach((el) => el.onchange = async () => {
+    if (el.dataset.key === 'youtubeDirect') {
+      toast(el.checked ? 'YouTube & Google ohne Tor – Browser startet neu …' : 'YouTube & Google wieder über Tor – Browser startet neu …');
+      setTimeout(() => api.setYoutubeDirect(el.checked), 900);
+      return;
+    }
     settings = await api.setSettings({ [el.dataset.key]: el.checked });
     renderTor(); renderBookmarkBar(); renderFrequent();
     if (['torEnabled', 'useBridges', 'javaScript', 'googleDirect'].includes(el.dataset.key)) toast('Gilt nach Neustart des Programms');
@@ -524,6 +533,8 @@ $('menuBtn').onclick = () => api.menu();
 $('immoBtn').onclick = () => (panel === 'immo' ? closePanel() : openPanel('immo'));
 $('pdfSave').onclick = () => api.savePDF();
 $('googleBtn').onclick = () => api.openExternal();
+$('cNewRoute').onclick = () => api.newRoute();
+$('cDirect').onclick = () => openPanel('settings');
 $('summaryBtn').onclick = () => (panel === 'summary' ? closePanel() : openPanel('summary'));
 $('bookmarksPanelBtn').onclick = () => (panel === 'bookmarks' ? closePanel() : openPanel('bookmarks'));
 $('panelClose').onclick = closePanel;

@@ -19,6 +19,7 @@ const defaults = {
   bookmarkBar: true,           // Lesezeichenleiste unter der Adresszeile
   frequent: [],
   watchlist: [],
+  youtubeDirect: false,        // YouTube & Google ohne Tor (keine Roboter-Prüfung, aber echte IP für Google)
   cleanLinks: true,            // Tracking-Zusätze (utm, fbclid …) aus Links entfernen
   downloadDir: null,           // wird beim ersten Start gewählt
   bookmarks: [

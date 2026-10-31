@@ -1,5 +1,3 @@
-- Kurzfassung jeder Seite mit einem Klick (✦ oder Strg+J) – wird nur auf deinem Computer erstellt
-- Merkliste für Inserate: Objekte merken und Preis, €/m², Rendite und Cashflow vergleichen
-- Schnellbefehle mit Strg+K: Befehle, Tabs und Lesezeichen sofort finden
-- Tracking wird aus Links automatisch entfernt (utm, fbclid …), „Sauberen Link kopieren“
-- Bildschirmfoto der Seite direkt in deinen Download-Ordner
+- „Ich bin kein Roboter“ bei Google/YouTube: neue Leiste mit „Neue Tor-Route“ – ein Klick, meistens ist die Prüfung weg
+- Neue Einstellung „YouTube & Google ohne Tor“ (aus ab Werk): keine Roboter-Prüfung mehr, alle anderen Seiten bleiben anonym
+- Google-/YouTube-Anmeldung öffnet sich automatisch im normalen Browser, wenn Google diesen Browser ablehnt

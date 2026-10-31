@@ -246,3 +246,10 @@ h2 small { font-size: 12px; font-weight: 500; opacity: .7; margin-left: 6px; }
 .pal-item .l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pal-item.sel { background: linear-gradient(90deg, rgba(42,91,215,.12), rgba(25,194,176,.12)); }
 .palette-foot { margin: 0; padding: 8px 16px 10px; font-size: 11px; color: #5b6b82; border-top: 1px solid rgba(11,31,58,.06); }
+
+/* Roboter-Prüfung */
+.infobar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 12px 0; padding: 8px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.95); color: #0f1b2d; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.infobar span { flex: 1; min-width: 240px; }
+.infobar .pill { background: linear-gradient(90deg, #2A5BD7, #19C2B0); color: #fff; }
+.infobar .pill.ghost { background: rgba(11,31,58,.08); color: #0f1b2d; }

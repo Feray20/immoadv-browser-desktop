@@ -7,7 +7,7 @@ const store = require('./store');
 const tor = require('./tor');
 const pdf = require('./pdf');
 const updater = require('./updater');
-const { cleanURL, createBrowsingSession, tabPreferences, hostOf, proxyFor, GOOGLE_DIRECT, GOOGLE_LOGIN_HOSTS } = require('./privacy');
+const { DIRECT_HOSTS, cleanURL, createBrowsingSession, tabPreferences, hostOf, proxyFor, GOOGLE_DIRECT, GOOGLE_LOGIN_HOSTS } = require('./privacy');
 const { LISTING_SCRIPT } = require('../shared/listing');
 const { SUMMARY_SCRIPT } = require('../shared/summary');
 
@@ -22,7 +22,7 @@ app.commandLine.appendSwitch('disable-features', 'NetworkPrediction,InterestFeed
 const TOR_ON = !!store.get('torEnabled');
 if (TOR_ON) {
   // Keine einzige DNS-Anfrage am Tor vorbei: lokale Namensauflösung komplett aus
-  const direct = GOOGLE_DIRECT ? GOOGLE_LOGIN_HOSTS.map((h) => ` , EXCLUDE ${h}`).join('') : '';
+  const direct = DIRECT_HOSTS.map((h) => ` , EXCLUDE ${h}`).join('');
   app.commandLine.appendSwitch('host-resolver-rules', 'MAP * ~NOTFOUND , EXCLUDE 127.0.0.1' + direct);
 }
 pdf.registerScheme();
@@ -97,6 +97,7 @@ function wireView(tab) {
   wc.on('page-title-updated', update);
   wc.on('did-navigate', (_e, url) => {
     tab.listing = null; tab.googleBlocked = false;
+    tab.captcha = TOR_ON && /^https:\/\/(www\.|ipv4\.)?google\.[a-z.]+\/sorry\//.test(url);
     if (!/^https:\/\/accounts\.google\./.test(url)) tab.lastSiteUrl = url;   // Seite, von der die Anmeldung kam
     update();
     rememberVisit(url, wc);
@@ -120,6 +121,13 @@ function wireView(tab) {
         tab.googleBlocked = await wc.executeJavaScriptInIsolatedWorld(1002, [{ code:
           `/rejected|disallowed_useragent/.test(location.href) || /nicht sicher|may not be secure|Couldn.t sign you in|Anmeldung nicht möglich/i.test(document.body ? document.body.innerText : '')` }]);
       } catch { tab.googleBlocked = false; }
+      // wie am iPhone: Anmeldung automatisch im Standard-Browser fortsetzen, hier zurück zur Seite
+      if (tab.googleBlocked && !tab.handedOff) {
+        tab.handedOff = true;
+        openExternal(tab);
+        send('toast', 'Google lässt die Anmeldung nur im normalen Browser zu – dort geöffnet');
+        if (tab.lastSiteUrl) setTimeout(() => { tab.handedOff = false; load(tab, tab.lastSiteUrl); }, 800);
+      }
       pushTabs();
     }
     try {
@@ -195,7 +203,7 @@ function pushTabs() {
       return {
         id: t.id, kind: t.kind, title: t.title, url: t.kind === 'pdf' ? '' : t.url,
         fileName: t.filePath ? path.basename(t.filePath) : null,
-        loading: !!t.loading, waiting: !!t.waiting, zoom: t.zoom || 0, error: t.error || null, listing: t.listing || null, googleBlocked: !!t.googleBlocked,
+        loading: !!t.loading, waiting: !!t.waiting, zoom: t.zoom || 0, error: t.error || null, listing: t.listing || null, googleBlocked: !!t.googleBlocked, captcha: !!t.captcha,
         canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward()
       };
     })
@@ -383,6 +391,20 @@ function registerIPC() {
        reload: () => wc.reload(), stop: () => wc.stop() })[cmd]?.();
   });
   on('identity', () => newIdentity());
+  // „Ich bin kein Roboter“: neue Tor-Route nur für einen frischen Versuch – Ziel-Seite neu laden
+  on('new-route', async () => {
+    const t = active();
+    if (!t) return;
+    const ok = await tor.newIdentity();
+    const target = (() => { try { return new URL(t.url).searchParams.get('continue') || t.url; } catch { return t.url; } })();
+    t.captcha = false;
+    setTimeout(() => load(t, target), ok ? 1200 : 0);
+    send('toast', ok ? 'Neue Tor-Route – Seite lädt neu' : 'Tor-Route konnte nicht gewechselt werden');
+  });
+  handle('youtube-direct', async (_e, on) => {
+    store.set('youtubeDirect', !!on);
+    app.relaunch(); app.exit(0);
+  });
   on('pdf:open', () => openPDFDialog());
   on('open-external', () => { const t = active(); if (t?.kind === 'web') openExternal(t); });
   on('pdf:save', () => { const t = active(); if (t?.kind === 'pdf') savePDF(t); });
@@ -395,7 +417,7 @@ function registerIPC() {
   handle('downloadDir:default', () => { store.set('downloadDir', app.getPath('downloads')); return path.basename(app.getPath('downloads')); });
   handle('downloadDir:open', () => shell.openPath(downloadDir()));
   handle('settings:set', (_e, obj) => {
-    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks'];
+    const allowed = ['torEnabled', 'useBridges', 'customBridges', 'blockTrackers', 'httpsOnly', 'javaScript', 'appLock', 'bookmarks', 'googleDirect', 'rememberFrequent', 'bookmarkBar', 'cleanLinks', 'youtubeDirect'];
     for (const k of Object.keys(obj)) if (allowed.includes(k)) store.set(k, obj[k]);
     return store.all();
   });

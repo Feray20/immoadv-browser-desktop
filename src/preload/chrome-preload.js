@@ -47,5 +47,7 @@ contextBridge.exposeInMainWorld('immo', {
   screenshot: () => ipcRenderer.invoke('screenshot'),
   copyCleanLink: () => ipcRenderer.invoke('link:copy'),
   onPaletteOpen: on('palette-open'),
-  onScreenshot: on('screenshot')
+  onScreenshot: on('screenshot'),
+  newRoute: () => ipcRenderer.send('new-route'),
+  setYoutubeDirect: (on) => ipcRenderer.invoke('youtube-direct', on)
 });

@@ -45,9 +45,18 @@ function userAgent() {
 // Ausnahme nur für die Google-Anmeldeseite, wenn in den Einstellungen erlaubt (gilt ab Programmstart)
 const GOOGLE_DIRECT = !!store.get('googleDirect');
 const GOOGLE_LOGIN_HOSTS = ['accounts.google.com', 'accounts.youtube.com'];
+// Optional (Einstellung, aus ab Werk): YouTube & Google ohne Tor – dort keine „Ich bin kein Roboter“-Sperren mehr,
+// dafür sieht Google die echte IP-Adresse. Alle anderen Seiten bleiben über Tor.
+const YOUTUBE_GOOGLE = ['youtube.com', '*.youtube.com', 'youtu.be', '*.googlevideo.com', '*.ytimg.com', '*.ggpht.com',
+  'google.com', '*.google.com', 'google.de', '*.google.de', '*.gstatic.com', '*.googleusercontent.com', '*.googleapis.com',
+  'youtube-nocookie.com', '*.youtube-nocookie.com'];
+const DIRECT_HOSTS = [
+  ...(GOOGLE_DIRECT ? GOOGLE_LOGIN_HOSTS : []),
+  ...(store.get('youtubeDirect') ? YOUTUBE_GOOGLE : [])
+];
 const proxyFor = (port) => ({
   proxyRules: `socks5://127.0.0.1:${port || 1}`,
-  proxyBypassRules: ['<-loopback>', ...(GOOGLE_DIRECT ? GOOGLE_LOGIN_HOSTS : [])].join(';')
+  proxyBypassRules: ['<-loopback>', ...DIRECT_HOSTS].join(';')
 });
 
 async function createBrowsingSession(torOn, socksPort) {
@@ -115,4 +124,4 @@ function tabPreferences(ses) {
   };
 }
 
-module.exports = { cleanURL, createBrowsingSession, tabPreferences, userAgent, hostOf, proxyFor, GOOGLE_DIRECT, GOOGLE_LOGIN_HOSTS };
+module.exports = { DIRECT_HOSTS, cleanURL, createBrowsingSession, tabPreferences, userAgent, hostOf, proxyFor, GOOGLE_DIRECT, GOOGLE_LOGIN_HOSTS };
