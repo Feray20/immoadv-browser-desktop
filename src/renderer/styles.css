@@ -215,3 +215,7 @@ h2 small { font-size: 12px; font-weight: 500; opacity: .7; margin-left: 6px; }
 .ring .arc { fill: none; stroke: #2fe39a; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 327; stroke-dashoffset: 327; transition: stroke-dashoffset .5s ease; }
 .ring img { position: absolute; inset: 22px; width: 76px; height: 76px; animation: breathe 2.4s ease-in-out infinite; }
 @keyframes breathe { 50% { transform: scale(.94); opacity: .85; } }
+
+.upprogress { height: 6px; border-radius: 3px; background: rgba(11,31,58,.1); overflow: hidden; margin: 14px 0 4px; }
+#upBar { height: 100%; width: 0; background: linear-gradient(90deg, #19C2B0, #2fe39a); transition: width .4s ease; }
+#upInstall:disabled { opacity: .75; cursor: default; }

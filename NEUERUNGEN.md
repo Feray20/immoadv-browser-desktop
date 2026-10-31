@@ -1,6 +1,3 @@
-- Neues rundes ImmoAdv-Browser-Logo
-- Lesezeichenleiste unter der Adressleiste – Reihenfolge per Ziehen ändern (Strg+Umschalt+B ein/aus)
-- „Häufig besucht“ auf der Startseite – bleibt nur auf diesem Computer
-- Schnellerer Start: Seiten warten mit Fortschrittsring auf Tor und öffnen sich automatisch
-- Tor-Status jetzt als klare Anzeige („Verbindet 45 %“ / „Geschützt“)
-- Auf Seite suchen (Strg+F), Zoom (Strg +/−/0), geschlossenen Tab wieder öffnen (Strg+Umschalt+T)
+- Updates zuverlässiger: ein Klick auf „Update jetzt installieren“ lädt, installiert und startet neu
+- Fortschrittsbalken beim Laden des Updates; bei schwacher Tor-Route wird automatisch erneut versucht
+- Mac: Update öffnet direkt das Installationsfenster

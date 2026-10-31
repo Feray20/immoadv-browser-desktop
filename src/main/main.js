@@ -463,6 +463,7 @@ app.whenReady().then(async () => {
 
   updater.init({
     onState: (s) => send('update', s),
+    downloadDir: () => downloadDir(),
     torOn: TOR_ON,
     // Update-Suche erst, wenn Tor verbunden ist (läuft dann ebenfalls über Tor)
     whenTorReady: (cb) => {

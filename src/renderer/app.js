@@ -15,6 +15,7 @@ let dragIndex = null;
 let update = { status: 'idle' };
 let appVersion = '';
 let updatePopDismissed = null;
+let installRequested = false;
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const eur = (v, d = 0) => (v ?? 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: d, maximumFractionDigits: d });
@@ -361,7 +362,7 @@ function renderSettings() {
   $('sIdentity').onclick = () => api.newIdentity();
   $('sFreqClear').onclick = async () => { await api.clearFrequent(); frequent = []; renderFrequent(); toast('Liste gelöscht'); };
   $('sAutoUp').onchange = async () => { await api.setAutoUpdate($('sAutoUp').checked); settings.autoUpdate = $('sAutoUp').checked; };
-  $('sUpBtn').onclick = () => (update.status === 'ready' ? api.installUpdate() : update.status === 'available' ? api.downloadUpdate() : api.checkUpdate());
+  $('sUpBtn').onclick = () => (update.status === 'ready' ? api.installUpdate() : update.status === 'available' ? (installRequested = true, api.downloadUpdate()) : api.checkUpdate());
   $('sChoose').onclick = async () => { const n = await api.chooseDownloadDir(); if (n) { state.downloadDirName = n; $('sDir').textContent = n; toast(`Downloads gehen jetzt nach „${n}“`); } };
   $('sOpenDir').onclick = () => api.openDownloadDir();
   $('sClear').onclick = () => api.clearAll();
@@ -372,16 +373,28 @@ function updateText() {
   return ({
     idle: 'Noch nicht geprüft', checking: 'Suche …', current: 'Aktuell',
     available: `Version ${update.version} verfügbar`, downloading: `Lädt Version ${update.version} … ${update.progress || 0} %`,
-    ready: `Version ${update.version} bereit`, error: 'Prüfung fehlgeschlagen', unsupported: 'Über den Store bzw. nur in der installierten Version'
+    ready: `Version ${update.version} bereit`, retry: 'Wird gleich erneut geprüft …', error: 'Server gerade nicht erreichbar – neuer Versuch folgt automatisch', unsupported: 'Über den Store bzw. nur in der installierten Version'
   })[update.status] || '';
 }
 function showUpdatePop() {
-  $('upTitle').textContent = `Version ${update.version} ist bereit`;
-  $('upNotes').textContent = update.notes || 'Verbesserungen und Fehlerbehebungen.';
+  const u = update; const mac = !!u.macManual;
+  $('upTitle').textContent = u.status === 'ready' ? `Version ${u.version} ist bereit` : `Version ${u.version} ist da`;
+  $('upNotes').textContent = u.notes || 'Verbesserungen und Fehlerbehebungen.';
+  const dl = u.status === 'downloading';
+  $('upProgress').classList.toggle('hidden', !dl);
+  $('upBar').style.width = (u.progress || 0) + '%';
+  $('upInstall').disabled = dl;
+  $('upInstall').textContent = dl ? `Wird geladen … ${u.progress || 0} %` : 'Update jetzt installieren';
+  $('upHint').textContent = dl ? 'Läuft sicher über Tor – das kann ein paar Minuten dauern. Du kannst weitersurfen.'
+    : mac ? 'Danach öffnet sich das Installationsfenster: ImmoAdv Browser in „Programme“ ziehen und ersetzen.'
+    : 'Der Browser startet danach kurz neu – deine Lesezeichen bleiben erhalten.';
   overlayOpen = true; $('updatePop').classList.remove('hidden'); pushLayout();
 }
 function hideUpdatePop() { overlayOpen = !$('onboarding').classList.contains('hidden'); $('updatePop').classList.add('hidden'); pushLayout(); }
-$('upInstall').onclick = () => api.installUpdate();
+$('upInstall').onclick = () => {
+  if (update.status === 'ready') return api.installUpdate();
+  installRequested = true; api.downloadUpdate();
+};
 $('upLater').onclick = () => { updatePopDismissed = update.version; hideUpdatePop(); };
 
 // ---------- Hinweis-Pop-up ----------
@@ -450,8 +463,10 @@ async function toggleBar() { settings = await api.setSettings({ bookmarkBar: set
 api.onUpdate((u) => {
   update = u;
   if (panel === 'settings') renderSettings();
-  if (u.status === 'ready' && updatePopDismissed !== u.version) showUpdatePop();
-  if (u.status === 'available' && settings.autoUpdate === false) toast(`Version ${u.version} verfügbar – unter Einstellungen laden`);
+  if (u.status === 'ready' && installRequested) { installRequested = false; api.installUpdate(); return; }
+  const popOpen = !$('updatePop').classList.contains('hidden');
+  if (popOpen && ['downloading', 'ready', 'available'].includes(u.status)) showUpdatePop();
+  else if (['ready', 'available'].includes(u.status) && updatePopDismissed !== u.version) showUpdatePop();
 });
 api.onFocusAddress(() => $('address').focus());
 api.onOpenPanel(openPanel);
@@ -464,4 +479,5 @@ api.onOpenPanel(openPanel);
   renderTor(); renderFavorites(); renderBookmarkBar(); renderFrequent(); renderGreeting(); renderToolbar();
   setInterval(renderGreeting, 60000);
   if (!s.settings.downloadDir) showOnboarding(true);
+  else if (['ready', 'available'].includes(update.status)) showUpdatePop();
 })();

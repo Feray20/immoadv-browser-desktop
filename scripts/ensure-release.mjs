@@ -1,5 +1,6 @@
-// Legt das GitHub-Release für die aktuelle Version an (falls es noch fehlt),
-// damit electron-builder die Installer anschließend hochladen kann.
+// Legt das GitHub-Release für die aktuelle Version als ENTWURF an (unsichtbar für die Programme),
+// damit electron-builder die Installer hochladen kann. Erst finalize-release.mjs veröffentlicht es,
+// wenn alle Update-Dateien da sind – so sieht nie ein Programm ein halbfertiges Update.
 import fs from 'node:fs';
 
 const token = process.env.GH_TOKEN;
@@ -14,12 +15,24 @@ const api = (path, init = {}) => fetch(`https://api.github.com/repos/${repo}${pa
   headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'immoadv-build', ...(init.headers || {}) }
 });
 
-const existing = await api(`/releases/tags/${tag}`);
-if (existing.ok) { console.log(`Release ${tag} existiert bereits.`); process.exit(0); }
+// Entwürfe tauchen unter /releases/tags nicht auf – deshalb die Liste durchsuchen
+const list = await (await api('/releases?per_page=30')).json();
+const rel = Array.isArray(list) ? list.find((r) => r.tag_name === tag) : null;
+
+if (rel) {
+  const names = rel.assets.map((a) => a.name);
+  const complete = names.includes('latest.yml') && names.includes('latest-mac.yml');
+  if (!rel.draft && !complete) {
+    // veröffentlicht, aber unvollständig → zurück auf Entwurf, damit die Programme keinen Fehler sehen
+    await api(`/releases/${rel.id}`, { method: 'PATCH', body: JSON.stringify({ draft: true }) });
+    console.log(`Release ${tag} war unvollständig – wieder auf Entwurf gesetzt.`);
+  } else console.log(`Release ${tag} existiert bereits (Entwurf: ${rel.draft}).`);
+  process.exit(0);
+}
 
 const res = await api('/releases', {
   method: 'POST',
-  body: JSON.stringify({ tag_name: tag, target_commitish: process.env.CIRCLE_SHA1 || 'main', name: `ImmoAdv Browser ${version}`, body: notes, draft: false, prerelease: false })
+  body: JSON.stringify({ tag_name: tag, target_commitish: process.env.CIRCLE_SHA1 || 'main', name: `ImmoAdv Browser ${version}`, body: notes, draft: true, prerelease: false })
 });
 if (!res.ok) { console.error(`Release konnte nicht angelegt werden: ${res.status} ${await res.text()}`); process.exit(1); }
-console.log(`Release ${tag} angelegt.`);
+console.log(`Release ${tag} als Entwurf angelegt.`);

@@ -19,7 +19,7 @@ publish:
   provider: github
   owner: Feray20
   repo: immoadv-browser-desktop
-  releaseType: release
+  releaseType: draft
 releaseInfo:
   releaseNotesFile: NEUERUNGEN.md     # Text erscheint im Update-Pop-up
 electronFuses:
