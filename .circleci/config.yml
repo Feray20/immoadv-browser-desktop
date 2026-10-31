@@ -13,13 +13,29 @@ jobs:
     steps:
       - checkout
       - run: node --version
-      - run: npm install --no-audit --no-fund
-      - run: npm test
+      - run:
+          name: Abhängigkeiten
+          shell: bash.exe
+          command: set -o pipefail; npm install --no-audit --no-fund 2>&1 | tee -a build.log
+      - run:
+          name: Tests
+          shell: bash.exe
+          command: set -o pipefail; npm test 2>&1 | tee -a build.log
       - run:
           name: Windows-Installer und Store-Paket bauen
-          command: npm run dist:win
+          shell: bash.exe
+          command: set -o pipefail; npm run dist:win 2>&1 | tee -a build.log
           environment:
             CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - run:
+          name: Fehlerprotokoll an GitHub melden
+          when: on_fail
+          shell: bash.exe
+          command: |
+            [ -z "$GH_TOKEN" ] && exit 0
+            { echo '**CircleCI-Fehler (Windows) – letzte Zeilen:**'; echo '```'; tail -80 build.log 2>/dev/null; echo '```'; } > comment.md
+            node -e 'console.log(JSON.stringify({body:require("fs").readFileSync("comment.md","utf8").slice(-60000)}))' > body.json
+            curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/commits/$CIRCLE_SHA1/comments" -d @body.json > /dev/null
       - store_artifacts:
           path: dist
           destination: windows
@@ -40,7 +56,15 @@ jobs:
           # APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
           command: |
             if [ -z "$CSC_LINK" ]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; fi   # ohne Zertifikat: unsigniert bauen
-            npm run dist:mac
+            set -o pipefail; npm run dist:mac 2>&1 | tee -a build.log
+      - run:
+          name: Fehlerprotokoll an GitHub melden
+          when: on_fail
+          command: |
+            [ -z "$GH_TOKEN" ] && exit 0
+            { echo '**CircleCI-Fehler (Mac) – letzte Zeilen:**'; echo '```'; tail -80 build.log 2>/dev/null; echo '```'; } > comment.md
+            node -e 'console.log(JSON.stringify({body:require("fs").readFileSync("comment.md","utf8").slice(-60000)}))' > body.json
+            curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/commits/$CIRCLE_SHA1/comments" -d @body.json > /dev/null
       - store_artifacts:
           path: dist
           destination: mac
