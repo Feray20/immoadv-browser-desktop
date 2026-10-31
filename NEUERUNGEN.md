@@ -1,2 +1,3 @@
-- Suchmaschine wählbar: DuckDuckGo, Startpage (Google-Ergebnisse, privat) oder Google
+- Suche jetzt standardmäßig mit Startpage: Google-Ergebnisse, aber privat und ohne Tracking
+- Suchmaschine wählbar unter Einstellungen: Startpage, DuckDuckGo oder Google
 - Tor startet automatisch neu, falls es beim Start hängen bleibt

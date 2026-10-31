@@ -512,7 +512,7 @@ function toURL(input) {
   if (/^https?:\/\//i.test(s)) return s;
   if (!/\s/.test(s) && /^[^\s/]+\.[a-z0-9-]{2,}(\/.*)?$/i.test(s)) return 'https://' + s;
   const q = encodeURIComponent(s);
-  const engine = store.get('searchEngine') || 'duckduckgo';
+  const engine = store.get('searchEngine') || 'startpage';
   if (engine === 'google') return `https://www.google.com/search?q=${q}&hl=de`;
   if (engine === 'startpage') return `https://www.startpage.com/do/search?q=${q}&language=deutsch`;
   return TOR_ON

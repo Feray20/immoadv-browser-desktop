@@ -449,8 +449,8 @@ function renderSettings() {
     </div>
     <div class="group"><h3>Suchmaschine</h3>
       <div class="row"><span>Suchen mit</span><select id="sEngine">
-        <option value="duckduckgo" ${(settings.searchEngine || 'duckduckgo') === 'duckduckgo' ? 'selected' : ''}>DuckDuckGo (empfohlen)</option>
-        <option value="startpage" ${settings.searchEngine === 'startpage' ? 'selected' : ''}>Startpage – Google-Ergebnisse, privat</option>
+        <option value="startpage" ${(settings.searchEngine || 'startpage') === 'startpage' ? 'selected' : ''}>Startpage – Google-Ergebnisse, privat (empfohlen)</option>
+        <option value="duckduckgo" ${settings.searchEngine === 'duckduckgo' ? 'selected' : ''}>DuckDuckGo</option>
         <option value="google" ${settings.searchEngine === 'google' ? 'selected' : ''}>Google</option>
       </select></div>
       <p class="hint">Startpage liefert dieselben Ergebnisse wie Google, ohne dich zu verfolgen. Google selbst zeigt über Tor oft „Ich bin kein Roboter“ – dann „YouTube & Google ohne Tor“ einschalten.</p>
