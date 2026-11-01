@@ -58,7 +58,7 @@ function chromePath() {
     path.join(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
     path.join(env.ProgramFiles || 'C:\\Program Files', 'Microsoft', 'Edge', 'Application', 'msedge.exe')
   ];
-  return c.find((p) => p && fs.existsSync(p)) || null;
+  return c.find((p) => { try { return p && fs.statSync(p).isFile(); } catch { return false; } }) || null;
 }
 let lastChrome = { url: '', at: 0 };
 function openInChrome(url) {
@@ -71,8 +71,12 @@ function openInChrome(url) {
         .on('exit', (code) => { if (code) spawn('open', ['-a', 'Safari', url], { detached: true, stdio: 'ignore' }).unref(); }).unref();
     } else {
       const exe = chromePath();
-      if (!exe) { send('toast', 'Google-Konto: bitte Chrome oder Edge installieren – Google erlaubt die Anmeldung nur dort'); return; }
-      spawn(exe, [url], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
+      if (exe) spawn(exe, [url], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
+      else {
+        // Rückfall: Windows findet Chrome/Edge selbst über die Programm-Registrierung (Adresse als Variable, nie als Befehl)
+        const ps = "try { Start-Process chrome -ArgumentList $env:IA_URL -ErrorAction Stop } catch { Start-Process msedge -ArgumentList $env:IA_URL }";
+        spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', ps], { detached: true, stdio: 'ignore', windowsHide: true, env: { ...process.env, IA_URL: url } }).unref();
+      }
     }
     send('toast', 'Google-Konto in Chrome geöffnet – Google erlaubt die Anmeldung nur dort');
   } catch { send('toast', 'Chrome konnte nicht geöffnet werden'); }
