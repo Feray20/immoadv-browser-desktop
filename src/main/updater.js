@@ -15,6 +15,7 @@ const state = { status: 'idle', version: null, notes: '', progress: 0, message: 
 let listeners = [];
 let macManual = false;     // Mac ohne Apple-Signatur: Squirrel geht nicht → eigenes Ersetzen der App
 let macZip = null;
+let macSha = null;      // erwartete Prüfsumme der Mac-ZIP aus der Update-Info
 let installWhenReady = false;   // Knopf gedrückt → nach dem Download sofort installieren
 let failures = 0;
 let retryTimer = null;
@@ -51,6 +52,8 @@ async function init(onState) {
   autoUpdater.on('update-not-available', () => { failures = 0; emit({ status: 'current', message: 'Aktuell' }); });
   autoUpdater.on('update-available', (i) => {
     failures = 0;
+    const z = (i.files || []).find((f) => /-mac\.zip$/.test(f.url || ''));
+    macSha = z && z.sha512 ? z.sha512 : null;
     emit({ status: autoUpdater.autoDownload ? 'downloading' : 'available', version: i.version, notes: notesText(i.releaseNotes), progress: 0, message: `Version ${i.version} verfügbar` });
     if (macManual && (store.get('autoUpdate') !== false || installWhenReady)) downloadMac();
   });
@@ -89,7 +92,7 @@ function downloadMac() {
   const dir = path.join(app.getPath('userData'), 'update');
   const target = path.join(dir, `ImmoAdv-Browser-${v}-universal-mac.zip`);
   fs.mkdirSync(dir, { recursive: true });
-  if (fs.existsSync(target) && fs.statSync(target).size > 5 * 1024 * 1024) {
+  if (macSha && fs.existsSync(target) && fs.statSync(target).size > 5 * 1024 * 1024 && require('node:crypto').createHash('sha512').update(fs.readFileSync(target)).digest('base64') === macSha) {
     macZip = target; emit({ status: 'ready', message: `Version ${v} ist bereit` });
     if (installWhenReady) install();
     return;
@@ -102,6 +105,9 @@ function downloadMac() {
     item.once('done', (_e2, st) => {
       if (st === 'completed') {
         try {
+          // Prüfsumme gegen die Update-Info – sonst nicht installieren
+          const sum = require('node:crypto').createHash('sha512').update(fs.readFileSync(target + '.part')).digest('base64');
+          if (!macSha || sum !== macSha) { log(`Mac-Update: Prüfsumme passt nicht (${macSha ? 'abweichend' : 'fehlt'})`); fs.unlinkSync(target + '.part'); return emit({ status: 'error', message: 'Update-Datei beschädigt – neuer Versuch später' }); }
           fs.renameSync(target + '.part', target); macZip = target;
           emit({ status: 'ready', message: `Version ${v} ist bereit` });
           if (installWhenReady) install();

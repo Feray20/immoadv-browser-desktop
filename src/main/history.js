@@ -16,16 +16,16 @@ function load() {
   prune();
   return items;
 }
-function persist() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try {
-      const tmp = file() + '.tmp';
-      fs.writeFileSync(tmp, JSON.stringify(items), { mode: 0o600 });
-      fs.renameSync(tmp, file());
-    } catch { /* nicht kritisch */ }
-  }, 1500);
+function writeNow() {
+  clearTimeout(saveTimer); saveTimer = null;
+  if (!items) return;
+  try {
+    const tmp = file() + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(items), { mode: 0o600 });
+    fs.renameSync(tmp, file());
+  } catch { /* nicht kritisch */ }
 }
+function persist() { if (!saveTimer) saveTimer = setTimeout(writeNow, 3000); }
 function prune() {
   const days = Number(store.get('historyDays'));
   if (!days) { if (items.length) { items = []; persist(); } return; }
@@ -49,7 +49,8 @@ function add(url, title) {
 
 function setTitle(url, title) {
   if (!items || !title) return;
-  for (let i = items.length - 1; i >= Math.max(0, items.length - 5); i--) if (items[i].url === url) { items[i].title = String(title).slice(0, 200); persist(); return; }
+  const t = String(title).slice(0, 200);
+  for (let i = items.length - 1; i >= Math.max(0, items.length - 5); i--) if (items[i].url === url) { if (items[i].title !== t) { items[i].title = t; persist(); } return; }
 }
 
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
@@ -90,4 +91,4 @@ function suggest(q, limit = 6) {
 function remove(ids) { load(); const set = new Set(ids); items = items.filter((i) => !set.has(i.id)); persist(); }
 function clear(from = 0, to = Infinity) { load(); items = items.filter((i) => i.t < from || i.t > to); persist(); }
 
-module.exports = { add, setTitle, search, suggest, remove, clear, prune: () => { load(); prune(); }, count: () => load().length };
+module.exports = { flush: () => { if (saveTimer) writeNow(); }, add, setTitle, search, suggest, remove, clear, prune: () => { load(); prune(); }, count: () => load().length };

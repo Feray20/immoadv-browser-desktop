@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('immo', {
   historySearch: inv('history:search'), suggest: inv('history:suggest'), historyRemove: inv('history:remove'), historyClear: inv('history:clear'),
   importBookmarks: inv('bookmarks:import'), exportBookmarks: inv('bookmarks:export'),
   // Passwörter
-  pwSave: inv('pw:save'), pwDismiss: inv('pw:dismiss'), pwFill: inv('pw:fill'), pwList: inv('pw:list'), pwReveal: inv('pw:reveal'),
+  pwSave: inv('pw:save'), pwDismiss: inv('pw:dismiss'), pwFill: inv('pw:fill'), pwList: inv('pw:list'), pwReveal: inv('pw:reveal'), pwCopy: inv('pw:copy'),
   pwDelete: inv('pw:delete'), pwImport: inv('pw:import'), pwTestUnlock: inv('pw:test-unlock'),
   // NordVPN & Schutz
   vpnLogin: inv('vpn:login'), vpnLogout: inv('vpn:logout'), vpnCountry: inv('vpn:country'), vpnRecheck: inv('vpn:recheck'), vpnLog: inv('vpn:log'),
@@ -41,7 +41,7 @@ contextBridge.exposeInMainWorld('immo', {
   checkUpdate: inv('update:check'), updateNow: inv('update:now'), setAutoUpdate: inv('update:auto'), showUpdateLog: inv('update:log'),
   // Ereignisse
   onTabs: on('tabs'), onUpdate: on('update'), onVpn: on('vpn'), onBlocker: on('blocker'), onDownloads: on('downloads'), onOnline: on('online'),
-  onToast: on('toast'), onFavicons: on('favicons'), onFindOpen: on('find-open'), onFindResult: on('find-result'), onFocusAddress: on('focus-address'),
+  onToast: on('toast'), onFavicons: on('favicons'), onFavicon: on('favicon'), onFindOpen: on('find-open'), onFindResult: on('find-result'), onFocusAddress: on('focus-address'),
   onOpenPanel: on('open-panel'), onPaletteOpen: on('palette-open'), onToggleBookmarkBar: on('toggle-bookmarkbar'), onBookmarkCurrent: on('bookmark-current'),
   onScreenshot: on('screenshot'), onTts: on('tts'), onAiPrompt: on('ai-prompt'),
   onAiChunk: on('ai:chunk'), onAiDone: on('ai:done'), onAiError: on('ai:error')

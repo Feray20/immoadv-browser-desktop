@@ -9,7 +9,8 @@ function row(it) {
   if (it.sub) return `<div class="it" data-sub="${it.id}"><span class="ic"></span><span class="lb">${esc(it.label)}</span><span class="ar">›</span></div><div class="sub" id="s${it.id}" hidden>${it.sub.map(row).join('')}</div>`;
   return `<div class="it" data-id="${it.id}" role="menuitem"><span class="ic">${ic}</span><span class="lb">${esc(it.label)}</span>${it.accel ? `<span class="ac">${esc(it.accel)}</span>` : ''}</div>`;
 }
-function measure() { requestAnimationFrame(() => { const r = box.getBoundingClientRect(); window.fadeMenu.size(Math.ceil(r.width + 28), Math.ceil(r.height + 26)); }); }
+// sofort messen (unsichtbare Ebenen bekommen kein requestAnimationFrame)
+function measure() { const r = box.getBoundingClientRect(); window.fadeMenu.size(Math.ceil(r.width + 28), Math.ceil(box.scrollHeight + 26)); }
 function render() {
   box.innerHTML = items.map(row).join('');
   box.querySelectorAll('[data-id]').forEach((el) => { el.onclick = () => window.fadeMenu.pick(el.dataset.id); });

@@ -1,3 +1,14 @@
+ImmoAdv Browser 3.0.9 – großes Prüf-Update
+- ⋯-Menü öffnet wieder zuverlässig (ImmoAdv-Fade-Design)
+- Google-Konto: sucht Chrome, Edge oder Firefox – keine PowerShell-Fenster mehr; klare Meldung, wenn keiner installiert ist
+- AltGr-Zeichen ([ ] { } @ €) springen nicht mehr auf der Seite zurück
+- http-Links lassen sich wieder mehrfach öffnen
+- Anmelde-Pop-ups (PayPal, „Mit Apple/Microsoft anmelden“, 3-D-Secure) funktionieren
+- E-Mail- und Telefon-Links öffnen nach Rückfrage im Mail-/Telefon-Programm
+- Schnellerer Start (NordVPN wird im Hintergrund geprüft), weniger Schreibzugriffe, kleinere Seitensymbole
+- Sicherheit: Passwort-Ausfüllen prüft die Seite nach der Freigabe erneut, WebRTC bleibt beim VPN-Wechsel geschützt, kopierte Passwörter werden nach 30 s gelöscht, Mac-Updates werden per Prüfsumme kontrolliert
+- Spurlos löscht jetzt auch Daten von Unterseiten (z. B. app.seite.de)
+
 ImmoAdv Browser 3.0.8
 - Word, Excel, PowerPoint, CSV und Bilder öffnen direkt im Browser (nur Anzeige und Drucken, ohne Internet)
 - Dateien auf dem Schreibtisch zeigen ihr eigenes Symbol (PDF, Word, Excel …) statt des Browser-Logos

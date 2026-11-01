@@ -76,7 +76,7 @@ function createBrowsingSession() {
     cb(sources[0] ? { video: sources[0] } : {});
   });
 
-  const upgraded = new Set();
+  const upgraded = new Map();   // https-Adresse → Zeitpunkt der Umleitung (nur gegen Endlosschleifen, läuft nach 10 s ab)
   ses.webRequest.onBeforeRequest((details, cb) => {
     const url = details.url;
     if (!/^https?:/.test(url)) return cb({});
@@ -84,10 +84,13 @@ function createBrowsingSession() {
     // HTTPS-Zwang. Leitet ein Server trotzdem auf http zurück, wird abgebrochen statt endlos umzuleiten.
     if (store.get('httpsOnly') !== false && url.startsWith('http:') && isMain && !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(url)) {
       const secure = 'https:' + url.slice(5);
-      if (upgraded.has(secure)) return cb({ cancel: true });
-      upgraded.add(secure);
+      const now = Date.now();
+      if (upgraded.get(secure) > now - 10000) return cb({ cancel: true });
+      upgraded.set(secure, now);
+      if (upgraded.size > 500) for (const [k, t] of upgraded) if (t < now - 10000) upgraded.delete(k);
       return cb({ redirectURL: secure });
     }
+    if (isMain || details.resourceType === 'subFrame') noteOrigin(url);
     if (store.get('cleanLinks') !== false && (isMain || details.resourceType === 'subFrame')) {
       const clean = cleanURL(url);
       if (clean !== url) return cb({ redirectURL: clean });
@@ -96,7 +99,7 @@ function createBrowsingSession() {
     const page = isMain ? url : (wc && !wc.isDestroyed() ? wc.getURL() : details.referrer);
     const hit = blocker.check(details, page);
     if (hit) {
-      blocker.record(wc ? wc.id : -1, hit.kind, url, isMain || details.resourceType === 'subFrame');
+      blocker.record(wc ? wc.id : -1, hit.kind, url, isMain);
       return cb({ cancel: true });
     }
     cb({});
@@ -115,15 +118,41 @@ function createBrowsingSession() {
 // ---------- Spurlos surfen ----------
 const keep = (site) => (store.get('keepSignedIn') || []).some((d) => site === d || site.endsWith('.' + d));
 const timers = new Map();
+// besuchte Origins je Seite (für vollständiges Löschen inkl. Subdomains) – auf der Platte gemerkt
+const origins = () => store.get('siteOrigins') || {};
+let originsDirty = false;
+function noteOrigin(url) {
+  let u; try { u = new URL(url); } catch { return; }
+  if (!/^https?:$/.test(u.protocol)) return;
+  const site = siteOf(u.hostname); if (!site || keep(site)) return;
+  const all = origins(); const list = all[site] || [];
+  if (list.includes(u.origin)) return;
+  all[site] = [...list, u.origin].slice(-20);
+  originsDirty = true;
+  store.setQuiet('siteOrigins', all);
+}
+async function wipeSite(ses, site) {
+  for (const c of await ses.cookies.get({})) {
+    const d = String(c.domain || '').replace(/^\./, '');
+    if (siteOf(d) === site) await ses.cookies.remove(`http${c.secure ? 's' : ''}://${d}${c.path || '/'}`, c.name).catch(() => {});
+  }
+  const all = origins();
+  const list = new Set([`https://${site}`, `https://www.${site}`, `http://${site}`, ...(all[site] || [])]);
+  for (const origin of list) await ses.clearStorageData({ origin, storages: ['localstorage', 'indexdb', 'serviceworkers', 'cachestorage', 'filesystem', 'websql'] }).catch(() => {});
+  if (all[site]) { delete all[site]; store.setQuiet('siteOrigins', all); }
+}
 
-/** Beim Start: Cookies aller Seiten löschen, bei denen du nicht angemeldet bleiben willst; Zwischenspeicher leeren */
+/** Beim Start (im Hintergrund): Cookies und Website-Speicher aller Seiten löschen, bei denen du nicht angemeldet bleiben willst */
 async function startupCleanup(ses) {
   try {
-    for (const c of await ses.cookies.get({})) {
+    const sites = new Set();
+    const cookies = await ses.cookies.get({});
+    for (const c of cookies) {
       const site = siteOf(String(c.domain || '').replace(/^\./, ''));
       if (!keep(site)) await ses.cookies.remove(`http${c.secure ? 's' : ''}://${String(c.domain).replace(/^\./, '')}${c.path || '/'}`, c.name).catch(() => {});
     }
-    await ses.clearCache();
+    for (const site of Object.keys(origins())) if (!keep(site)) sites.add(site);
+    for (const site of sites) await wipeSite(ses, site);
   } catch { /* nicht kritisch */ }
 }
 
@@ -134,15 +163,7 @@ function siteLeft(ses, site, stillOpen) {
   timers.set(site, setTimeout(async () => {
     timers.delete(site);
     if (stillOpen(site)) return;
-    try {
-      for (const c of await ses.cookies.get({})) {
-        const d = String(c.domain || '').replace(/^\./, '');
-        if (siteOf(d) === site) await ses.cookies.remove(`http${c.secure ? 's' : ''}://${d}${c.path || '/'}`, c.name).catch(() => {});
-      }
-      for (const origin of [`https://${site}`, `https://www.${site}`, `http://${site}`]) {
-        await ses.clearStorageData({ origin, storages: ['localstorage', 'indexdb', 'serviceworkers', 'cachestorage', 'filesystem', 'websql'] }).catch(() => {});
-      }
-    } catch { /* nicht kritisch */ }
+    try { await wipeSite(ses, site); } catch { /* nicht kritisch */ }
   }, 8000));
 }
 
@@ -163,4 +184,4 @@ function tabPreferences(ses) {
   };
 }
 
-module.exports = { cleanURL, createBrowsingSession, tabPreferences, userAgent, hostOf, startupCleanup, siteLeft, keep };
+module.exports = { noteOrigin, cleanURL, createBrowsingSession, tabPreferences, userAgent, hostOf, startupCleanup, siteLeft, keep };

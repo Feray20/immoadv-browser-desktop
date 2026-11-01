@@ -60,8 +60,8 @@ function count(kind) {
     const s = { ...store.get('stats') };
     for (const k of ['werbung', 'malware', 'phishing', 'eigene']) s[k] = (s[k] || 0) + (add[k] || 0);
     if (!s.since) s.since = new Date().toISOString();
-    store.set('stats', s);
-  }, 2000);
+    store.setQuiet('stats', s);
+  }, 15000);
 }
 
 /**
@@ -92,6 +92,7 @@ function record(wcId, kind, url, isMain) {
 
 module.exports = {
   load, refresh, check, record,
+  forget: (wcId) => lastBlock.delete(wcId),
   takeBlock: (wcId) => { const b = lastBlock.get(wcId); lastBlock.delete(wcId); return b || null; },
   allowOnce: (url) => { const d = cleanDomain(url); if (d) sessionAllow.add(siteOf(d)); },
   info: () => ({

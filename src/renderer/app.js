@@ -533,7 +533,7 @@ async function renderPasswords() {
     <p class="hint">Geräte-Abgleich mit iPhone/Mac ist in Arbeit; bis dahin per Export/Import übertragen.</p></div>`;
   $('pwSearch').oninput = () => { pwQuery = $('pwSearch').value; const pos = $('pwSearch').selectionStart; renderPasswords().then(() => { $('pwSearch').focus(); $('pwSearch').setSelectionRange(pos, pos); }); };
   $('panelBody').querySelectorAll('[data-reveal]').forEach((b) => { b.onclick = async () => { const r = await api.pwReveal(b.dataset.reveal); const el = $('pv-' + b.dataset.reveal); if (r && el) { el.textContent = r.pass; setTimeout(() => { el.textContent = ''; }, 20000); } }; });
-  $('panelBody').querySelectorAll('[data-copy]').forEach((b) => { b.onclick = async () => { const r = await api.pwReveal(b.dataset.copy); if (r) { await navigator.clipboard.writeText(r.pass); toast('Passwort kopiert – wird in 30 Sekunden aus der Zwischenablage entfernt'); setTimeout(() => navigator.clipboard.writeText(''), 30000); } }; });
+  $('panelBody').querySelectorAll('[data-copy]').forEach((b) => { b.onclick = async () => { if (await api.pwCopy(b.dataset.copy)) toast('Passwort kopiert – wird in 30 Sekunden aus der Zwischenablage entfernt'); }; });
   $('panelBody').querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { const p = passwords.find((x) => x.id === b.dataset.del); if (p && confirm(`Passwort für ${p.site}${p.user ? ` (${p.user})` : ''} löschen?`)) { passwords = await api.pwDelete(p.id); renderPasswords(); } }; });
   $('pwImport').onclick = async () => { const r = await api.pwImport(); if (!r) return; if (r.error) return toast(r.error); toast(`${r.added} Passwörter übernommen${r.skipped ? `, ${r.skipped} übersprungen` : ''} – bitte die CSV-Datei jetzt löschen`); renderPasswords(); };
 }
@@ -573,6 +573,7 @@ async function renderPrivacy() {
 
 // ---------- Tabs-Übersicht (Suche + Vorschau) ----------
 let tabsQuery = '';
+const previewCache = new Map();
 async function renderTabsPanel() {
   $('panelTitle').textContent = 'Alle Tabs';
   const q = tabsQuery.toLowerCase();
@@ -582,7 +583,11 @@ async function renderTabsPanel() {
   $('tsSearch').oninput = () => { tabsQuery = $('tsSearch').value; const pos = $('tsSearch').selectionStart; renderTabsPanel().then(() => { $('tsSearch').focus(); $('tsSearch').setSelectionRange(pos, pos); }); };
   $('panelBody').querySelectorAll('.tab-card').forEach((el) => { el.onclick = () => api.selectTab(el.dataset.id); });
   for (const t of list.filter((x) => !x.suspended && x.id !== state.activeId).slice(0, 16)) {
-    api.tabPreview(t.id).then((img) => { const el = $('th-' + t.id); if (img && el) el.style.backgroundImage = `url("${img}")`; });
+    const c = previewCache.get(t.id);
+    const show = (img) => { const el = $('th-' + t.id); if (img && el) el.style.backgroundImage = `url("${img}")`; };
+    if (c && Date.now() - c.at < 30000) { show(c.img); continue; }
+    previewCache.set(t.id, { at: Date.now(), img: c && c.img });
+    api.tabPreview(t.id).then((img) => { if (img) previewCache.set(t.id, { at: Date.now(), img }); show(img); });
   }
 }
 
@@ -941,7 +946,7 @@ api.onTabs((s) => {
   state = s;
   renderWorkspaces(); renderTabs(); renderToolbar(); renderContent(); pushLayout();
   if (panel === 'immo' && prevActive !== s.activeId) { const t = activeTab(); if (!(t && t.listing)) closePanel(); }
-  if (panel === 'tabs') renderTabsPanel();
+  if (panel === 'tabs' && document.activeElement?.id !== 'tsSearch') { clearTimeout(window.__tp); window.__tp = setTimeout(renderTabsPanel, 400); }
 });
 api.onUpdate((s) => { upd = s; renderUpdate(); });
 api.onVpn((s) => { vpnState = { ...vpnState, ...s }; renderShield(); renderStart(); renderContent(); if (panel === 'settings' && setTab === 'vpn') setVPN(); });
@@ -950,6 +955,8 @@ api.onDownloads((d) => { downloads = d; $('dlBtn').classList.toggle('on', d.some
 api.onOnline((o) => { if (o !== online) { online = o; renderShield(); } });
 api.onToast(toast);
 api.onFavicons((m) => { favicons = m || {}; renderTabs(); renderBookmarkBar(); renderStart(); });
+let favRenderTimer = null;
+api.onFavicon(({ host, data }) => { favicons[host] = data; clearTimeout(favRenderTimer); favRenderTimer = setTimeout(() => { renderTabs(); renderBookmarkBar(); renderStart(); }, 300); });
 api.onFindOpen(openFind);
 api.onFindResult((r) => { $('findCount').textContent = r.total ? `${r.active}/${r.total}` : 'Keine Treffer'; });
 api.onFocusAddress(() => { $('address').focus(); $('address').select(); });

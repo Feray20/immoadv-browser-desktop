@@ -82,16 +82,28 @@ function load() {
     try { if (fs.existsSync(file()) && !fs.existsSync(backup)) fs.copyFileSync(file(), backup); } catch {}
     Object.assign(data, { searchEngine: 'google', rememberFrequent: false, frequent: [], migratedV3: true });
     for (const k of ['torEnabled', 'useBridges', 'customBridges', 'googleDirect', 'youtubeDirect', 'updateFallback', 'background', 'trayHintShown', 'blockTrackers']) delete data[k];
-    save();
+    writeNow();
   }
   return data;
 }
 
+// Schreiben gebündelt (nach 400 ms, spätestens nach 3 s) – nicht bei jeder Kleinigkeit die ganze Datei
+let saveTimer = null, firstPending = 0;
+function writeNow() {
+  clearTimeout(saveTimer); saveTimer = null; firstPending = 0;
+  if (!data) return;
+  try {
+    fs.mkdirSync(path.dirname(file()), { recursive: true });
+    const tmp = file() + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(data), { mode: 0o600 });
+    fs.renameSync(tmp, file());
+  } catch (e) { console.error('Einstellungen speichern', e); }
+}
 function save() {
-  fs.mkdirSync(path.dirname(file()), { recursive: true });
-  const tmp = file() + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), { mode: 0o600 });
-  fs.renameSync(tmp, file());
+  const now = Date.now();
+  if (!firstPending) firstPending = now;
+  clearTimeout(saveTimer);
+  saveTimer = now - firstPending > 3000 ? setTimeout(writeNow, 0) : setTimeout(writeNow, 400);
 }
 
 module.exports = {

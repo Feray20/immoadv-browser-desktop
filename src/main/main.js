@@ -33,7 +33,7 @@ function openTargets(list) {
   const items = (list || []).map((a) => String(a || '').trim()).filter(Boolean);
   for (const a of items) {
     if (/^https?:\/\//i.test(a)) { if (needsChrome(a)) { openInChrome(a); continue; } if (win) newTab(a); else pendingOpen.push(a); continue; }
-    const file = a.replace(/^file:\/\//i, '');
+    let file = a; if (/^file:/i.test(a)) { try { file = require('node:url').fileURLToPath(a); } catch { continue; } }
     if (!DOC_RE.test(file) || !fs.existsSync(file)) continue;
     if (!win) { pendingOpen.push(file); continue; }
     if (/\.pdf$/i.test(file)) openPDF(file);
@@ -42,7 +42,7 @@ function openTargets(list) {
   }
   if (win && items.length) showWindow();
 }
-const argvTargets = (argv) => (argv || []).slice(1).filter((a) => /^https?:\/\//i.test(a) || DOC_RE.test(a));
+const argvTargets = (argv) => (argv || []).slice(1).filter((a) => a !== '--' && (/^https?:\/\//i.test(a) || DOC_RE.test(a)));
 pendingOpen.push(...argvTargets(process.argv));
 app.on('open-url', (e, url) => { e.preventDefault(); openTargets([url]); });      // Mac: Link aus anderer App
 app.on('open-file', (e, file) => { e.preventDefault(); openTargets([file]); });  // Mac: HTML/PDF-Datei
@@ -51,20 +51,41 @@ app.on('open-file', (e, file) => { e.preventDefault(); openTargets([file]); }); 
 // Gmail, Drive, Kalender und die Google-Anmeldung öffnen deshalb automatisch in Chrome (dort bist du angemeldet).
 const GOOGLE_ACCOUNT = /^https:\/\/(accounts|mail|drive|docs|sheets|slides|calendar|myaccount|photos|contacts|keep|meet|chat|admin|takeout|passwords|myactivity|pay|one)\.google\.[a-z.]+(\/|$)/i;
 const needsChrome = (url) => store.get('googleExternal') !== false && GOOGLE_ACCOUNT.test(String(url || ''));
-function chromePath() {
+// Browser, in dem Google die Anmeldung erlaubt: Chrome, Edge oder Firefox – Pfad über die Windows-Programmregistrierung
+let browserPathCache = null;
+function regAppPath(exe) {
+  return new Promise((resolve) => {
+    const { execFile } = require('node:child_process');
+    const tryKey = (keys) => {
+      if (!keys.length) return resolve(null);
+      execFile('reg.exe', ['query', keys[0], '/ve'], { windowsHide: true, timeout: 5000 }, (err, out) => {
+        const m = !err && /REG_(?:EXPAND_)?SZ\s+(.+\.exe)/i.exec(String(out));
+        const p = m && m[1].trim().replace(/^"|"$/g, '').replace(/%([^%]+)%/g, (_x, v) => process.env[v] || '');
+        if (p) { try { if (fs.statSync(p).isFile()) return resolve(p); } catch {} }
+        tryKey(keys.slice(1));
+      });
+    };
+    tryKey([`HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\${exe}`, `HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\${exe}`, `HKLM\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\App Paths\\${exe}`]);
+  });
+}
+async function chromePath() {
   if (process.platform === 'darwin') return null;
+  if (browserPathCache) { try { if (fs.statSync(browserPathCache).isFile()) return browserPathCache; } catch {} }
   const env = process.env;
-  const c = [
-    path.join(env.ProgramFiles || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
-    path.join(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+  const pf = env.ProgramFiles || 'C:\\Program Files', pf86 = env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+  const direct = [
+    path.join(pf, 'Google', 'Chrome', 'Application', 'chrome.exe'), path.join(pf86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
     path.join(env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
-    path.join(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-    path.join(env.ProgramFiles || 'C:\\Program Files', 'Microsoft', 'Edge', 'Application', 'msedge.exe')
+    path.join(pf86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'), path.join(pf, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    path.join(pf, 'Mozilla Firefox', 'firefox.exe'), path.join(pf86, 'Mozilla Firefox', 'firefox.exe')
   ];
-  return c.find((p) => { try { return p && fs.statSync(p).isFile(); } catch { return false; } }) || null;
+  let found = direct.find((p) => { try { return fs.statSync(p).isFile(); } catch { return false; } });
+  if (!found) for (const exe of ['chrome.exe', 'msedge.exe', 'firefox.exe']) { found = await regAppPath(exe); if (found) break; }
+  browserPathCache = found || null;
+  return browserPathCache;
 }
 let lastChrome = { url: '', at: 0 };
-function openInChrome(url) {
+async function openInChrome(url) {
   if (lastChrome.url === url && Date.now() - lastChrome.at < 3000) return;   // Doppelklicks/Weiterleitungen
   lastChrome = { url, at: Date.now() };
   const { spawn } = require('node:child_process');
@@ -73,20 +94,33 @@ function openInChrome(url) {
       spawn('open', ['-a', 'Google Chrome', url], { detached: true, stdio: 'ignore' })
         .on('exit', (code) => { if (code) spawn('open', ['-a', 'Safari', url], { detached: true, stdio: 'ignore' }).unref(); }).unref();
     } else {
-      const exe = chromePath();
-      if (exe) spawn(exe, [url], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
-      else {
-        // Rückfall: Windows findet Chrome/Edge selbst über die Programm-Registrierung (Adresse als Variable, nie als Befehl)
-        const ps = "try { Start-Process chrome -ArgumentList $env:IA_URL -ErrorAction Stop } catch { Start-Process msedge -ArgumentList $env:IA_URL }";
-        spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', ps], { detached: true, stdio: 'ignore', windowsHide: true, env: { ...process.env, IA_URL: url } }).unref();
-      }
+      const exe = await chromePath();
+      if (!exe) { send('toast', 'Kein Chrome, Edge oder Firefox gefunden – Google erlaubt die Anmeldung nur dort. Bitte Chrome installieren.'); return; }
+      spawn(exe, [url], { detached: true, stdio: 'ignore' }).unref();
     }
-    send('toast', 'Google-Konto in Chrome geöffnet – Google erlaubt die Anmeldung nur dort');
+    send('toast', `Google-Konto in ${process.platform === 'darwin' ? 'Chrome' : /msedge/i.test(browserPathCache || '') ? 'Edge' : /firefox/i.test(browserPathCache || '') ? 'Firefox' : 'Chrome'} geöffnet – Google erlaubt die Anmeldung nur dort`);
   } catch { send('toast', 'Chrome konnte nicht geöffnet werden'); }
 }
 
+// mailto:/tel: – nach Rückfrage im Mail- bzw. Telefon-Programm öffnen
+let askOpen = false;
+async function askExternal(url) {
+  if (askOpen || !win) return; askOpen = true;
+  try {
+    const mail = /^mailto:/i.test(url);
+    const { response } = await dialog.showMessageBox(win, { type: 'question', buttons: ['Öffnen', 'Abbrechen'], defaultId: 0, cancelId: 1, title: mail ? 'E-Mail' : 'Anruf',
+      message: mail ? `E-Mail an ${decodeURIComponent(url.slice(7).split('?')[0])} im Mail-Programm schreiben?` : `${decodeURIComponent(url.slice(4))} anrufen?` });
+    if (response === 0) shell.openExternal(url);
+  } finally { askOpen = false; }
+}
+
 function isDefaultBrowser() {
-  try { return app.isDefaultProtocolClient('https') && app.isDefaultProtocolClient('http'); } catch { return false; }
+  if (process.platform !== 'win32') { try { return app.isDefaultProtocolClient('https'); } catch { return false; } }
+  // Windows: die Wahl in „Standard-Apps“ steht unter UserChoice
+  return new Promise((resolve) => {
+    require('node:child_process').execFile('reg.exe', ['query', 'HKCU\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\https\\UserChoice', '/v', 'ProgId'],
+      { windowsHide: true, timeout: 5000 }, (err, out) => resolve(!err && /ImmoAdvBrowserURL/i.test(String(out))));
+  });
 }
 async function makeDefaultBrowser() {
   if (process.platform === 'darwin') {
@@ -109,7 +143,7 @@ const DNS = {
 };
 function applyDNS() {
   const d = DNS[store.get('dnsProvider')] || DNS.quad9;
-  try { app.configureHostResolver(d.url ? { secureDnsMode: 'secure', secureDnsServers: [d.url] } : { secureDnsMode: 'off' }); }
+  try { app.configureHostResolver(d.url ? { secureDnsMode: 'automatic', secureDnsServers: [d.url] } : { secureDnsMode: 'off' }); }
   catch (e) { console.error('DNS', e); }
 }
 
@@ -168,11 +202,12 @@ async function createWindow() {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.webContents.on('before-input-event', (e, input) => handleShortcut(e, input));
+  win.once('ready-to-show', () => { win.show(); warmFavorites(); });
   await win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  if (!win.isVisible()) win.show();
   for (const ev of ['resize', 'maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'restore']) win.on(ev, positionViews);
   win.on('close', () => saveSession(true));
   win.on('closed', () => { win = null; });
-  win.once('ready-to-show', () => { win.show(); warmFavorites(); });
   const restored = restoreSession();
   if (pendingOpen.length) openTargets(pendingOpen.splice(0));
   else if (!restored) newTab();
@@ -192,19 +227,33 @@ function makeView(kind) {
 function wireView(tab) {
   const wc = tab.view.webContents;
   // WebRTC: mit VPN nur über das VPN, sonst keine lokalen IP-Adressen preisgeben
-  if (tab.kind === 'web') wc.setWebRTCIPHandlingPolicy(vpn.active() ? 'disable_non_proxied_udp' : 'default_public_interface_only');
+  if (tab.kind === 'web') wc.setWebRTCIPHandlingPolicy(vpn.loggedIn() ? 'disable_non_proxied_udp' : 'default_public_interface_only');
 
   // Neue Fenster → neuer Tab im selben Arbeitsbereich (keine Pop-ups)
-  wc.setWindowOpenHandler(({ url, disposition }) => {
+  wc.setWindowOpenHandler(({ url, disposition, features }) => {
     if (needsChrome(url)) { openInChrome(url); return { action: 'deny' }; }
+    if (/^(mailto|tel):/i.test(url)) { askExternal(url); return { action: 'deny' }; }
+    // echte Pop-ups (PayPal, „Mit Apple/Microsoft anmelden“, 3-D-Secure) brauchen ein Kindfenster mit Verbindung zur Seite
+    if (/^https?:/i.test(url) && disposition === 'new-window' && features) {
+      return { action: 'allow', overrideBrowserWindowOptions: { width: 520, height: 700, parent: win, autoHideMenuBar: true, backgroundColor: '#ffffff', title: 'Anmeldung', webPreferences: tabPreferences(browsingSession) } };
+    }
     if (/^https?:/i.test(url)) newTab(url, { ws: tab.ws, background: disposition === 'background-tab' });
     return { action: 'deny' };
+  });
+  wc.on('did-create-window', (child) => {
+    child.setMenuBarVisibility(false);
+    child.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/i.test(url)) newTab(url, { ws: tab.ws }); return { action: 'deny' }; });
+    child.webContents.on('will-navigate', (e, u) => { if (!/^https?:/i.test(u)) e.preventDefault(); });
   });
   // Nur Webadressen – keine Programme oder lokalen Dateien aus Webseiten heraus öffnen
   // lokale HTML-Datei (vom System geöffnet): nur diese eine Datei, Links daraus nur ins Web
   const allowed = (url) => (tab.kind === 'pdf' ? url.startsWith('immoadv-pdf:') : /^https?:/i.test(url) || (tab.localFile && url === tab.localFile));
   const toChrome = (e, url) => { if (tab.kind === 'web' && needsChrome(url)) { e.preventDefault(); openInChrome(url); return true; } return false; };
-  wc.on('will-navigate', (e, url) => { if (toChrome(e, url)) return; if (!allowed(url)) e.preventDefault(); });
+  wc.on('will-navigate', (e, url) => {
+    if (toChrome(e, url)) return;
+    if (/^(mailto|tel):/i.test(url)) { e.preventDefault(); return askExternal(url); }
+    if (!allowed(url)) e.preventDefault();
+  });
   wc.on('will-redirect', (e, url) => { if (toChrome(e, url)) return; if (!allowed(url)) e.preventDefault(); });
   wc.on('will-frame-navigate', (e) => { if (!allowed(e.url) && !/^(about|blob|data):/i.test(e.url)) e.preventDefault(); });
 
@@ -216,7 +265,7 @@ function wireView(tab) {
     pushTabs();
   };
   wc.on('page-title-updated', update);
-  wc.on('page-favicon-updated', async (_e, icons) => { tab.gotIcon = true; const d = await siteIcon(wc.getURL(), icons); if (d) { tab.favicon = d; pushTabs(); } });
+  wc.on('page-favicon-updated', async (_e, icons) => { tab.gotIcon = true; const at = wc.getURL(); const d = await siteIcon(at, icons); if (d && !wc.isDestroyed() && wc.getURL() === at) { tab.favicon = d; pushTabs(); } });
   wc.on('did-navigate', (_e, url) => {
     tab.listing = null; tab.login = null; tab.blocked = null; tab.favicon = null; tab.gotIcon = false;
     // Spurlos: Seite im selben Tab verlassen → ihre Daten werden gelöscht, wenn kein Tab sie mehr offen hat
@@ -268,6 +317,7 @@ function wireView(tab) {
     pushTabs();
   });
   wc.on('before-input-event', (e, input) => handleShortcut(e, input));
+  wc.once('destroyed', () => blocker.forget(wc.id));
   wc.on('context-menu', (_e, p) => pageMenu(tab, p));
 }
 
@@ -282,8 +332,9 @@ function favRemember(host, data) {
   if (m[host] === data) return;
   m[host] = data;
   const keys = Object.keys(m); if (keys.length > 400) delete m[keys[0]];
+  send('favicon', { host, data });
   clearTimeout(favSaveTimer);
-  favSaveTimer = setTimeout(() => { try { fs.writeFileSync(favFile(), JSON.stringify(m)); } catch {} send('favicons', m); }, 400);
+  favSaveTimer = setTimeout(() => { try { fs.writeFileSync(favFile(), JSON.stringify(m)); } catch {} }, 3000);
 }
 const IMG = /^image\/(png|x-icon|vnd\.microsoft\.icon|svg\+xml|jpeg|gif|webp|avif|ico)$/;
 function sniff(buf) {
@@ -295,8 +346,16 @@ function sniff(buf) {
   if (/<svg[\s>]/i.test(buf.slice(0, 400).toString())) return 'image/svg+xml';
   return null;
 }
+const iconUrlCache = new Map();   // Symbol-Adresse → Ergebnis (nicht ständig neu laden)
 async function favicon(url) {
   if (!url || !/^https:/.test(url)) return null;
+  if (iconUrlCache.has(url)) return iconUrlCache.get(url);
+  const p = fetchIcon(url);
+  iconUrlCache.set(url, p);
+  if (iconUrlCache.size > 600) iconUrlCache.delete(iconUrlCache.keys().next().value);
+  return p;
+}
+async function fetchIcon(url) {
   try {
     const r = await browsingSession.fetch(url, { credentials: 'omit' });
     if (!r.ok) return null;
@@ -305,8 +364,15 @@ async function favicon(url) {
     let type = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
     if (!IMG.test(type)) type = sniff(buf);
     if (!type) return null;
-    if (type === 'image/svg+xml' && /<script|on\w+=/i.test(buf.toString())) return null;   // SVG ohne Skripte
-    return `data:${type};base64,${buf.toString('base64')}`;
+    if (type === 'image/svg+xml') {
+      if (/<script|on\w+=/i.test(buf.toString()) || buf.length > 30000) return null;   // SVG ohne Skripte, klein
+      return `data:${type};base64,${buf.toString('base64')}`;
+    }
+    // auf 32 px verkleinern → kleine Datei, schnelle Oberfläche
+    const img = require('electron').nativeImage.createFromBuffer(buf);
+    if (img.isEmpty()) return buf.length < 20000 ? `data:${type};base64,${buf.toString('base64')}` : null;
+    const sz = img.getSize();
+    return (sz.width > 32 ? img.resize({ width: 32, quality: 'best' }) : img).toDataURL();
   } catch { return null; }
 }
 // Symbol einer Seite holen: erst das von der Seite gemeldete, sonst /favicon.ico
@@ -353,6 +419,7 @@ function newTab(url, opts = {}) {
 }
 
 function load(tab, url) {
+  if (!tabs.includes(tab)) return;   // Tab inzwischen geschlossen
   if (tab.kind === 'web' && needsChrome(url)) { openInChrome(url); if (!tab.url) pushTabs(); return; }
   if (!tab.view) attachView(tab);
   tab.url = url;
@@ -469,15 +536,20 @@ function pushNow() {
 }
 
 // ---------- Sitzung: offene Tabs beim nächsten Start wieder da ----------
-let sessionTimer = null;
+let sessionTimer = null, lastSessionJSON = '';
 function saveSession(now = false) {
-  clearTimeout(sessionTimer);
   const doSave = () => {
-    if (store.get('restoreSession') === false) return store.get('lastSession') && store.set('lastSession', null);
+    sessionTimer = null;
+    if (store.get('restoreSession') === false) return store.get('lastSession') && store.setQuiet('lastSession', null);
     const list = tabs.filter((t) => t.kind === 'web' && /^https?:/.test(t.url)).map((t) => ({ url: t.url, title: t.title, ws: t.ws, pinned: !!t.pinned, active: t.id === activeId }));
-    store.set('lastSession', { tabs: list.slice(0, 80), activeWs: activeWs() });
+    const data = { tabs: list.slice(0, 80), activeWs: activeWs() };
+    const json = JSON.stringify(data);
+    if (json === lastSessionJSON) return;
+    lastSessionJSON = json;
+    store.setQuiet('lastSession', data);
+    if (now) store.flush();
   };
-  if (now) doSave(); else sessionTimer = setTimeout(doSave, 1500);
+  if (now) { clearTimeout(sessionTimer); doSave(); } else if (!sessionTimer) sessionTimer = setTimeout(doSave, 2000);   // spätestens nach 2 s, nicht endlos verschoben
 }
 function restoreSession() {
   const s = store.get('lastSession');
@@ -589,6 +661,7 @@ function openOffice(filePath) { newTab(pdf.officeURL(filePath), { kind: 'pdf', t
 // ---------- Tastenkürzel (auch wenn der Fokus in einer Webseite liegt) ----------
 function handleShortcut(e, input) {
   if (input.type !== 'keyDown') return;
+  if (input.control && input.alt && process.platform !== 'darwin') return;   // AltGr (deutsche Tastatur: [ ] { } @ €) nie als Kürzel
   const mod = process.platform === 'darwin' ? input.meta : input.control;
   const k = input.key.toLowerCase();
   const t = active();
@@ -652,7 +725,8 @@ function toggleSplit(id) {
   const t = tabs.find((x) => x.id === id);
   if (!t) return;
   // Partner: anderer zuletzt benutzter Tab im selben Bereich, sonst ein neuer Tab
-  let other = tabs.filter((x) => x.ws === t.ws && x.id !== id && x.kind === 'web').sort((a, b) => b.lastActive - a.lastActive)[0];
+  let other = tabs.filter((x) => x.ws === t.ws && x.id !== id && x.kind === 'web' && x.url).sort((a, b) => b.lastActive - a.lastActive)[0];
+  if (!other) { send('toast', 'Für die geteilte Ansicht zuerst eine zweite Seite in einem Tab öffnen'); return; }
   if (!other) other = newTab(undefined, { ws: t.ws, background: true });
   if (!other.view) { attachView(other); if (other.url) load(other, other.url); }
   split = { a: id, b: other.id };
@@ -690,7 +764,9 @@ async function pageText(t) {
 }
 
 // Passwort in die Seite eintragen – nur auf der Seite, für die es gespeichert wurde
-const FILL = (user, pass) => `(() => {
+const FILL = (user, pass, site) => `(() => {
+  const h = location.hostname; const s = ${JSON.stringify(site || '')};
+  if (!(h === s || h.endsWith('.' + s))) return false;
   const vis = (el) => !!(el && el.offsetParent !== null && !el.disabled && !el.readOnly);
   const pw = [...document.querySelectorAll('input[type="password"]')].find(vis);
   const set = (el, v) => { if (!el) return; const d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value'); d.set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); };
@@ -880,9 +956,17 @@ function registerIPC() {
     if (!entry || entry.site !== siteOf(hostOf(wc.getURL()))) return false;   // nie auf fremden Seiten
     const c = await vault.credentialsFor(id);
     if (!c) { send('toast', 'Freigabe abgebrochen'); return false; }
-    try { return await wc.executeJavaScriptInIsolatedWorld(1005, [{ code: FILL(c.user, c.pass) }]); } catch { return false; }
+    if (wc.isDestroyed() || entry.site !== siteOf(hostOf(wc.getURL()))) return false;   // Seite hat während der Freigabe gewechselt
+    try { return await wc.executeJavaScriptInIsolatedWorld(1005, [{ code: FILL(c.user, c.pass, entry.site) }]); } catch { return false; }
   });
   handle('pw:list', () => vault.list());
+  // Passwort kopieren: nach 30 s aus der Zwischenablage entfernen – nur, wenn dort noch dieses Passwort steht
+  handle('pw:copy', async (_e, id) => {
+    const r = await vault.reveal(id); if (!r) return false;
+    clipboard.writeText(r.pass);
+    setTimeout(() => { try { if (clipboard.readText() === r.pass) clipboard.clear(); } catch {} }, 30000);
+    return true;
+  });
   handle('pw:reveal', async (_e, id) => vault.reveal(id));
   handle('pw:delete', (_e, id) => { vault.remove(id); for (const t of tabs) if (t.url) t.login = vault.forUrl(t.url); pushTabs(); return vault.list(); });
   handle('pw:import', async () => {
@@ -1022,7 +1106,7 @@ function tabMenu(id, pos) {
 }
 
 // ---------- ImmoAdv-Fade-Menü: eigene durchsichtige Ebene über Fenster und Webseite (statt weißem Systemmenü) ----------
-let menuView = null, menuReady = null, menuHandlers = new Map(), menuPos = null, menuSeq = 0;
+let menuView = null, menuReady = null, menuHandlers = new Map(), menuPos = null, menuSeq = 0, menuGen = 0, menuShown = 0;
 function accelText(a) {
   if (!a) return '';
   const mac = process.platform === 'darwin';
@@ -1054,13 +1138,13 @@ function ensureMenuView() {
   menuView = new WebContentsView({ webPreferences: { preload: path.join(__dirname, '..', 'preload', 'menu-preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false } });
   menuView.setBackgroundColor('#00000000');
   menuView.setVisible(false);
-  menuView.webContents.on('blur', () => setTimeout(closeFadeMenu, 60));
+  menuView.webContents.on('blur', () => { const g = menuGen; setTimeout(() => { if (g === menuGen && Date.now() - menuShown > 250) closeFadeMenu(); }, 80); });
   menuView.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   menuView.webContents.on('will-navigate', (e) => e.preventDefault());
   menuReady = menuView.webContents.loadFile(path.join(__dirname, '..', 'renderer', 'menu.html'));
   return menuReady;
 }
-function closeFadeMenu() { if (menuView && !menuView.webContents.isDestroyed()) menuView.setVisible(false); menuHandlers.clear(); }
+function closeFadeMenu() { menuGen++; if (menuView && !menuView.webContents.isDestroyed()) menuView.setVisible(false); menuHandlers.clear(); }
 /** pos: { x, y, alignRight } in Fenster-Koordinaten */
 async function fadeMenu(template, pos, wcForRoles) {
   if (!win) return;
@@ -1071,22 +1155,27 @@ async function fadeMenu(template, pos, wcForRoles) {
   menuPos = pos || { x: 40, y: 40 };
   try { win.contentView.removeChildView(menuView); } catch {}
   win.contentView.addChildView(menuView);                   // immer ganz oben
-  menuView.setBounds({ x: 0, y: 0, width: 360, height: 20 });
+  const gen = ++menuGen;
+  menuView.setBounds({ x: 0, y: 0, width: 1, height: 1 });
   menuView.webContents.send('menu:show', { items });
+  // Sicherheitsnetz: falls die Größe nicht zurückkommt, mit geschätzter Größe zeigen
+  setTimeout(() => { if (gen === menuGen && !menuView.getVisible?.() ) placeMenu(300, Math.min(40 + items.length * 32, 640)); }, 250);
+}
+function placeMenu(w, h) {
+  if (!win || !menuView) return;
+  const [W, H] = win.getContentSize();
+  const width = Math.min(Math.max(200, w | 0), 380), height = Math.min(Math.max(40, h | 0), H - 20);
+  let x = menuPos.alignRight ? menuPos.x - width + 14 : menuPos.x - 14;
+  let y = menuPos.y - 6;
+  x = Math.max(0, Math.min(x, W - width)); if (y + height > H) y = Math.max(0, H - height);
+  menuView.setBounds({ x: Math.round(x), y: Math.round(y), width, height });
+  menuShown = Date.now();
+  menuView.setVisible(true);
+  menuView.webContents.focus();
 }
 function registerMenuIPC() {
   const fromMenu = (e) => menuView && e.sender === menuView.webContents;
-  ipcMain.on('menu:size', (e, { w, h }) => {
-    if (!fromMenu(e) || !win) return;
-    const [W, H] = win.getContentSize();
-    const width = Math.min(Math.max(200, w | 0), 380), height = Math.min(Math.max(40, h | 0), H - 20);
-    let x = menuPos.alignRight ? menuPos.x - width + 14 : menuPos.x - 14;
-    let y = menuPos.y - 6;
-    x = Math.max(0, Math.min(x, W - width)); if (y + height > H) y = Math.max(0, H - height);
-    menuView.setBounds({ x: Math.round(x), y: Math.round(y), width, height });
-    menuView.setVisible(true);
-    menuView.webContents.focus();
-  });
+  ipcMain.on('menu:size', (e, { w, h }) => { if (fromMenu(e) && win) placeMenu(w, h); });
   ipcMain.on('menu:pick', (e, id) => { if (!fromMenu(e)) return; const fn = menuHandlers.get(String(id)); closeFadeMenu(); if (fn) setTimeout(fn, 10); });
   ipcMain.on('menu:close', (e) => { if (fromMenu(e)) closeFadeMenu(); });
 }
@@ -1204,7 +1293,7 @@ app.whenReady().then(async () => {
   await startupCleanup(browsingSession);
   vpn.onState((s) => {
     send('vpn', s);
-    for (const t of tabs) { const wc = wcOf(t); if (wc && t.kind === 'web') wc.setWebRTCIPHandlingPolicy(s.status === 'on' ? 'disable_non_proxied_udp' : 'default_public_interface_only'); }
+    for (const t of tabs) { const wc = wcOf(t); if (wc && t.kind === 'web') wc.setWebRTCIPHandlingPolicy(vpn.loggedIn() ? 'disable_non_proxied_udp' : 'default_public_interface_only'); }
   });
   await vpn.init(browsingSession);
   await createWindow();
@@ -1220,7 +1309,7 @@ app.whenReady().then(async () => {
 app.on('second-instance', (_e, argv) => { const t = argvTargets(argv); if (t.length) openTargets(t); else showWindow(); });
 app.on('activate', () => showWindow());
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => saveSession(true));
+app.on('before-quit', () => { saveSession(true); history.flush(); store.flush(); try { if (favMap) fs.writeFileSync(favFile(), JSON.stringify(favMap)); } catch {} });
 app.on('web-contents-created', (_e, wc) => {
   // Sicherheitsnetz: niemals <webview> für Webinhalte, keine Pop-up-Fenster
   wc.on('will-attach-webview', (e) => e.preventDefault());
