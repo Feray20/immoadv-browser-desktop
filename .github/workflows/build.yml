@@ -13,6 +13,10 @@
 #   ARTIFACT_SIGNING_PROFILE      Name des Zertifikatprofils
 #   ARTIFACT_SIGNING_PUBLISHER    Herausgebername exakt wie im Zertifikat (CN)
 #
+# Microsoft Store (kostenlos, Microsoft signiert): unter Settings → Secrets and variables → Actions → „Variables“ anlegen:
+#   STORE_IDENTITY_NAME, STORE_PUBLISHER   (aus Partner Center → App → Produktverwaltung → Produktidentität)
+#   Das fertige Paket liegt danach im Build unter „Artifacts“ → microsoft-store-paket.
+#
 # Mac-Signierung/Beglaubigung (optional): CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
 
 name: Build
@@ -81,6 +85,12 @@ jobs:
             npx electron-builder "${ARGS[@]}" &&
             node scripts/finalize-release.mjs
           } 2>&1 | tee -a build.log
+      - name: Microsoft-Store-Paket bauen (kostenlos von Microsoft signiert)
+        env:
+          STORE_IDENTITY_NAME: ${{ vars.STORE_IDENTITY_NAME }}
+          STORE_PUBLISHER: ${{ vars.STORE_PUBLISHER }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: set -o pipefail; node scripts/store-package.mjs 2>&1 | tee -a build.log
       - name: Fehlerprotokoll an GitHub melden
         if: failure()
         run: bash scripts/fehlerbericht.sh Windows
@@ -89,6 +99,12 @@ jobs:
         with:
           name: windows
           path: dist/*.exe
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: microsoft-store-paket
+          path: dist/*.appx
           if-no-files-found: ignore
 
   mac:

@@ -41,6 +41,7 @@ function macSigned() {
 
 async function init(onState) {
   if (onState) listeners.push(onState);
+  if (process.windowsStore) { emit({ status: 'unsupported', message: 'Updates kommen automatisch über den Microsoft Store' }); return; }
   if (!supported()) { emit({ status: 'unsupported', message: 'Updates nur in der installierten Version' }); return; }
   if (process.platform === 'darwin') macManual = !(await macSigned());
   autoUpdater.autoDownload = !macManual && store.get('autoUpdate') !== false;
