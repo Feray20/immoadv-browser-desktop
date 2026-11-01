@@ -15,6 +15,8 @@ export function parseLine(line) {
   let s = String(line).trim().toLowerCase();
   if (!s || s.startsWith('#') || s.startsWith('!') || s.startsWith('[')) return null;
   s = s.replace(/\s+#.*$/, '');
+  const dm = /^(?:local|address|server)=\/([^/]+)\//.exec(s);                                   // dnsmasq-Format
+  if (dm) s = dm[1];
   const parts = s.split(/\s+/);
   if (parts.length === 2 && /^(0\.0\.0\.0|127\.0\.0\.1|::1?)$/.test(parts[0])) s = parts[1];   // Hosts-Format
   else if (parts.length > 1) return null;

@@ -13,6 +13,7 @@ test('Zeilenformate werden erkannt', () => {
   assert.equal(parseLine('127.0.0.1'), null);
   assert.equal(parseLine('kein domain'), null);
   assert.equal(parseLine('Example.COM.'), 'example.com');
+  assert.equal(parseLine('local=/ads.example.de/'), 'ads.example.de');
 });
 
 test('Subdomains bereits gelisteter Domains fallen weg, Schutzliste greift', () => {

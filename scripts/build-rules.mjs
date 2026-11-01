@@ -16,7 +16,12 @@ export const LISTS = {
     name: 'HaGeZi Multi PRO (Werbung, Tracking, Fingerprinting, Telemetrie)',
     license: 'GPL-3.0',
     home: 'https://github.com/hagezi/dns-blocklists',
-    urls: ['https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/pro.txt', 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/domains/pro.txt'],
+    urls: [
+      'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro-onlydomains.txt',
+      'https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/wildcard/pro-onlydomains.txt',
+      'https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/dnsmasq/pro.txt',
+      'https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/wildcard/pro-onlydomains.txt'
+    ],
     min: 50000
   },
   malware: {
