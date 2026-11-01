@@ -131,12 +131,13 @@ async function openInChrome(url) {
   const { spawn } = require('node:child_process');
   try {
     if (process.platform === 'darwin') {
-      spawn('open', ['-a', 'Google Chrome', url], { detached: true, stdio: 'ignore' })
+      spawn('open', ['-na', 'Google Chrome', '--args', `--app=${url}`], { detached: true, stdio: 'ignore' })
         .on('exit', (code) => { if (code) spawn('open', ['-a', 'Safari', url], { detached: true, stdio: 'ignore' }).unref(); }).unref();
     } else {
       const exe = await chromePath();
       if (!exe) { offerChromeInstall(); return; }
-      spawn(exe, [url], { detached: true, stdio: 'ignore' }).unref();
+      // Chrome/Edge als schlankes App-Fenster (ohne Tabs und Adressleiste) – fühlt sich an wie ein Teil des ImmoAdv Browsers
+      spawn(exe, /firefox/i.test(exe) ? [url] : [`--app=${url}`], { detached: true, stdio: 'ignore' }).unref();
     }
     send('toast', `${YOUTUBE.test(url) ? 'YouTube' : 'Google-Konto'} in ${process.platform === 'darwin' ? 'Chrome' : /msedge/i.test(browserPathCache || '') ? 'Edge' : /firefox/i.test(browserPathCache || '') ? 'Firefox' : 'Chrome'} geöffnet – dort bist du angemeldet`);
   } catch { send('toast', 'Chrome konnte nicht geöffnet werden'); }
