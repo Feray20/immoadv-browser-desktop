@@ -5,19 +5,23 @@ directories:
   output: dist
   buildResources: build
 files:
-  - src/**/*
+  - launcher/**/*
+  - src/shared/lists.js
   - package.json
-# PDF-Betrachter und Filterlisten (Werbung/Tracker, Malware, Phishing) – beim Build geladen
+# Version 4: Firefox-Motor wird beim ersten Start offiziell von Mozilla geladen. Mit dabei: ImmoAdv-Erweiterung (inkl. Filterlisten,
+# PDF-Texterkennung, Office-Betrachter), Oberfläche (userChrome), feste Einstellungen und Symbole je Dateityp.
 extraResources:
-  - from: vendor/pdfjs
-    to: pdfjs
-  - from: vendor/studio
-    to: studio
-  - from: vendor/lists
-    to: lists
+  - from: vendor/extension/immoadv.xpi
+    to: extension/immoadv.xpi
+  - from: engine
+    to: engine
+  - from: launcher/relay.js
+    to: relay.js
   # Symbole je Dateityp (PDF, Word, Excel …) – Dokumente zeigen ihr Format, nicht das Browser-Logo (01.11.2026)
   - from: build/dateisymbole
     to: dateisymbole
+asarUnpack:
+  - node_modules/7zip-bin/**/*
 asar: true
 # Als Webbrowser wählbar (Mac: „Standard-Webbrowser“, Windows: über build/installer.nsh)
 protocols:
@@ -36,7 +40,7 @@ publish:
 releaseInfo:
   releaseNotesFile: NEUERUNGEN.md     # Text erscheint im Update-Pop-up
 electronFuses:
-  runAsNode: false
+  runAsNode: true            # nötig für die Native-Messaging-Weiterleitung (relay.js), siehe launcher/relay.js
   enableCookieEncryption: true
   enableNodeOptionsEnvironmentVariable: false
   enableNodeCliInspectArguments: false

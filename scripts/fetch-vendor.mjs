@@ -31,7 +31,9 @@ async function pdfjs() {
   // Windows 10/11 und macOS bringen „tar“ mit, das auch ZIP entpackt
   // unter Windows ausdrücklich das Windows-tar (bsdtar), nicht das GNU-tar aus Git Bash
   const tarExe = process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
-  execFileSync(tarExe, ['-xf', zip, '-C', dest], { stdio: 'inherit' });
+  // Linux (Prüf-Vorschau): GNU-tar kann kein ZIP → unzip
+  if (process.platform === 'linux') execFileSync('unzip', ['-q', zip, '-d', dest], { stdio: 'inherit' });
+  else execFileSync(tarExe, ['-xf', zip, '-C', dest], { stdio: 'inherit' });
   fs.rmSync(zip);
   if (!fs.existsSync(path.join(dest, 'web', 'viewer.html'))) throw new Error('PDF.js unvollständig entpackt');
 }

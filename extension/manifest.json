@@ -1,0 +1,146 @@
+{
+  "manifest_version": 2,
+  "name": "ImmoAdv Browser",
+  "short_name": "ImmoAdv",
+  "version": "0.0.0",
+  "description": "ImmoAdv-Oberfläche und -Funktionen: Startseite, Immobilien-Check, KI-Assistent, Werbe- und Tracker-Blocker, NordVPN, spurloses Surfen, Passwort-Tresor mit Windows Hello.",
+  "author": "ImmoAdv",
+  "homepage_url": "https://immoadv.de",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "browser@immoadv.de",
+      "strict_min_version": "128.0"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "<all_urls>",
+    "webRequest",
+    "webRequestBlocking",
+    "proxy",
+    "storage",
+    "unlimitedStorage",
+    "tabs",
+    "nativeMessaging",
+    "theme",
+    "downloads",
+    "downloads.open",
+    "bookmarks",
+    "history",
+    "browsingData",
+    "cookies",
+    "menus",
+    "notifications",
+    "sessions",
+    "alarms",
+    "find",
+    "webNavigation",
+    "privacy",
+    "browserSettings",
+    "clipboardWrite",
+    "search"
+  ],
+  "background": {
+    "scripts": [
+      "lib/lists.js",
+      "lib/native.js",
+      "lib/settings.js",
+      "lib/theme.js",
+      "lib/blocker.js",
+      "lib/vpn.js",
+      "lib/traceless.js",
+      "lib/vault.js",
+      "background.js"
+    ],
+    "persistent": true
+  },
+  "chrome_url_overrides": {
+    "newtab": "pages/newtab.html"
+  },
+  "chrome_settings_overrides": {
+    "homepage": "pages/newtab.html"
+  },
+  "browser_action": {
+    "default_title": "ImmoAdv – Schutz, VPN & Werkzeuge",
+    "default_popup": "pages/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    },
+    "default_area": "navbar"
+  },
+  "page_action": {
+    "default_title": "Immobilien-Check",
+    "default_popup": "pages/immo.html",
+    "default_icon": {
+      "16": "icons/house16.png",
+      "32": "icons/house32.png"
+    },
+    "show_matches": [
+      "*://*.immobilienscout24.de/expose/*",
+      "*://*.immowelt.de/expose/*",
+      "*://*.immowelt.de/projekte/expose/*",
+      "*://*.immonet.de/angebot/*",
+      "*://*.kleinanzeigen.de/s-anzeige/*",
+      "*://*.ohne-makler.de/immobilie/*",
+      "*://*.wohnungsboerse.net/immodetail-*",
+      "*://*.immo.de/*",
+      "*://*.immobilien.de/*",
+      "*://*.engelvoelkers.com/*",
+      "*://*.vonpoll.de/*",
+      "*://*.sparkasse.de/*immobilie*",
+      "*://*.immoadv.de/*"
+    ]
+  },
+  "sidebar_action": {
+    "default_title": "KI-Assistent",
+    "default_panel": "pages/ai.html",
+    "default_icon": {
+      "16": "icons/ai16.png",
+      "32": "icons/ai32.png"
+    },
+    "open_at_install": false
+  },
+  "options_ui": {
+    "page": "pages/settings.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "_execute_sidebar_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A"
+      },
+      "description": "KI-Assistent öffnen"
+    },
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+I"
+      },
+      "description": "ImmoAdv-Menü öffnen"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*"
+      ],
+      "js": [
+        "content/login.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    "pages/blocked.html",
+    "pages/blocked.js",
+    "pages/fade.css",
+    "icons/*.png"
+  ],
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'"
+}

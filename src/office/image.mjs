@@ -166,6 +166,8 @@ export function showImage(root, { blob, name, ext, token }) {
       // Ohne Änderung nichts schreiben – das Original bleibt unangetastet (kein erneutes Komprimieren, Metadaten bleiben).
       if (!changed()) { toast('Keine Änderungen – Original bleibt unverändert'); preview(); return; }
       const b = await blobOut(SAVE_TYPE[ext]); if (!b) { toast('Speichern ist fehlgeschlagen.'); return; }
+      // Version 4: die Erweiterung darf die Originaldatei nicht überschreiben → als Kopie speichern
+      if (location.protocol === 'moz-extension:') { copy(); return; }
       try {
         const r = await fetch(`/__save/${encodeURIComponent(token)}`, { method: 'POST', body: b });
         if (!r.ok) throw new Error(await r.text());

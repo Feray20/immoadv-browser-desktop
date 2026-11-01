@@ -1,0 +1,206 @@
+/* ImmoAdv Fade – Oberfläche des ImmoAdv Browsers (Firefox-Motor).
+   Farben kommen zusätzlich über das ImmoAdv-Design der Erweiterung (theme-API); hier: Formen, Verlauf, Abstände, Menüs. */
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+:root {
+  --immo-bg-0: #07111f;
+  --immo-bg-1: #0b1a2e;
+  --immo-surface: rgba(255,255,255,.045);
+  --immo-surface-2: rgba(255,255,255,.075);
+  --immo-surface-3: rgba(255,255,255,.11);
+  --immo-line: rgba(255,255,255,.08);
+  --immo-line-2: rgba(255,255,255,.14);
+  --immo-text: #eef3fb;
+  --immo-text-2: #a7b4c8;
+  --immo-blue: #2A5BD7;
+  --immo-blue-2: #4b7bff;
+  --immo-teal: #19C2B0;
+  --immo-fade: linear-gradient(120deg, #2A5BD7 0%, #3a6cf0 45%, #19C2B0 100%);
+  --immo-ease: cubic-bezier(.2,.8,.2,1);
+
+  /* Firefox-Variablen auf ImmoAdv umstellen */
+  --tab-border-radius: 10px !important;
+  --tab-min-height: 34px !important;
+  --tab-block-margin: 5px !important;
+  --toolbarbutton-border-radius: 8px !important;
+  --toolbarbutton-outer-padding: 2px !important;
+  --toolbar-start-end-padding: 8px !important;
+  --toolbarbutton-hover-background: var(--immo-surface-2) !important;
+  --toolbarbutton-active-background: var(--immo-surface-3) !important;
+  --toolbar-bgcolor: transparent !important;
+  --toolbar-color: var(--immo-text) !important;
+  --toolbar-field-background-color: var(--immo-surface) !important;
+  --toolbar-field-focus-background-color: #0d1b30 !important;
+  --toolbar-field-color: var(--immo-text) !important;
+  --toolbar-field-focus-color: var(--immo-text) !important;
+  --toolbar-field-border-color: var(--immo-line-2) !important;
+  --toolbar-field-focus-border-color: var(--immo-blue-2) !important;
+  --urlbar-box-bgcolor: #0d1b30 !important;
+  --urlbar-box-hover-bgcolor: var(--immo-surface-2) !important;
+  --focus-outline-color: var(--immo-blue-2) !important;
+  --button-primary-bgcolor: var(--immo-blue) !important;
+  --button-primary-hover-bgcolor: #3a6cf0 !important;
+  --button-primary-active-bgcolor: #2450c0 !important;
+  --color-accent-primary: var(--immo-blue-2) !important;
+  --arrowpanel-background: rgba(13,27,48,.97) !important;
+  --arrowpanel-color: var(--immo-text) !important;
+  --arrowpanel-border-color: var(--immo-line-2) !important;
+  --arrowpanel-border-radius: 16px !important;
+  --panel-border-radius: 16px !important;
+  --panel-separator-color: var(--immo-line) !important;
+  --panel-item-hover-bgcolor: var(--immo-surface-2) !important;
+  --panel-item-active-bgcolor: var(--immo-surface-3) !important;
+  --arrowpanel-dimmed: var(--immo-surface-2) !important;
+  --arrowpanel-dimmed-further: var(--immo-surface-3) !important;
+  --menu-background-color: rgba(13,27,48,.98) !important;
+  --menu-color: var(--immo-text) !important;
+  --menu-border-color: var(--immo-line-2) !important;
+  --menuitem-hover-background-color: var(--immo-surface-2) !important;
+  --menu-disabled-color: rgba(167,180,200,.5) !important;
+  --menuitem-border-radius: 8px !important;
+  --menuitem-padding: 6px 10px !important;
+  --panel-background: rgba(13,27,48,.98) !important;
+  --panel-color: var(--immo-text) !important;
+  --panel-border-color: var(--immo-line-2) !important;
+  --sidebar-background-color: var(--immo-bg-1) !important;
+  --sidebar-text-color: var(--immo-text) !important;
+  --sidebar-border-color: var(--immo-line) !important;
+  --tabpanel-background-color: var(--immo-bg-0) !important;
+  --lwt-sidebar-background-color: var(--immo-bg-1) !important;
+}
+
+/* ---------- Fensterkopf mit Fade-Umgebungslicht ---------- */
+#navigator-toolbox {
+  background-color: var(--immo-bg-0) !important;
+  background-image:
+    radial-gradient(900px 260px at 8% -60%, rgba(42,91,215,.38), transparent 70%),
+    radial-gradient(700px 240px at 100% -40%, rgba(25,194,176,.20), transparent 70%) !important;
+  border-bottom: 1px solid var(--immo-line) !important;
+  color: var(--immo-text) !important;
+}
+#TabsToolbar, #nav-bar, #PersonalToolbar, #toolbar-menubar { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+#nav-bar { padding-block: 4px 6px !important; }
+#browser, #tabbrowser-tabbox, #tabbrowser-tabpanels, .browserStack { background-color: var(--immo-bg-0) !important; }
+
+/* ---------- Tabs ---------- */
+.tabbrowser-tab { padding-inline: 2px !important; }
+.tab-background {
+  border-radius: var(--tab-border-radius) !important;
+  transition: background-color 180ms var(--immo-ease), box-shadow 180ms var(--immo-ease) !important;
+}
+.tabbrowser-tab:not([selected]):hover > .tab-stack > .tab-background { background-color: var(--immo-surface) !important; }
+.tabbrowser-tab[selected] > .tab-stack > .tab-background,
+.tabbrowser-tab[multiselected] > .tab-stack > .tab-background {
+  background: var(--immo-surface-2) !important;
+  box-shadow: inset 0 0 0 1px var(--immo-line-2), 0 6px 18px rgba(0,0,0,.28) !important;
+  outline: none !important;
+}
+/* Fade-Linie unter dem aktiven Tab */
+.tabbrowser-tab[selected] > .tab-stack > .tab-background::after {
+  content: ""; position: absolute; inset-inline: 12px; bottom: 3px; height: 2px; border-radius: 2px;
+  background: var(--immo-fade);
+}
+.tab-background { position: relative !important; }
+.tab-label { color: var(--immo-text-2) !important; font-weight: 500; }
+.tabbrowser-tab[selected] .tab-label { color: var(--immo-text) !important; }
+.tab-close-button { border-radius: 6px !important; opacity: .7; }
+.tab-close-button:hover { background: var(--immo-surface-3) !important; opacity: 1; }
+.tabbrowser-tab[pinned] .tab-background { border-radius: 10px !important; }
+.tab-throbber[busy]::before { fill: var(--immo-teal) !important; }
+.tabbrowser-tab[soundplaying] .tab-icon-overlay { color: var(--immo-teal) !important; }
+#tabbrowser-tabs { border-inline-start: 0 !important; }
+.tabbrowser-tab::after, .tabbrowser-tab::before { border: 0 !important; }   /* keine Trennstriche */
+#new-tab-button, #tabs-newtab-button { border-radius: 8px !important; }
+
+/* Senkrechte Tabs (Seitenleiste) */
+#sidebar-main, #sidebar-box, #vertical-tabs { background: var(--immo-bg-1) !important; border-color: var(--immo-line) !important; }
+#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab[selected] > .tab-stack > .tab-background::after {
+  inset-inline: auto; inset-block: 8px; inset-inline-start: 3px; bottom: auto; top: 8px; width: 3px; height: auto; bottom: 8px;
+}
+#sidebar-header { background: transparent !important; border: 0 !important; }
+#sidebar-splitter { border: 0 !important; background: var(--immo-line) !important; width: 1px !important; }
+
+/* ---------- Adressleiste als Fade-Pille ---------- */
+#urlbar-background {
+  border-radius: 999px !important;
+  background-color: var(--immo-surface) !important;
+  border: 1px solid var(--immo-line-2) !important;
+  box-shadow: none !important;
+}
+#urlbar:not([focused]):hover > #urlbar-background { background-color: var(--immo-surface-2) !important; }
+#urlbar[focused] > #urlbar-background, #urlbar[open] > #urlbar-background {
+  background-color: #0d1b30 !important;
+  border-color: transparent !important;
+  outline: 2px solid var(--immo-blue-2) !important; outline-offset: -1px !important;
+  box-shadow: 0 18px 48px rgba(0,0,0,.45) !important;
+  border-radius: 18px !important;
+}
+#urlbar[open] > #urlbar-background { border-radius: 18px !important; }
+#urlbar-input { color: var(--immo-text) !important; }
+#urlbar-input::placeholder { color: var(--immo-text-2) !important; opacity: 1 !important; }
+#identity-box, #tracking-protection-icon-container, #identity-icon-box, #identity-permission-box { border-radius: 999px !important; }
+#identity-box[pageproxystate="valid"].verifiedDomain #identity-icon,
+#identity-box[pageproxystate="valid"].mixedActiveBlocked #identity-icon { fill: var(--immo-teal) !important; }
+.urlbarView-row[selected] { background: var(--immo-surface-3) !important; border-radius: 10px !important; }
+.urlbarView-row { border-radius: 10px !important; }
+.urlbarView-title { color: var(--immo-text) !important; }
+.urlbarView-url { color: var(--immo-blue-2) !important; }
+.search-one-offs { border-top-color: var(--immo-line) !important; }
+
+/* ---------- Knöpfe ---------- */
+toolbarbutton .toolbarbutton-icon, toolbarbutton .toolbarbutton-badge-stack { border-radius: 8px !important; }
+toolbar .toolbarbutton-1 { fill: var(--immo-text-2) !important; }
+toolbar .toolbarbutton-1:hover { fill: var(--immo-text) !important; }
+#downloads-button[attention="success"] .toolbarbutton-icon, #downloads-indicator-progress-inner { fill: var(--immo-teal) !important; }
+/* Menü-Knopf (≡) als ⋯ wie im ImmoAdv Browser 3 */
+#PanelUI-menu-button .toolbarbutton-icon { list-style-image: url("chrome://global/skin/icons/more.svg") !important; }
+#fxa-toolbar-menu-button, #firefox-view-button, #save-to-pocket-button, #privatebrowsing-button,
+#reader-mode-button, #pocket-button, #translations-button-locale, #picture-in-picture-button,
+#urlbar-zoom-button, #shopping-sidebar-button, #review-checker-button { display: none !important; }
+
+/* ---------- Lesezeichenleiste ---------- */
+#PersonalToolbar { padding-block: 0 4px !important; }
+#PersonalToolbar toolbarbutton.bookmark-item {
+  border-radius: 8px !important; padding: 4px 8px !important; margin-inline: 1px !important;
+  color: var(--immo-text-2) !important;
+}
+#PersonalToolbar toolbarbutton.bookmark-item:hover { background: var(--immo-surface-2) !important; color: var(--immo-text) !important; }
+
+/* ---------- Menüs & Fenster im Fade-Stil ---------- */
+menupopup, panel {
+  --panel-border-radius: 14px !important;
+  --panel-padding: 6px !important;
+  --panel-shadow: 0 18px 48px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3) !important;
+  appearance: none !important;
+}
+menupopup > menuitem, menupopup > menu { border-radius: 8px !important; min-height: 30px !important; }
+menupopup > menuitem[_moz-menuactive], menupopup > menu[_moz-menuactive] { background-color: var(--immo-surface-2) !important; color: var(--immo-text) !important; }
+menuseparator::before { border-top-color: var(--immo-line) !important; }
+panelview { background: transparent !important; }
+.panel-header { border-bottom-color: var(--immo-line) !important; }
+.subviewbutton { border-radius: 8px !important; }
+.subviewbutton:hover { background: var(--immo-surface-2) !important; }
+#appMenu-popup, #downloadsPanel, #unified-extensions-panel, #identity-popup, #protections-popup, #permission-popup-container {
+  --arrowpanel-background: rgba(13,27,48,.97) !important;
+}
+button.footer-button, .panel-footer button { border-radius: 10px !important; }
+.panel-footer button[default], button.footer-button[default], button.popup-notification-primary-button {
+  background: var(--immo-fade) !important; color: #fff !important; border: 0 !important;
+}
+.popup-notification-panel, .popup-notification-body { background: rgba(13,27,48,.98) !important; color: var(--immo-text) !important; }
+
+/* Hinweisleisten (z. B. „Firefox hat … blockiert“) */
+notification-message, .notificationbox-stack notification-message {
+  --message-bar-background-color: #0d1b30 !important; --message-bar-text-color: var(--immo-text) !important;
+  border-radius: 12px !important; margin: 6px 8px !important; border: 1px solid var(--immo-line-2) !important;
+}
+
+/* Suchen-Leiste */
+findbar { background: var(--immo-bg-1) !important; border-top: 1px solid var(--immo-line) !important; color: var(--immo-text) !important; }
+.findbar-textbox { border-radius: 999px !important; background: var(--immo-surface) !important; color: var(--immo-text) !important; border: 1px solid var(--immo-line-2) !important; padding-inline: 12px !important; }
+
+/* Ladebalken im Fade-Verlauf */
+#tabbrowser-tabs .tab-throbber[progress]::before { fill: var(--immo-teal) !important; }
+
+/* Bewegung reduzieren, wenn Windows/Mac es wünscht */
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

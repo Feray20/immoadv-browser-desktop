@@ -1,0 +1,64 @@
+# Prüfzweige „v4-…“: Version 4 (Firefox-Motor) testen, ohne etwas zu veröffentlichen.
+# Linux: echter Firefox ESR mit ImmoAdv-Oberfläche + Erweiterung, Bildschirmfotos.
+# Windows: Gegenstelle der Erweiterung (Native Messaging) und Firefox-Motor laden/prüfen/einrichten.
+# Ergebnisse: Assets am Entwurfs-Release „v4-vorschau“ und als Kommentar am Commit.
+name: Vorschau v4
+on:
+  push:
+    branches: ['v4-*']
+  workflow_dispatch: {}
+permissions:
+  contents: write
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  CIRCLE_PROJECT_USERNAME: ${{ github.repository_owner }}
+  CIRCLE_PROJECT_REPONAME: ${{ github.event.repository.name }}
+  CIRCLE_SHA1: ${{ github.sha }}
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Werkzeuge
+        run: |
+          sudo apt-get update -qq
+          for p in unzip xvfb imagemagick x11-apps openbox libgtk-3-0 libdbus-glib-1-2 libx11-xcb1 libxtst6 fonts-dejavu-core libasound2t64; do
+            sudo apt-get install -y -qq "$p" >/dev/null 2>&1 && echo "ok $p" || echo "fehlt $p"; done
+      - run: ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install --no-audit --no-fund
+      - run: npm test
+      - name: Erweiterung bauen
+        run: node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/build-extension.mjs
+      - name: Vorschau mit echtem Firefox ESR
+        run: bash scripts/preview-linux.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: vorschau-linux, path: vorschau/shots, if-no-files-found: ignore }
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install --no-audit --no-fund
+      - name: Bauen (ohne Veröffentlichen)
+        env: { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
+        run: node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/build-extension.mjs && npx electron-builder --win --x64 --dir --publish never
+      - name: Selbsttest
+        run: node scripts/selftest-win.mjs
+      - name: Ergebnis melden
+        if: always()
+        run: |
+          API="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          { echo '**Windows-Selbsttest (v4):**'; echo '```'; tail -150 vorschau-win/win-log.txt 2>/dev/null || echo "kein Protokoll"; echo '```'; } > wc.md
+          node -e 'console.log(JSON.stringify({body:require("fs").readFileSync("wc.md","utf8").slice(-60000)}))' > wc.json
+          curl -s -o /dev/null -w "Kommentar %{http_code}\n" -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/commits/$GITHUB_SHA/comments" -d @wc.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: vorschau-windows, path: vorschau-win, if-no-files-found: ignore }

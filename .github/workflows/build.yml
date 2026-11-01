@@ -78,6 +78,7 @@ jobs:
           {
             node scripts/fetch-vendor.mjs &&
             node scripts/build-rules.mjs &&
+            node scripts/build-extension.mjs &&
             node scripts/ensure-release.mjs &&
             npx electron-builder "${ARGS[@]}" &&
             node scripts/finalize-release.mjs

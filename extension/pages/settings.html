@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Einstellungen – ImmoAdv Browser</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="fade.css">
+  <style>
+    body { min-height: 100vh; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .seg { margin-bottom: 18px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+    .seg button { padding: 0 12px; }
+    .list-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .list-item .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    details.fold summary { cursor: pointer; padding: 8px 0; color: var(--text-2); }
+    .restart { position: sticky; top: 12px; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; margin-bottom: 14px; border-radius: var(--r-m); background: rgba(42,91,215,.18); border: 1px solid rgba(75,123,255,.4); }
+    .addrow { display: flex; gap: 8px; margin-top: 8px; } .addrow input { flex: 1; }
+    .desc { display: block; color: var(--text-3); font-size: 12px; }
+    .kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .kpi div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 10px 12px; }
+    .kpi b { display: block; font-size: 18px; }
+    .kpi span { color: var(--text-3); font-size: 12px; }
+    .toast { animation: none; }
+  </style>
+</head>
+<body class="glow">
+  <div class="wrap">
+    <header><div class="brand"><img src="../icons/icon128.png" alt=""><span>ImmoAdv <b>Browser</b> · Einstellungen</span></div><span id="ver" class="hint"></span></header>
+    <div id="restart" class="restart hidden"><span>Diese Änderung gilt nach einem Neustart des Browsers. Deine Tabs bleiben erhalten.</span><button class="pill accent" id="restartNow">Jetzt neu starten</button></div>
+    <nav class="seg" id="seg"></nav>
+    <main id="body"></main>
+  </div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+html, body { height: 100%; }
+body { overflow-y: auto; }
+.start-inner { max-width: 760px; margin: 0 auto; padding: 9vh 24px 48px; text-align: center; }
+.today { color: var(--text-3); margin: 28px 0 4px; }
+h1 { font-size: 34px; margin: 4px 0 26px; }
+.start-search { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 8px 0 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid var(--line-2); box-shadow: 0 20px 50px rgba(0,0,0,.35); text-align: left; }
+.start-search:focus-within { border-color: var(--blue-2); }
+.start-search input { flex: 1; height: 50px; border: 0; background: none; outline: none; font-size: 16px; }
+.start-search span { color: var(--text-3); font-size: 18px; }
+.ai-go { height: 36px; padding: 0 14px; border-radius: 12px; border: 0; background: var(--surface-3); color: var(--text); font-size: 12px; transition: background var(--t) var(--ease); }
+.ai-go:hover { background: var(--fade); }
+h2 { text-align: left; margin-top: 34px; }
+#favorites { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.fav { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px 12px; border-radius: var(--r-l); background: var(--surface); border: 1px solid var(--line); color: var(--text-2); text-decoration: none; transition: background var(--t) var(--ease), transform var(--t) var(--ease); min-width: 0; }
+.fav:hover { background: var(--surface-3); color: var(--text); transform: translateY(-2px); }
+.fav .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--fade); color: #fff; font-weight: 700; font-size: 15px; overflow: hidden; }
+.fav .ic img { width: 22px; height: 22px; }
+.fav .ic.has-img { background: rgba(255,255,255,.92); }
+.fav span { font-size: 12px; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.status-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 30px; }
+.watch { display: grid; gap: 8px; text-align: left; }
+.watch a { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: var(--r-m); background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none; }
+.watch a:hover { background: var(--surface-3); }
+.watch small { color: var(--text-3); }

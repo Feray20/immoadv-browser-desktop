@@ -1,0 +1,159 @@
+// ImmoAdv Browser – Grundeinstellungen des ImmoAdv-Profils (Firefox-Motor).
+// Der Starter schreibt diese Datei bei jedem Start neu; Firefox übernimmt sie beim Öffnen.
+// Platzhalter {{…}} füllt der Starter aus (Einstellungen der ImmoAdv-Seite „Einstellungen“).
+
+// ---------- Aussehen: ImmoAdv-Fade-Oberfläche ----------
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);   // userChrome.css / userContent.css
+user_pref("browser.theme.content-theme", 0);                               // dunkel
+user_pref("browser.theme.toolbar-theme", 0);
+user_pref("layout.css.prefers-color-scheme.content-override", 0);
+user_pref("browser.tabs.inTitlebar", 1);                                   // Tabs in der Titelleiste (kein Extra-Rahmen)
+user_pref("browser.compactmode.show", true);
+user_pref("browser.uidensity", 0);
+user_pref("browser.toolbars.bookmarks.visibility", "{{bookmarkBar}}");
+user_pref("sidebar.revamp", true);
+user_pref("sidebar.verticalTabs", {{verticalTabs}});
+user_pref("sidebar.visibility", "{{sidebarVisibility}}");
+user_pref("sidebar.main.tools", "aichat,history,bookmarks");
+user_pref("browser.tabs.firefox-view", false);
+user_pref("browser.tabs.tabmanager.enabled", true);
+user_pref("browser.tabs.hoverPreview.enabled", true);
+user_pref("browser.tabs.hoverPreview.showThumbnails", true);
+user_pref("browser.tabs.groups.enabled", true);
+user_pref("browser.tabs.unloadOnLowMemory", true);                         // Tabs schlafen legen, wenn der Speicher knapp wird
+user_pref("browser.tabs.min_inactive_duration_before_unload", {{suspendMs}});
+user_pref("browser.tabs.closeWindowWithLastTab", false);
+user_pref("browser.tabs.warnOnClose", false);
+user_pref("browser.ctrlTab.sortByRecentlyUsed", true);
+user_pref("browser.startup.page", {{startupPage}});                          // 3 = letzte Sitzung wiederherstellen
+user_pref("extensions.webextensions.uuids", "{{extUuids}}");
+user_pref("browser.startup.homepage", "moz-extension://6f1a5c1e-3d2b-4e8a-9b7c-1d2e3f4a5b6c/pages/newtab.html");   // ImmoAdv-Startseite
+user_pref("browser.newtabpage.enabled", true);
+user_pref("browser.aboutConfig.showWarning", false);
+user_pref("browser.aboutwelcome.enabled", false);
+// Kein Firefox-Willkommensfenster: Der ImmoAdv Browser richtet alles selbst ein (Mozilla-Nutzungsbedingungen gelten weiter)
+user_pref("browser.preonboarding.enabled", false);
+user_pref("termsofuse.bypassNotification", true);
+user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+user_pref("browser.termsofuse.prefMigrationCheck", true);
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("startup.homepage_welcome_url", "");
+user_pref("startup.homepage_welcome_url.additional", "");
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.display.use_system_colors", false);
+user_pref("widget.non-native-theme.scrollbar.style", 1);
+user_pref("ui.key.menuAccessKeyFocuses", false);
+user_pref("general.smoothScroll", true);
+user_pref("intl.locale.requested", "de");
+user_pref("intl.accept_languages", "de-DE,de,en-US,en");
+user_pref("font.language.group", "x-western");
+
+// Symbolleiste: Zurück, Vor, Neu laden, Adresse, ImmoAdv-Knöpfe, Downloads, Menü
+user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"urlbar-container\",\"browser_immoadv_de-browser-action\",\"downloads-button\",\"unified-extensions-button\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"vertical-tabs\":[],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"browser_immoadv_de-browser-action\",\"developer-button\",\"save-to-pocket-button\",\"profile-button\"],\"dirtyAreaCache\":[\"nav-bar\",\"TabsToolbar\",\"PersonalToolbar\",\"vertical-tabs\",\"toolbar-menubar\"],\"currentVersion\":23,\"newElementCount\":0}");
+
+// ---------- Suche ----------
+user_pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
+user_pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false);
+user_pref("browser.urlbar.suggest.trending", false);
+user_pref("browser.urlbar.suggest.topsites", false);
+user_pref("browser.urlbar.trimHttps", true);
+user_pref("browser.search.suggest.enabled", true);
+user_pref("browser.urlbar.showSearchSuggestionsFirst", true);
+
+// ---------- Startseite/Neuer Tab: kein Firefox-Inhalt, keine Werbung ----------
+user_pref("browser.newtabpage.activity-stream.showSponsored", false);
+user_pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
+user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
+user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
+user_pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
+user_pref("browser.newtabpage.activity-stream.telemetry", false);
+user_pref("extensions.pocket.enabled", false);
+user_pref("browser.vpn_promo.enabled", false);
+user_pref("browser.promo.focus.enabled", false);
+user_pref("browser.promo.pin.enabled", false);
+user_pref("browser.preferences.moreFromMozilla", false);
+user_pref("extensions.getAddons.showPane", false);
+user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);
+user_pref("browser.discovery.enabled", false);
+user_pref("browser.ml.chat.enabled", false);                   // eigener KI-Assistent statt Firefox-Chat
+user_pref("browser.ml.chat.sidebar", false);
+
+// ---------- Datenschutz & Sicherheit ----------
+user_pref("dom.security.https_only_mode", {{httpsOnly}});
+user_pref("dom.security.https_only_mode_send_http_background_request", false);
+user_pref("browser.contentblocking.category", "strict");      // Tracker, Fingerprinter, Kryptominer, Cross-Site-Cookies
+user_pref("privacy.trackingprotection.enabled", true);
+user_pref("privacy.trackingprotection.socialtracking.enabled", true);
+user_pref("privacy.query_stripping.enabled", true);
+user_pref("privacy.query_stripping.enabled.pbmode", true);
+user_pref("privacy.globalprivacycontrol.enabled", true);
+user_pref("privacy.donottrackheader.enabled", true);
+user_pref("privacy.fingerprintingProtection", true);
+user_pref("network.cookie.cookieBehavior", 5);                 // vollständiger Cookie-Schutz (jede Seite eigene Keksdose)
+user_pref("browser.safebrowsing.malware.enabled", true);
+user_pref("browser.safebrowsing.phishing.enabled", true);
+user_pref("browser.safebrowsing.downloads.enabled", true);
+user_pref("browser.safebrowsing.downloads.remote.enabled", false);
+user_pref("network.trr.mode", {{trrMode}});                    // 2 = verschlüsseltes DNS, 0 = aus (über NordVPN löst der Server auf)
+user_pref("network.trr.uri", "{{trrUri}}");
+user_pref("network.trr.custom_uri", "{{trrUri}}");
+user_pref("network.dns.disablePrefetch", true);
+user_pref("network.prefetch-next", false);
+user_pref("network.predictor.enabled", false);
+user_pref("media.peerconnection.ice.default_address_only", true);   // WebRTC verrät die echte IP nicht am VPN vorbei
+user_pref("media.peerconnection.ice.no_host", true);
+user_pref("media.peerconnection.ice.proxy_only_if_behind_proxy", true);
+user_pref("geo.provider.network.url", "");
+user_pref("browser.region.update.enabled", false);
+user_pref("browser.send_pings", false);
+user_pref("beacon.enabled", false);
+user_pref("browser.formfill.enable", true);
+user_pref("permissions.default.desktop-notification", 0);
+user_pref("security.OCSP.enabled", 1);
+user_pref("security.ssl.require_safe_negotiation", true);
+user_pref("security.tls.enable_0rtt_data", false);
+user_pref("security.mixed_content.block_display_content", true);
+user_pref("security.webauthn.enable_softtoken", false);       // Passkeys nur über Windows Hello / Touch ID / Sicherheitsschlüssel
+user_pref("security.webauthn.ctap2", true);
+user_pref("security.webauthn.enable_macos_passkeys", true);
+user_pref("signon.rememberSignons", {{firefoxPasswords}});     // Passwörter: ImmoAdv-Tresor (Windows Hello) statt Firefox-Speicher
+user_pref("signon.management.page.os-auth.optout", "");
+user_pref("signon.firefoxRelay.feature", "disabled");
+user_pref("extensions.formautofill.creditCards.enabled", false);
+user_pref("privacy.history.custom", true);
+user_pref("places.history.enabled", {{keepHistory}});
+user_pref("privacy.sanitize.sanitizeOnShutdown", false);
+
+// ---------- Keine Telemetrie, keine Studien, keine Werbung ----------
+user_pref("datareporting.healthreport.uploadEnabled", false);
+user_pref("datareporting.policy.dataSubmissionEnabled", false);
+user_pref("toolkit.telemetry.enabled", false);
+user_pref("toolkit.telemetry.unified", false);
+user_pref("toolkit.telemetry.archive.enabled", false);
+user_pref("app.shield.optoutstudies.enabled", false);
+user_pref("app.normandy.enabled", false);
+user_pref("browser.crashReports.unsubmittedCheck.autoSubmit2", false);
+user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
+user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);
+user_pref("messaging-system.rsexperimentloader.enabled", false);
+
+// ---------- Downloads ----------
+user_pref("browser.download.useDownloadDir", true);
+user_pref("browser.download.dir", "{{downloadDir}}");
+user_pref("browser.download.folderList", 2);
+user_pref("browser.download.always_ask_before_handling_new_types", false);
+user_pref("browser.download.open_pdf_attachments_inline", true);
+user_pref("pdfjs.enabledCache.state", true);
+user_pref("pdfjs.disabled", false);
+
+// ---------- ImmoAdv-Erweiterung (liegt im Profil, wird automatisch aktiviert) ----------
+user_pref("extensions.autoDisableScopes", 0);
+user_pref("extensions.enabledScopes", 15);
+user_pref("extensions.installDistroAddons", true);
+user_pref("extensions.webextensions.restrictedDomains", "accounts-static.cdn.mozilla.net,accounts.firefox.com,addons.cdn.mozilla.net,addons.mozilla.org,api.accounts.firefox.com,content.cdn.mozilla.net,discovery.addons.mozilla.org,install.mozilla.org,oauth.accounts.firefox.com,profile.accounts.firefox.com,support.mozilla.org,sync.services.mozilla.com");
+
+// ---------- Fenster/Taskleiste: eigenes ImmoAdv-Fenster, getrennt von einem normalen Firefox ----------
+user_pref("taskbar.grouping.useprofile", true);
+user_pref("browser.taskbar.previews.enable", false);
+user_pref("app.update.auto", true);                            // Sicherheitsupdates des Motors direkt von Mozilla
+user_pref("app.update.background.enabled", true);

@@ -1,0 +1,82 @@
+{
+  "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DisableFeedbackCommands": true,
+    "DisableSetDesktopBackground": true,
+    "DisableProfileImport": false,
+    "DontCheckDefaultBrowser": true,
+    "NoDefaultBookmarks": true,
+    "OverrideFirstRunPage": "",
+    "OverridePostUpdatePage": "",
+    "DisableFirefoxAccounts": true,
+    "PasswordManagerEnabled": true,
+    "OfferToSaveLoginsDefault": false,
+    "PrimaryPassword": false,
+    "AppAutoUpdate": true,
+    "BackgroundAppUpdate": true,
+    "ManualAppUpdateOnly": false,
+    "UserMessaging": {
+      "WhatsNew": false,
+      "ExtensionRecommendations": false,
+      "FeatureRecommendations": false,
+      "UrlbarInterventions": false,
+      "SkipOnboarding": true,
+      "MoreFromMozilla": false,
+      "FirefoxLabs": false,
+      "Locked": true
+    },
+    "FirefoxHome": {
+      "Search": true,
+      "TopSites": false,
+      "SponsoredTopSites": false,
+      "Highlights": false,
+      "Pocket": false,
+      "SponsoredPocket": false,
+      "Snippets": false,
+      "Locked": true
+    },
+    "FirefoxSuggest": {
+      "WebSuggestions": true,
+      "SponsoredSuggestions": false,
+      "ImproveSuggest": false,
+      "Locked": true
+    },
+    "GenerativeAI": {
+      "Chatbot": false,
+      "LinkPreviews": false,
+      "TabGroups": false,
+      "Enabled": false,
+      "Locked": true
+    },
+    "EnableTrackingProtection": {
+      "Value": true,
+      "Cryptomining": true,
+      "Fingerprinting": true,
+      "EmailTracking": true,
+      "Locked": false
+    },
+    "HttpsOnlyMode": "enabled",
+    "PostQuantumKeyAgreementEnabled": true,
+    "SearchEngines": {
+      "Default": "Google",
+      "PreventInstalls": false
+    },
+    "ExtensionSettings": {
+      "browser@immoadv.de": {
+        "installation_mode": "force_installed",
+        "install_url": "{{xpiUrl}}",
+        "updates_disabled": false
+      }
+    },
+    "Handlers": {
+      "mimeTypes": {
+        "application/pdf": {
+          "action": "handleInternally"
+        }
+      }
+    },
+    "SkipTermsOfUse": true
+  }
+}

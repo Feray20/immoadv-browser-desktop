@@ -1,6 +1,7 @@
 // PDF-Studio: Seiten drehen/löschen/sortieren/anhängen, schiefe Scans automatisch gerade ausrichten,
 // Texterkennung (OCR, Deutsch + Englisch) → durchsuchbare PDF. Läuft komplett offline in der abgeschotteten PDF-Sitzung.
 import { loadPages, finalCanvas, detectSkew, buildPdf } from './core.mjs';
+import { loadBytes } from './fileload.mjs';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -108,9 +109,10 @@ $('file').onchange = async () => {
   $('name').textContent = params.get('name') || '';
   setBusy(true);
   try {
-    const r = await fetch(`/__file/${encodeURIComponent(params.get('file') || '')}`);
-    if (!r.ok) throw new Error('Datei nicht gefunden');
-    await addFile(new Uint8Array(await r.arrayBuffer()), params.get('name') || 'Dokument');
+    if (!params.get('file') && !params.get('src')) { setBusy(false); render(); status('PDF oder Bild mit „＋ Hinzufügen“ öffnen'); return; }
+    const name = params.get('name') || (params.get('src') || '').split('/').pop().split('?')[0] || 'Dokument';
+    if (!params.get('name')) params.set('name', decodeURIComponent(name));
+    await addFile(await loadBytes(params), params.get('name'));
     setBusy(false); render();
     // Eingescannte Seiten (ohne Text) gleich gerade ausrichten
     if (params.get('auto') === '1') straighten(pages);

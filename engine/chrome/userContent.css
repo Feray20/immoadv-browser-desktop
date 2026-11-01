@@ -1,0 +1,17 @@
+/* ImmoAdv Fade für Firefox-eigene Seiten (Einstellungen, Downloads, Add-ons, Fehlerseiten) */
+@-moz-document url-prefix("about:") {
+  :root {
+    --in-content-page-background: #07111f !important;
+    --in-content-box-background: #0d1b30 !important;
+    --in-content-box-border-color: rgba(255,255,255,.14) !important;
+    --in-content-page-color: #eef3fb !important;
+    --in-content-deemphasized-text: #a7b4c8 !important;
+    --in-content-primary-button-background: #2A5BD7 !important;
+    --in-content-primary-button-background-hover: #3a6cf0 !important;
+    --in-content-accent-color: #4b7bff !important;
+    --color-accent-primary: #4b7bff !important;
+    --in-content-border-radius: 12px !important;
+    --border-radius-medium: 10px !important;
+  }
+  body { background: #07111f radial-gradient(900px 520px at 12% -10%, rgba(42,91,215,.22), transparent 60%) !important; }
+}

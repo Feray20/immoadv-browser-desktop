@@ -15,7 +15,7 @@ Module._load = function (req, ...rest) {
   if (req.endsWith('/store') || req === './store') return { get: (k) => mem[k], set: (k, v) => { mem[k] = v; } };
   return origLoad.call(this, req, ...rest);
 };
-const vault = require('../src/main/vault.js');
+const vault = require('../launcher/vault.js');
 
 test('CSV aus Apple „Passwörter“ wird verschlüsselt übernommen', () => {
   const csv = 'Title,URL,Username,Password,Notes,OTPAuth\n"Immowelt","https://www.immowelt.de/login","feray@example.de","geh,eim""1",,\nOhne,,x,y,,\n';

@@ -1,28 +1,31 @@
 {
   "name": "immoadv-browser",
   "productName": "ImmoAdv Browser",
-  "version": "3.0.21",
-  "description": "ImmoAdv Browser – eigener Browser auf Chromium-Basis mit NordVPN, Blocker, Passwörtern, KI-Assistent und Arbeitsbereichen",
+  "version": "4.0.0",
+  "description": "ImmoAdv Browser 4 – ImmoAdv-Oberfläche auf dem Firefox-Motor (ESR): Google-Anmeldung, Passkeys, NordVPN, Blocker, Passwort-Tresor, KI-Assistent, Immobilien-Check",
   "author": "Feray Korkmaz",
   "license": "UNLICENSED",
   "private": true,
-  "main": "src/main/main.js",
+  "main": "launcher/main.js",
   "scripts": {
     "vendor": "node scripts/fetch-vendor.mjs",
     "rules": "node scripts/build-rules.mjs",
+    "extension": "node scripts/build-extension.mjs",
     "logo": "python3 scripts/make-logo.py",
-    "start": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs --offline && electron .",
+    "start": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs --offline && node scripts/build-extension.mjs && electron .",
     "test": "node --test test/*.test.mjs test/*.test.js",
-    "dist:win": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/ensure-release.mjs && electron-builder --win --x64 --publish always && node scripts/finalize-release.mjs",
-    "dist:mac": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/ensure-release.mjs && electron-builder --mac --universal --publish always && node scripts/finalize-release.mjs"
+    "dist:win": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/build-extension.mjs && node scripts/ensure-release.mjs && electron-builder --win --x64 --publish always && node scripts/finalize-release.mjs",
+    "dist:mac": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/build-extension.mjs && node scripts/ensure-release.mjs && electron-builder --mac --universal --publish always && node scripts/finalize-release.mjs"
   },
   "dependencies": {
     "electron-updater": ">=6.3.0",
-    "tesseract.js": "5.1.1",
-    "pdf-lib": "1.17.1"
+    "7zip-bin": "5.2.0"
   },
   "devDependencies": {
     "electron": ">=38.0.0",
-    "electron-builder": ">=26.0.0"
+    "electron-builder": ">=26.0.0",
+    "jszip": "3.10.1",
+    "tesseract.js": "5.1.1",
+    "pdf-lib": "1.17.1"
   }
 }

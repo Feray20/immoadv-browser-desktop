@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><link rel="stylesheet" href="fade.css"><link rel="stylesheet" href="popup.css"></head>
+<body>
+  <header class="head">
+    <div class="brand"><img src="../icons/icon48.png" alt=""><span>ImmoAdv <b>Browser</b></span></div>
+    <span id="ver" class="hint"></span>
+  </header>
+  <section class="site">
+    <div class="site-top"><span class="shield"><i></i></span><div><b id="host">Diese Seite</b><span id="siteInfo" class="sub">Geschützt</span></div></div>
+    <div class="nums"><div><b id="nBlocked">0</b><span>hier blockiert</span></div><div><b id="nTotal">0</b><span>insgesamt</span></div></div>
+    <div class="row"><span>Schutz auf dieser Seite<span class="sub">Aus = vertrauenswürdige Seite, nichts blockieren</span></span><label class="switch"><input type="checkbox" id="siteProtect"><i></i></label></div>
+    <div class="row"><span>Angemeldet bleiben<span class="sub">Sonst werden Cookies gelöscht, wenn der Tab zu ist</span></span><label class="switch"><input type="checkbox" id="siteKeep"><i></i></label></div>
+    <button class="pill ghost small" id="siteClear">Daten dieser Seite jetzt löschen</button>
+  </section>
+  <section class="vpn">
+    <div class="row"><span><b>NordVPN</b><span class="sub" id="vpnText">Nicht angemeldet</span></span><span id="vpnBadge" class="badge">aus</span></div>
+    <div class="row" id="vpnCountryRow"><span>Land</span><select id="vpnCountry"></select></div>
+  </section>
+  <nav class="tools">
+    <button data-act="immo"><span>⌂</span>Immobilien-Check</button>
+    <button data-act="ai"><span>✦</span>KI-Assistent</button>
+    <button data-act="pdf"><span>▤</span>PDF &amp; Scans</button>
+    <button data-act="passwords"><span>🔑</span>Passwörter</button>
+    <button data-act="watch"><span>♡</span>Merkliste</button>
+    <button data-act="settings"><span>⚙</span>Einstellungen</button>
+  </nav>
+  <div id="update" class="update hidden"><span id="upText"></span><button class="pill accent" id="upNow">Update jetzt installieren</button></div>
+  <script src="popup.js"></script>
+</body>
+</html>

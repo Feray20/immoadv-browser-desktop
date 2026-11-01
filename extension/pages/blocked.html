@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><title>Gefährliche Seite blockiert</title><link rel="icon" href="../icons/icon32.png"><link rel="stylesheet" href="fade.css">
+<style>
+  body { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+  .card { max-width: 520px; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-xl); padding: 28px; box-shadow: var(--shadow); text-align: center; }
+  .warn { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 12px; display: grid; place-items: center; font-size: 26px; background: linear-gradient(120deg,#ff5d6c,#f2b34a); }
+  code { display: block; margin: 12px 0; padding: 8px 10px; border-radius: 10px; background: var(--surface); color: var(--text-2); word-break: break-all; font-size: 12px; }
+  .link { background: none; border: 0; color: var(--text-3); text-decoration: underline; margin-top: 14px; }
+</style></head>
+<body class="glow">
+  <div class="card">
+    <div class="warn">!</div>
+    <h1 id="title">Seite blockiert</h1>
+    <p id="text" class="hint"></p>
+    <code id="url"></code>
+    <button class="primary" id="back">Zurück in Sicherheit</button>
+    <button class="link" id="open">Ich kenne das Risiko – trotzdem öffnen</button>
+  </div>
+  <script src="blocked.js"></script>
+</body>
+</html>

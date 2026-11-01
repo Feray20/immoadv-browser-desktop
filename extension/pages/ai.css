@@ -1,0 +1,20 @@
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; padding: 10px 12px; gap: 8px; background: var(--bg-1); }
+.top { display: flex; align-items: center; justify-content: space-between; }
+.brand img { width: 24px; height: 24px; }
+#convs { width: 100%; }
+#log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.msg { padding: 10px 12px; border-radius: 14px; max-width: 100%; overflow-wrap: anywhere; }
+.msg.user { align-self: flex-end; background: rgba(42,91,215,.28); border: 1px solid rgba(75,123,255,.35); }
+.msg.assistant { background: var(--surface); border: 1px solid var(--line); }
+.msg h3 { margin: 6px 0 4px; } .msg p { margin: 4px 0; } .msg ul, .msg ol { margin: 4px 0; padding-left: 18px; }
+.msg table { border-collapse: collapse; margin: 6px 0; font-size: 12px; } .msg td, .msg th { border: 1px solid var(--line-2); padding: 3px 6px; }
+.msg pre { background: rgba(0,0,0,.3); padding: 8px; border-radius: 8px; overflow-x: auto; }
+.msg .meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; color: var(--text-3); font-size: 11px; }
+.msg .meta button { background: none; border: 0; color: var(--text-3); padding: 0; }
+.err { color: #ffb3bb; }
+#compose { display: flex; flex-direction: column; gap: 6px; }
+#q { width: 100%; }
+.opts { display: flex; justify-content: space-between; align-items: center; color: var(--text-2); font-size: 12px; }
+.chips { margin-top: 8px; }
+.chip { cursor: pointer; }

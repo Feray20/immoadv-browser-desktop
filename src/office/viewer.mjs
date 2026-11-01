@@ -2,6 +2,7 @@
 // Dokument-Sitzung ohne Internet; die Datei kommt nur über die einmalige Kennung vom Programm. Nur anzeigen und drucken.
 import { readDocx, readXlsx, readPptx, readCsv } from './ooxml.mjs';
 import { showImage } from './image.mjs';
+import { loadBytes } from './fileload.mjs';
 
 const q = new URLSearchParams(location.search);
 const token = q.get('file') || '', name = q.get('name') || 'Dokument';
@@ -15,9 +16,7 @@ const sub = (t) => { document.getElementById('sub').textContent = t; };
 const fail = (t, d) => { out.innerHTML = `<div class="err"><b>${esc(t)}</b>${esc(d || '')}</div>`; };
 
 async function bytes() {
-  const r = await fetch(`/__file/${encodeURIComponent(token)}`);
-  if (!r.ok) throw new Error('Datei nicht gefunden');
-  return r.blob();
+  return new Blob([await loadBytes(q)]);
 }
 
 const colName = (i) => { let s = ''; i += 1; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };

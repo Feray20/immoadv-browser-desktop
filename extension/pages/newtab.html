@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neuer Tab</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="fade.css">
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body class="glow">
+  <main class="start-inner">
+    <div class="brand"><img src="../icons/icon128.png" alt=""><span>ImmoAdv <b>Browser</b></span></div>
+    <p id="today" class="today"></p>
+    <h1 id="greeting">Willkommen</h1>
+    <form id="search" class="start-search" autocomplete="off">
+      <span aria-hidden="true">⌕</span>
+      <input id="q" type="text" spellcheck="false" placeholder="Suchen oder Adresse eingeben" aria-label="Suchen oder Adresse eingeben" autofocus>
+      <button type="button" id="ai" class="ai-go" title="Die Frage an den KI-Assistenten stellen">✦ KI fragen</button>
+    </form>
+    <h2>Favoriten</h2>
+    <div id="favorites"></div>
+    <div id="watch" class="hidden"><h2>Merkliste</h2><div id="watchList" class="watch"></div></div>
+    <div id="statusRow" class="status-row"></div>
+  </main>
+  <script src="newtab.js"></script>
+</body>
+</html>

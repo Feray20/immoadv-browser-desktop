@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><title>KI-Assistent</title><link rel="stylesheet" href="fade.css"><link rel="stylesheet" href="ai.css"></head>
+<body class="glow">
+  <header class="top"><div class="brand"><img src="../icons/icon48.png" alt=""><span><b>KI-Assistent</b></span></div>
+    <div><button class="icon" id="newConv" title="Neues Gespräch" aria-label="Neues Gespräch">＋</button><button class="icon" id="delConv" title="Gespräch löschen" aria-label="Gespräch löschen">🗑</button></div></header>
+  <select id="convs" aria-label="Gespräche"></select>
+  <div id="log" aria-live="polite"></div>
+  <form id="compose">
+    <div class="opts"><label><input type="checkbox" id="usePage" checked> Seite einbeziehen</label><span id="model" class="hint"></span></div>
+    <textarea id="q" rows="3" placeholder="Frage stellen … (Enter senden, Umschalt+Enter neue Zeile)"></textarea>
+    <button class="primary" id="send" type="submit">Senden</button>
+    <p class="hint">Webseiten-Inhalte gehen nur mit „Seite einbeziehen“ an den KI-Anbieter. Passwörter und Formulareingaben nie. KI kann Fehler machen.</p>
+  </form>
+  <script src="ai.js"></script>
+</body>
+</html>
