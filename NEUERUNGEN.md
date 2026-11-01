@@ -7,3 +7,5 @@ Der komplett neue ImmoAdv Browser 2.0
 - Spurlos surfen: kein Verlauf, Website-Daten werden nach dem Schließen gelöscht
 - Windows Hello / Touch ID vor dem Ausfüllen von Passwörtern
 - Tor ist entfernt; deine Lesezeichen werden übernommen
+- Passwörter von iCloud übernehmen: danach ohne 6-stelligen Code, mit Windows Hello, Touch ID und Face ID
+- Chrome bleibt nach dem Schließen im Hintergrund bereit – startet sofort

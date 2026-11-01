@@ -145,6 +145,8 @@ function applyPrefs(dnsKey) {
   const d = DNS[dnsKey] || DNS.quad9;
   deepSet(local, 'dns_over_https.mode', d.url ? 'secure' : 'off');
   deepSet(local, 'dns_over_https.templates', d.url || '');
+  // Chrome nach dem Schließen des Fensters im Hintergrund lassen: iCloud-Passwörter bleiben verbunden, Start ist sofort da
+  deepSet(local, 'background_mode.enabled', true);
   writeJson(ls, local);
 
   const pf = path.join(dir, 'Default', 'Preferences');

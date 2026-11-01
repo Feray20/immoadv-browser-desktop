@@ -32,6 +32,8 @@ async function refresh() {
 function renderSetup() {
   $('pasteKey').textContent = S.platform === 'darwin' ? '⌘ + V' : 'Strg + V';
   $('bioName').textContent = S.platform === 'darwin' ? 'Touch ID' : 'Windows Hello';
+  document.querySelectorAll('.bio').forEach((e) => { e.textContent = S.platform === 'darwin' ? 'Touch ID' : 'Windows Hello'; });
+  $('openImport').disabled = !S.chromeFound;
   $('chromeCheck').className = 'check' + (S.chromeFound ? ' ok' : '');
   if (S.chromeFound) {
     $('chromeText').textContent = `Installiert${S.chromeVersion ? ' – Version ' + S.chromeVersion : ''}. Updates kommen automatisch von Google.`;
@@ -70,6 +72,7 @@ document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('clic
   await api.copy($(b.dataset.copy).textContent); const t = b.textContent; b.textContent = 'Kopiert'; setTimeout(() => { b.textContent = t; }, 1200);
 }));
 $('finish').addEventListener('click', () => api.finishSetup());
+$('openImport').addEventListener('click', () => api.openBrowser('chrome://password-manager/settings'));
 
 function renderUpdate(u) {
   if (!u) return;
