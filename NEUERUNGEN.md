@@ -1,3 +1,7 @@
+ImmoAdv Browser 3.0.21
+- Updates kommen jetzt direkt von immoadv.de – privat, ohne Umweg über GitHub
+- Store-Version: Hinweis, dass Updates automatisch über den Microsoft Store kommen
+
 ImmoAdv Browser 3.0.20
 - Kein Chrome auf dem PC: „Chrome jetzt herunterladen“ startet die Installation nach dem Download automatisch – danach öffnet sich die Google-Anmeldung von selbst
 

@@ -1,4 +1,4 @@
-// Updates des ImmoAdv Browsers (Windows & Mac) aus den GitHub-Releases.
+// Updates des ImmoAdv Browsers (Windows & Mac) – seit 3.0.21 privat über immoadv.de (vorher GitHub-Releases).
 // „Update jetzt installieren“: lädt herunter und installiert sofort ohne weitere Fragen, danach startet der Browser neu.
 // Windows: stiller Installer. Mac ohne Apple-Signatur: neue App-Version wird selbst entpackt und ersetzt (Einstellungen bleiben).
 const { app, session, shell } = require('electron');
@@ -10,7 +10,8 @@ const store = require('./store');
 let autoUpdater = null;
 try { ({ autoUpdater } = require('electron-updater')); } catch { /* Entwicklungsmodus */ }
 
-const REPO = 'Feray20/immoadv-browser-desktop';
+// Update-Quelle: immoadv.de (privater Speicher, Repo nicht öffentlich – Wunsch Feray 01.11.2026)
+const FEED = 'https://immoadv.de/api/browser/update';
 const state = { status: 'idle', version: null, notes: '', progress: 0, message: '' };
 let listeners = [];
 let macManual = false;     // Mac ohne Apple-Signatur: Squirrel geht nicht → eigenes Ersetzen der App
@@ -43,6 +44,7 @@ async function init(onState) {
   if (onState) listeners.push(onState);
   if (process.windowsStore) { emit({ status: 'unsupported', message: 'Updates kommen automatisch über den Microsoft Store' }); return; }
   if (!supported()) { emit({ status: 'unsupported', message: 'Updates nur in der installierten Version' }); return; }
+  try { autoUpdater.setFeedURL({ provider: 'generic', url: FEED, channel: 'latest' }); } catch (e) { log('Update-Quelle: ' + e.message); }
   if (process.platform === 'darwin') macManual = !(await macSigned());
   autoUpdater.autoDownload = !macManual && store.get('autoUpdate') !== false;
   autoUpdater.autoInstallOnAppQuit = !macManual && store.get('autoUpdate') !== false;
@@ -131,7 +133,7 @@ async function downloadMacRaw() {
       emit({ status: 'available', message: 'Download unterbrochen – bitte noch einmal tippen' });
     });
   });
-  ses.downloadURL(`https://github.com/${REPO}/releases/download/v${v}/ImmoAdv-Browser-${v}-universal-mac.zip`);
+  ses.downloadURL(`${FEED}/ImmoAdv-Browser-${v}-universal-mac.zip`);
 }
 
 // Mac: nach dem Beenden neue Version entpacken, alte App ersetzen, neu starten (nur das Programm – Einstellungen bleiben)

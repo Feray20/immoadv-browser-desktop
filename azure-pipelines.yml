@@ -1,0 +1,56 @@
+# ImmoAdv Browser bauen – über Azure Pipelines auf Ferays eigenen Rechnern (Wunsch Feray 01.11.2026: Repo privat,
+# 0 €, unbegrenzt). Azure steuert, PC/Mac führen aus (Agent-Pool „ImmoAdv“). Ist ein Rechner aus, wartet der Build.
+# Baut bei jedem Push auf main. Neue Version = "version" in package.json erhöhen; gleiche Nummer wird nicht erneut
+# veröffentlicht. Updates gehen privat nach immoadv.de (/api/browser/update), nicht mehr zu GitHub.
+# Kein Geheimnis im Build: der Server fragt mit dem Kurzzeit-Zugang des Jobs bei Azure nach, ob der Build läuft.
+trigger:
+  branches:
+    include: [main]
+pr: none
+
+stages:
+  - stage: windows
+    displayName: Windows
+    dependsOn: []
+    jobs:
+      - job: windows
+        displayName: Browser für Windows
+        timeoutInMinutes: 90
+        pool:
+          name: ImmoAdv
+          demands: [Agent.OS -equals Windows_NT]
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+          - task: NodeTool@0
+            inputs: { versionSpec: '22.x' }
+          - script: '"%ProgramFiles%\Git\bin\bash.exe" scripts/azure-build.sh windows'
+            displayName: Bauen, Store-Paket, Veröffentlichen
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          - publish: store
+            artifact: microsoft-store-paket
+            displayName: Store-Paket bereitlegen
+            condition: succeeded()
+
+  - stage: mac
+    displayName: Mac
+    dependsOn: []
+    jobs:
+      - job: mac
+        displayName: Browser für Mac
+        timeoutInMinutes: 90
+        pool:
+          name: ImmoAdv
+          demands: [Agent.OS -equals Darwin]
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+          - task: NodeTool@0
+            inputs: { versionSpec: '22.x' }
+          - bash: bash scripts/azure-build.sh mac
+            displayName: Bauen und Veröffentlichen
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
