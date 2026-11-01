@@ -21,7 +21,7 @@ test('Bayern 3,5 %, Brandenburg 6,5 %', () => {
 });
 
 test('PLZ → Bundesland', () => {
-  assert.strictEqual(C.landFromZip('64354'), 'Hessen');
+  assert.strictEqual(C.landFromZip('60311'), 'Hessen');
   assert.strictEqual(C.landFromZip('80331'), 'Bayern');
   assert.strictEqual(C.landFromZip('10115'), 'Berlin');
   assert.strictEqual(C.landFromZip('50667'), 'Nordrhein-Westfalen');
