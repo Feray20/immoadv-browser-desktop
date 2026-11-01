@@ -20,6 +20,9 @@ const { parseBookmarksHTML, bookmarksHTML } = require('../shared/bookmarks');
 
 // ---------- Grundschutz vor dem Start ----------
 app.setName('ImmoAdv Browser');
+// Nur Entwicklungsversion: Store-Screenshots mit frischem, leerem Profil (test/store-screenshots.js)
+const SCREENSHOTS = !app.isPackaged && !!process.env.IMMOADV_SCREENSHOTS;
+if (SCREENSHOTS) app.setPath('userData', path.join(process.env.IMMOADV_SCREENSHOTS, '..', 'profil'));
 if (process.platform === 'win32') app.setAppUserModelId('de.immoadv.browser.desktop');
 app.commandLine.appendSwitch('disable-features', 'InterestFeedContentSuggestions,MediaRouter,DialMediaRouteProvider,AutofillServerCommunication,OptimizationHints');
 pdf.registerScheme();
@@ -1414,6 +1417,11 @@ app.whenReady().then(async () => {
   await vpn.init(browsingSession);
   await listsReady;
   await createWindow();
+  if (SCREENSHOTS) {
+    require(path.join(__dirname, '..', '..', 'test', 'store-screenshots.js'))({
+      win: () => win, tabs: () => tabs, active, newTab, selectTab, toggleSplit, openPDF, quit: () => app.quit()
+    });
+  }
 
   updater.init((s) => send('update', s));
   setTimeout(() => warmBookmarkIcons().catch(() => {}), 8000);

@@ -1,0 +1,63 @@
+# Store-Screenshots (1920×1080) vom echten ImmoAdv Browser unter Windows – mit frischem, leerem Profil.
+# Start: Actions → „Store-Screenshots“ → „Run workflow“ (oder automatisch, wenn sich test/store-screenshots.js ändert).
+# Ergebnis: Branch „store-screenshots“ (Ordner bilder/) und unter „Artifacts“ → store-screenshots.
+
+name: Store-Screenshots
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - test/store-screenshots.js
+      - .github/workflows/store-screenshots.yml
+
+permissions:
+  contents: write
+
+jobs:
+  screenshots:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Bildschirm auf 1920×1080
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          Get-CimInstance Win32_VideoController | Select-Object CurrentHorizontalResolution, CurrentVerticalResolution
+      - name: Abhängigkeiten
+        run: npm install --no-audit --no-fund
+      - name: PDF-Betrachter und Filterlisten
+        run: node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs --offline
+      - name: Browser starten und Screenshots aufnehmen
+        timeout-minutes: 8
+        env:
+          IMMOADV_SCREENSHOTS: ${{ runner.temp }}\shots\bilder
+        run: npx electron . 2>&1 | tee screenshots.log; ls -la "$(cygpath -u "$IMMOADV_SCREENSHOTS")"
+      - name: In Branch „store-screenshots“ ablegen
+        env:
+          SHOTS: ${{ runner.temp }}\shots\bilder
+        run: |
+          S="$(cygpath -u "$SHOTS")"; mkdir -p /tmp/bilder && cp "$S"/*.png /tmp/bilder/ && cp screenshots.log /tmp/bilder/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan store-screenshots
+          git rm -rfq .
+          mkdir -p bilder && cp /tmp/bilder/* bilder/
+          git add bilder && git commit -qm "Store-Screenshots $(date -u +%F)" && git push -f origin store-screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: store-screenshots
+          path: |
+            ${{ runner.temp }}\shots\bilder\*.png
+            screenshots.log
+          if-no-files-found: warn
