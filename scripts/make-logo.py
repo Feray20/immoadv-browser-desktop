@@ -1,94 +1,82 @@
-# Erzeugt das ImmoAdv-Browser-Logo (ImmoAdv-Fade) in allen benötigten Größen.
-# Aufruf: python3 scripts/make-logo.py
+# ImmoAdv Browser – Logo aus dem echten ImmoAdv-Zeichen (Polygone aus immoadv-icon.svg) + Kompass-Ring
+import math, sys
 from PIL import Image, ImageDraw, ImageFilter
-import os, math
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-S = 4096  # Arbeitsgröße (4x), am Ende auf 1024 verkleinert
-k = S / 1024
+S = 4; N = 1024 * S
+POLYS = [
+ [(50,8.3),(63.1,19.4),(62.6,22.5),(49,34),(45.2,31.1),(5.3,68.9),(2.5,70),(3.1,51.7)],
+ [(98.8,0.7),(93.4,37.3),(83.6,29.8),(50.8,62.3),(43.7,57.9),(17.2,82.6),(0.2,82.6),(42.2,38.4),(50.3,40.1),(69.6,19.5),(64.6,8.1)],
+ [(82.3,37.6),(99.5,53.6),(99.6,84),(88.6,83.6),(62.5,57)]]
 
-def lerp(a, b, t): return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
-STOPS = [(0.0, (11, 31, 58)), (0.45, (42, 91, 215)), (0.95, (25, 194, 176)), (1.0, (25, 194, 176))]  # Navy → Blau → Teal
-def fade(t):
-    for (t0, c0), (t1, c1) in zip(STOPS, STOPS[1:]):
-        if t <= t1: return lerp(c0, c1, (t - t0) / (t1 - t0))
-    return STOPS[-1][1]
-
-def gradient(size):
-    g = Image.new('RGB', (size, size))
-    px = g.load()
-    for y in range(size):
-        for x in range(size):
-            t = (x * 0.55 + y * 0.45) / size     # diagonal von oben links nach unten rechts
-            px[x, y] = fade(min(1, max(0, t)))
+def lerp(a,b,t): return tuple(int(a[i]+(b[i]-a[i])*t) for i in range(3))
+def background(size):
+    # wie das ImmoAdv-App-Symbol: Navy unten links → Blau → Hellblau oben rechts, mit sanftem Lichtpunkt
+    g = Image.new('RGB', (256,256)); px = g.load()
+    c0, c1, c2 = (12,32,72), (8,104,168), (60,190,245)
+    for y in range(256):
+        for x in range(256):
+            t = (x*0.55 + (255-y)*0.45)/255
+            px[x,y] = lerp(c0,c1,t/0.6) if t < 0.6 else lerp(c1,c2,(t-0.6)/0.4)
+    g = g.resize((size,size), Image.BICUBIC).convert('RGBA')
+    glow = Image.new('RGBA',(size,size),(0,0,0,0)); d = ImageDraw.Draw(glow)
+    d.ellipse([size*0.55,size*0.05,size*0.95,size*0.45], fill=(255,255,255,55))
+    g.alpha_composite(glow.filter(ImageFilter.GaussianBlur(size*0.08)))
     return g
 
-def squircle_mask(size, inset, radius):
-    m = Image.new('L', (size, size), 0)
-    ImageDraw.Draw(m).rounded_rectangle([inset, inset, size - inset, size - inset], radius=radius, fill=255)
-    return m
+def mark_layer(cx, cy, width):
+    lay = Image.new('RGBA',(N,N),(0,0,0,0)); d = ImageDraw.Draw(lay)
+    k = width/100*S; ox = cx*S - 50*k; oy = cy*S - 42.3*k
+    for p in POLYS: d.polygon([(ox+x*k, oy+y*k) for x,y in p], fill=(240,247,253,255))
+    return lay
 
-def mark(draw, s, ox=0, oy=0, scale=1.0, img=None):
-    """Weißes Zeichen: Dach über einer Weltkugel (Browser + Immobilie)."""
-    f = lambda v: v * s * scale
-    cx, cy, r, w = 512, 604, 196, 44
-    # Längengrad + Äquator nur innerhalb der Kugel (eigene Ebene mit Maske)
-    size = img.size[0]
-    inner = Image.new('RGBA', img.size, (0, 0, 0, 0))
-    d2 = ImageDraw.Draw(inner)
-    rw = 84
-    d2.ellipse([ox + f(cx - rw), oy + f(cy - r), ox + f(cx + rw), oy + f(cy + r)], outline=(255, 255, 255, 200), width=int(f(24)))
-    d2.line([ox + f(cx - r), oy + f(cy), ox + f(cx + r), oy + f(cy)], fill=(255, 255, 255, 200), width=int(f(24)))
-    m = Image.new('L', img.size, 0)
-    ImageDraw.Draw(m).ellipse([ox + f(cx - r), oy + f(cy - r), ox + f(cx + r), oy + f(cy + r)], fill=255)
-    a = inner.getchannel('A'); inner.putalpha(Image.composite(a, Image.new('L', img.size, 0), m))
-    img.alpha_composite(inner)
-    draw.ellipse([ox + f(cx - r), oy + f(cy - r), ox + f(cx + r), oy + f(cy + r)], outline='white', width=int(f(w)))
-    # Dach
-    pts = [(262, 440), (512, 236), (762, 440)]
-    pts = [(ox + f(x), oy + f(y)) for x, y in pts]
-    draw.line(pts, fill='white', width=int(f(54)), joint='curve')
-    for x, y in pts:
-        rr = f(27)
-        draw.ellipse([x - rr, y - rr, x + rr, y + rr], fill='white')
+def ring_layer(cx, cy, r, w):
+    lay = Image.new('RGBA',(N,N),(0,0,0,0)); d = ImageDraw.Draw(lay)
+    d.ellipse([(cx-r)*S,(cy-r)*S,(cx+r)*S,(cy+r)*S], outline=(240,247,253,255), width=int(w*S))
+    for ang in (0,90,180,270):
+        a = math.radians(ang); r1, r2 = r-w*0.4, r-w*2.6
+        d.line([(cx+r1*math.sin(a))*S,(cy-r1*math.cos(a))*S,(cx+r2*math.sin(a))*S,(cy-r2*math.cos(a))*S], fill=(240,247,253,255), width=int(w*0.85*S))
+    return lay
 
-def app_icon(size_out=1024, inset=100, radius=185):
-    base = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-    # weicher Schatten
-    sh = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-    ImageDraw.Draw(sh).rounded_rectangle([inset * k, (inset + 18) * k, S - inset * k, S - inset * k + 18 * k], radius=radius * k, fill=(0, 0, 0, 110))
-    sh = sh.filter(ImageFilter.GaussianBlur(28 * k))
-    base.alpha_composite(sh)
-    g = gradient(512).resize((S, S), Image.BICUBIC).convert('RGBA')
-    g.putalpha(squircle_mask(S, inset * k, radius * k))
-    base.alpha_composite(g)
-    layer = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-    mark(ImageDraw.Draw(layer), k, 0, -20 * k, 1.0, layer)
-    base.alpha_composite(layer)
-    return base.resize((size_out, size_out), Image.LANCZOS)
+def shadowed(base, lay, blur, dy):
+    a = lay.getchannel('A')
+    sh = Image.new('RGBA', lay.size, (2,18,48,0)); sh.putalpha(a.point(lambda v: int(v*0.45)))
+    sh = sh.filter(ImageFilter.GaussianBlur(blur*S))
+    base.alpha_composite(sh, (0, int(dy*S))); base.alpha_composite(lay)
 
-def small_icon(px):
-    """Kleine Größen: randlos (kein Schatten), damit das Zeichen groß genug bleibt."""
-    s = 1024 * 4
-    img = Image.new('RGBA', (s, s), (0, 0, 0, 0))
-    g = gradient(256).resize((s, s), Image.BICUBIC).convert('RGBA')
-    g.putalpha(squircle_mask(s, 0, 230 * 4))
-    img.alpha_composite(g)
-    layer = Image.new('RGBA', (s, s), (0, 0, 0, 0))
-    # Zeichen etwas größer
-    sc = 1.18
-    off = -512 * 4 * (sc - 1)
-    mark(ImageDraw.Draw(layer), 4, off, off - 60, sc, layer)
-    img.alpha_composite(layer)
-    return img.resize((px, px), Image.LANCZOS)
+def make(full=True):
+    if full:
+        img = background(N)
+        cx, cy, r, w, mw = 512, 512, 430, 24, 520
+    else:
+        img = Image.new('RGBA',(N,N),(0,0,0,0))
+        bg = background(832*S); m = Image.new('L',(832*S,832*S),0)
+        ImageDraw.Draw(m).rounded_rectangle([0,0,832*S,832*S], radius=185*S, fill=255)
+        bg.putalpha(m)
+        sh = Image.new('RGBA',(N,N),(0,0,0,0)); ImageDraw.Draw(sh).rounded_rectangle([96*S,(96+14)*S,928*S,(928+14)*S], radius=185*S, fill=(0,0,0,120))
+        img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(26*S)))
+        img.alpha_composite(bg, (96*S, 96*S))
+        cx, cy, r, w, mw = 512, 512, 350, 20, 425
+    shadowed(img, ring_layer(cx, cy, r, w), 6, 3)
+    shadowed(img, mark_layer(cx, cy+6, mw), 9, 6)
+    return img.resize((1024,1024), Image.LANCZOS)
 
-if __name__ == '__main__':
-    os.makedirs(os.path.join(ROOT, 'build'), exist_ok=True)
-    big = app_icon()
-    big.save(os.path.join(ROOT, 'build', 'icon.png'))
-    for d in ('extension/icons', 'theme'):
-        os.makedirs(os.path.join(ROOT, d), exist_ok=True)
+if __name__ == "__main__" and len(sys.argv) == 3:
+    make(True).convert('RGB').save(sys.argv[1])
+    make(False).save(sys.argv[2])
+
+
+def write_all(root):
+    """Alle Größen für Windows/Mac-Programm, Chrome-Erweiterung und Design."""
+    import os
+    desk = make(False)
+    desk.save(os.path.join(root, 'build', 'icon.png'))
+    inner = desk.crop((96, 96, 928, 928))          # Symbol ohne Rand/Schatten für kleine Größen
     for p in (16, 32, 48, 128):
-        small_icon(p).save(os.path.join(ROOT, 'extension', 'icons', f'icon{p}.png'))
-    small_icon(256).save(os.path.join(ROOT, 'src', 'ui', 'logo.png'))
-    small_icon(128).save(os.path.join(ROOT, 'theme', 'icon128.png'))
+        inner.resize((p, p), Image.LANCZOS).save(os.path.join(root, 'extension', 'icons', f'icon{p}.png'))
+    inner.resize((256, 256), Image.LANCZOS).save(os.path.join(root, 'src', 'ui', 'logo.png'))
+    inner.resize((128, 128), Image.LANCZOS).save(os.path.join(root, 'theme', 'icon128.png'))
+    return make(True), inner
+
+if __name__ == '__main__' and len(sys.argv) == 1:
+    import os
+    write_all(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     print('Logo erstellt.')
