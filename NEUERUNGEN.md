@@ -1,6 +1,7 @@
 ImmoAdv Browser 4.0.1
 - Heller: Oberfläche, Startseite und Menüs im helleren ImmoAdv-Fade
 - ImmoAdv-Logo statt Firefox-Logo in Taskleiste und Fenster (Windows), Fenstertitel „ImmoAdv Browser“ statt „Mozilla Firefox“
+- Einstellungen: ≡-Menü und Strg+, öffnen die ImmoAdv-Einstellungen statt der Firefox-Seite
 - Neue ImmoAdv-Version: Update-Fenster wie gewohnt (Neuerungen, „Update jetzt installieren“), Hinweis ↑ am ImmoAdv-Knopf
 - Favoriten auf der Startseite erscheinen sofort, Download-Knopf immer sichtbar, Erweiterungs-Puzzle ausgeblendet
 
