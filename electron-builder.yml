@@ -14,9 +14,13 @@ extraResources:
   - from: vendor/lists
     to: lists
 asar: true
+# Als Webbrowser wählbar (Mac: „Standard-Webbrowser“, Windows: über build/installer.nsh)
 protocols:
   - name: ImmoAdv Browser
     schemes: [immoadv-browser]
+  - name: Webadresse
+    schemes: [http, https]
+    role: Viewer
 
 # Updates: jede neue Version wird als GitHub-Release veröffentlicht; die Programme holen sie sich von dort.
 publish:
@@ -49,6 +53,7 @@ nsis:
   shortcutName: ImmoAdv Browser
   createStartMenuShortcut: true
   artifactName: ImmoAdv-Browser-Setup-${version}.${ext}
+  include: build/installer.nsh
 appx:
   # Beide Werte EXAKT aus Partner Center → App → Produktidentität kopieren (Publisher sieht aus wie CN=XXXXXXXX-XXXX-…)
   identityName: ImmoAdv.Browser
@@ -61,6 +66,14 @@ appx:
 # ---------- Mac ----------
 mac:
   icon: build/icon.png
+  # nur am Mac über electron-builder (Windows: build/installer.nsh, ohne Standard ungefragt umzustellen)
+  fileAssociations:
+    - ext: [html, htm]
+      name: HTML-Dokument
+      role: Viewer
+    - ext: pdf
+      name: PDF-Dokument
+      role: Viewer
   category: public.app-category.productivity
   target:
     - target: dmg

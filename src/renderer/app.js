@@ -589,7 +589,8 @@ const bindSwitch = (id, key, after) => { const el = $(id); if (el) el.onchange =
 
 function setGeneral() {
   const engines = [['google', 'Google'], ['duckduckgo', 'DuckDuckGo'], ['startpage', 'Startpage'], ['bing', 'Bing'], ['ecosia', 'Ecosia']];
-  setBody(`<div class="group"><h3>Start & Tabs</h3>
+  setBody(`<div class="group"><h3>Standardbrowser</h3><div class="row"><span>ImmoAdv Browser als Standard<span class="desc" id="defDesc">Links aus Mails, Programmen und PDFs öffnen hier</span></span><button class="pill accent" id="defBtn">Festlegen</button></div></div>
+    <div class="group"><h3>Start & Tabs</h3>
       ${sw('sRestore', settings.restoreSession !== false, 'Offene Tabs beim Start wiederherstellen', 'Nur Adressen, keine Inhalte')}
       <div class="row"><span>Tabs anzeigen</span><select id="sLayout"><option value="horizontal" ${!vertical() ? 'selected' : ''}>Oben (waagerecht)</option><option value="vertical" ${vertical() ? 'selected' : ''}>Links (senkrecht)</option></select></div>
       <div class="row"><span>Hintergrund-Tabs schlafen legen<span class="desc">spart Arbeitsspeicher und Akku</span></span><select id="sSuspend">${[[0, 'Nie'], [15, 'nach 15 Min.'], [30, 'nach 30 Min.'], [60, 'nach 1 Std.']].map(([v, l]) => `<option value="${v}" ${Number(settings.suspendMinutes) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
@@ -598,6 +599,12 @@ function setGeneral() {
     <div class="group"><h3>Downloads</h3><div class="row"><span>Speichern in</span><b>${esc(settings._dlName || '')}</b></div><button class="secondary" id="sDl">Ordner wählen …</button></div>
     <div class="group"><h3>Tastenkürzel</h3>${[['Neuer Tab', 'T'], ['Tab schließen', 'W'], ['Geschlossenen Tab öffnen', 'Umschalt+T'], ['Nächster Tab', 'Tab'], ['Adressleiste', 'L'], ['Suchen auf der Seite', 'F'], ['Schnellbefehle', 'K'], ['KI-Assistent', 'Umschalt+A'], ['Kurzfassung', 'J'], ['Verlauf', 'H'], ['Downloads', 'E'], ['Lesezeichen setzen', 'D'], ['Geteilte Ansicht', 'Umschalt+S'], ['Einstellungen', ',']].map(([l, k]) => `<div class="row"><span>${l}</span><span class="hint">${mod()}+${k}</span></div>`).join('')}<div class="row"><span>Entwicklertools</span><span class="hint">F12</span></div></div>
     <p class="hint">ImmoAdv Browser ${esc(appVersion)} · Chromium ${esc((navigator.userAgent.match(/Chrome\/([\d.]+)/) || [])[1] || '')}</p>`);
+  api.isDefaultBrowser().then((d) => { if (d && $('defBtn')) { $('defBtn').textContent = 'Ist Standard ✓'; $('defBtn').className = 'pill'; } });
+  $('defBtn').onclick = async () => {
+    const r = await api.makeDefaultBrowser();
+    if (r && r.how === 'windows') toast('Windows-Einstellungen geöffnet: bei „ImmoAdv Browser“ auf „Als Standard festlegen“ klicken');
+    else toast('Bitte in der Mac-Abfrage „ImmoAdv Browser verwenden“ wählen');
+  };
   bindSwitch('sRestore', 'restoreSession');
   bindSwitch('sBar', 'bookmarkBar', renderBookmarkBar);
   $('sLayout').onchange = async () => { await setS({ tabLayout: $('sLayout').value }); renderAll(); };
@@ -782,7 +789,7 @@ function palCommands() {
     ['Merkliste & Vergleich', () => openPanel('watch')], ['PDF öffnen & unterschreiben', () => api.openPDF()], ['Bildschirmfoto der Seite', () => takeShot()],
     ['Link ohne Tracking kopieren', async () => toast((await api.copyCleanLink()) ? 'Link kopiert' : 'Kein Link')], ['Geschlossenen Tab wieder öffnen', () => api.reopenTab()],
     ['Tabs links/oben umschalten', async () => { await setS({ tabLayout: vertical() ? 'horizontal' : 'vertical' }); renderAll(); }],
-    ['Entwicklertools', () => api.devtools()], ['Drucken', () => api.print()], ['Nach Updates suchen', () => { openPanel('settings', 'updates'); api.checkUpdate(); }],
+    ['Als Standardbrowser festlegen', () => api.makeDefaultBrowser()], ['Entwicklertools', () => api.devtools()], ['Drucken', () => api.print()], ['Nach Updates suchen', () => { openPanel('settings', 'updates'); api.checkUpdate(); }],
     ...(t && t.listing ? [['Immobilien-Check', () => openPanel('immo')]] : [])
   ].map(([label, run]) => ({ label, run, k: '›' }));
 }

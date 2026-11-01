@@ -1,10 +1,5 @@
-Der neue ImmoAdv Browser 3.0 – eigener Browser, fertig eingerichtet
-- Eigener Browser auf Chromium-Basis im ImmoAdv-Fade-Design – kein separates Chrome mehr nötig
-- KI-Assistent: Seiten zusammenfassen, erklären, übersetzen, Fragen zur Seite (Claude, ChatGPT oder lokal mit Ollama)
-- Arbeitsbereiche (z. B. Privat / Immobilien) mit eigenen Tabs, Tabs oben oder links, geteilte Ansicht, Tab-Suche
-- Offene Tabs kommen beim nächsten Start wieder, Hintergrund-Tabs schlafen und sparen Speicher
-- Verlauf (nur lokal, durchsuchbar, Frist einstellbar), Lesezeichen mit Ordnern, Tags, Import/Export
-- Passwort-Tresor: speichern, mit Windows Hello / Touch ID ausfüllen, Import aus iCloud/Google (CSV)
-- NordVPN eingebaut, Werbe-/Tracker-/Malware-/Phishing-Blocker mit echten Zählern, verschlüsseltes DNS
-- Downloads mit Virenprüfung (Microsoft Defender), Seite vorlesen, Übersetzen, Entwicklertools
-- „Update jetzt installieren“ lädt, installiert und startet neu – ohne weitere Fragen
+ImmoAdv Browser 3.0.1
+- Als Standardbrowser festlegbar: Einstellungen → Allgemein → „Festlegen“ (Windows: erscheint unter Standard-Apps, Mac: unter Standard-Webbrowser)
+- Links aus Mails und anderen Programmen öffnen direkt in einem neuen Tab, PDF- und HTML-Dateien ebenfalls
+
+Neu in 3.0: eigener Browser auf Chromium-Basis, KI-Assistent, Arbeitsbereiche, Tabs oben oder links, geteilte Ansicht, Verlauf, Lesezeichen mit Ordnern, Passwort-Tresor, NordVPN, Blocker, Downloads mit Virenprüfung, Update mit einem Klick.

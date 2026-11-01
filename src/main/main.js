@@ -25,6 +25,39 @@ app.commandLine.appendSwitch('disable-features', 'InterestFeedContentSuggestions
 pdf.registerScheme();
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
+// ---------- Als Standardbrowser: Links und Dateien von Windows/Mac öffnen ----------
+const pendingOpen = [];      // vor dem Start übergebene Adressen/Dateien
+function openTargets(list) {
+  const items = (list || []).map((a) => String(a || '').trim()).filter(Boolean);
+  for (const a of items) {
+    if (/^https?:\/\//i.test(a)) { if (win) newTab(a); else pendingOpen.push(a); continue; }
+    const file = a.replace(/^file:\/\//i, '');
+    if (!/\.(pdf|html?)$/i.test(file) || !fs.existsSync(file)) continue;
+    if (!win) { pendingOpen.push(file); continue; }
+    if (/\.pdf$/i.test(file)) openPDF(file);
+    else newTab(require('node:url').pathToFileURL(file).href, { localFile: true });
+  }
+  if (win && items.length) showWindow();
+}
+const argvTargets = (argv) => (argv || []).slice(1).filter((a) => /^https?:\/\//i.test(a) || /\.(pdf|html?)$/i.test(a));
+pendingOpen.push(...argvTargets(process.argv));
+app.on('open-url', (e, url) => { e.preventDefault(); openTargets([url]); });      // Mac: Link aus anderer App
+app.on('open-file', (e, file) => { e.preventDefault(); openTargets([file]); });  // Mac: HTML/PDF-Datei
+
+function isDefaultBrowser() {
+  try { return app.isDefaultProtocolClient('https') && app.isDefaultProtocolClient('http'); } catch { return false; }
+}
+async function makeDefaultBrowser() {
+  if (process.platform === 'darwin') {
+    // macOS fragt selbst nach („ImmoAdv Browser als Standard-Webbrowser verwenden?“)
+    app.setAsDefaultProtocolClient('http'); app.setAsDefaultProtocolClient('https');
+    return { ok: true, how: 'mac' };
+  }
+  // Windows erlaubt Programmen das Umstellen nicht selbst – öffnet die richtige Seite in den Einstellungen
+  await shell.openExternal('ms-settings:defaultapps?registeredAppUser=' + encodeURIComponent('ImmoAdv Browser')).catch(() => shell.openExternal('ms-settings:defaultapps'));
+  return { ok: true, how: 'windows' };
+}
+
 // Verschlüsseltes DNS (DNS-over-HTTPS) – mit NordVPN löst ohnehin der VPN-Server auf
 const DNS = {
   quad9: { name: 'Quad9 (Schweiz)', url: 'https://dns.quad9.net/dns-query' },
@@ -99,7 +132,9 @@ async function createWindow() {
   win.on('close', () => saveSession(true));
   win.on('closed', () => { win = null; });
   win.once('ready-to-show', () => { win.show(); warmFavorites(); });
-  if (!restoreSession()) newTab();
+  const restored = restoreSession();
+  if (pendingOpen.length) openTargets(pendingOpen.splice(0));
+  else if (!restored) newTab();
 }
 
 // ---------- Tabs ----------
@@ -124,7 +159,8 @@ function wireView(tab) {
     return { action: 'deny' };
   });
   // Nur Webadressen – keine Programme oder lokalen Dateien aus Webseiten heraus öffnen
-  const allowed = (url) => (tab.kind === 'pdf' ? url.startsWith('immoadv-pdf:') : /^https?:/i.test(url));
+  // lokale HTML-Datei (vom System geöffnet): nur diese eine Datei, Links daraus nur ins Web
+  const allowed = (url) => (tab.kind === 'pdf' ? url.startsWith('immoadv-pdf:') : /^https?:/i.test(url) || (tab.localFile && url === tab.localFile));
   wc.on('will-navigate', (e, url) => { if (!allowed(url)) e.preventDefault(); });
   wc.on('will-redirect', (e, url) => { if (!allowed(url)) e.preventDefault(); });
   wc.on('will-frame-navigate', (e) => { if (!allowed(e.url) && !/^(about|blob|data):/i.test(e.url)) e.preventDefault(); });
@@ -222,6 +258,7 @@ function newTab(url, opts = {}) {
     id: crypto.randomUUID(), ws: opts.ws || activeWs(), pinned: !!opts.pinned, kind, view: null,
     url: url || '', title: opts.title || (url ? hostOf(url) : 'Startseite'), filePath: opts.filePath || null, lastActive: Date.now()
   };
+  if (opts.localFile && url) tab.localFile = url;
   if (opts.suspended) tab.suspended = true; else attachView(tab);
   const at = opts.index != null ? opts.index : tabs.length;
   tabs.splice(at, 0, tab);
@@ -857,6 +894,8 @@ function registerIPC() {
     return publicSettings();
   });
   on('menu', () => showMenu());
+  handle('default:status', () => isDefaultBrowser());
+  handle('default:set', () => makeDefaultBrowser());
 }
 
 function toURL(input) {
@@ -1014,7 +1053,7 @@ app.whenReady().then(async () => {
   setInterval(() => { send('blocker', { ...blocker.info(), stats: store.get('stats') }); }, 30000);
 });
 
-app.on('second-instance', () => showWindow());
+app.on('second-instance', (_e, argv) => { const t = argvTargets(argv); if (t.length) openTargets(t); else showWindow(); });
 app.on('activate', () => showWindow());
 app.on('window-all-closed', () => app.quit());
 app.on('before-quit', () => saveSession(true));
