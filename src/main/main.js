@@ -114,13 +114,14 @@ async function googleHandoff(url, fromWc) {
 
 // Kein Chrome/Edge/Firefox auf dem PC: einmal fragen und die offizielle Chrome-Seite im neuen Tab öffnen
 let askingInstall = false;
-async function offerChromeInstall() {
+let chromeSetup = null;   // { at, url } – Chrome-Installation läuft, danach geht es automatisch weiter
+async function offerChromeInstall(pendingUrl) {
   if (askingInstall || !win) return; askingInstall = true;
   try {
     const { response } = await dialog.showMessageBox(win, { type: 'info', buttons: ['Chrome jetzt herunterladen', 'Später'], defaultId: 0, cancelId: 1,
       title: 'Google-Anmeldung', message: 'Für die Google-Anmeldung fehlt noch Chrome',
       detail: 'Google lässt die Anmeldung mit dem Google-Konto nur in Chrome, Edge oder Firefox zu – auf diesem PC ist keiner davon installiert. YouTube & Co. funktionieren hier trotzdem, nur ohne Anmeldung.\n\nNach der Installation öffnet der ImmoAdv Browser Google-Anmeldungen automatisch in Chrome.' });
-    if (response === 0) newTab('https://www.google.com/chrome/');
+    if (response === 0) { chromeSetup = { at: Date.now(), url: pendingUrl }; newTab('https://www.google.com/chrome/'); }
   } finally { askingInstall = false; }
 }
 
@@ -135,7 +136,7 @@ async function openInChrome(url) {
         .on('exit', (code) => { if (code) spawn('open', ['-a', 'Safari', url], { detached: true, stdio: 'ignore' }).unref(); }).unref();
     } else {
       const exe = await chromePath();
-      if (!exe) { offerChromeInstall(); return; }
+      if (!exe) { lastChrome = { url: '', at: 0 }; offerChromeInstall(url); return; }
       // Chrome/Edge als schlankes App-Fenster (ohne Tabs und Adressleiste) – fühlt sich an wie ein Teil des ImmoAdv Browsers
       spawn(exe, /firefox/i.test(exe) ? [url] : [`--app=${url}`], { detached: true, stdio: 'ignore' }).unref();
     }
@@ -697,6 +698,20 @@ function wireDownloads(ses) {
       const risky = /\.(exe|msi|bat|cmd|com|scr|ps1|vbs|js|jar|dmg|pkg|app|reg|lnk|hta)$/i.test(target);
       send('toast', risky ? 'Programmdatei gespeichert – nur öffnen, wenn du der Quelle vertraust' : `Gespeichert in „${path.basename(downloadDir())}“${scan === 'clean' ? ' · virengeprüft' : ''}`);
       if (path.extname(target).toLowerCase() === '.pdf') openPDF(target);
+      // Chrome-Installer, den du gerade über „Chrome jetzt herunterladen“ geholt hast: direkt starten und danach weitermachen
+      let host = ''; try { host = new URL(item.getURL ? item.getURL() : '').hostname; } catch {}
+      if (process.platform === 'win32' && chromeSetup && Date.now() - chromeSetup.at < 30 * 60000 && /(^|\.)(google\.com|gvt1\.com)$/i.test(host) && /chrome.*setup.*\.exe$/i.test(d.name) && scan !== 'threat') {
+        const next = chromeSetup.url; chromeSetup = null;
+        shell.openPath(target);
+        send('toast', 'Chrome wird installiert – danach geht es automatisch weiter');
+        browserPathCache = null;
+        const started = Date.now();
+        const poll = setInterval(async () => {
+          if (Date.now() - started > 15 * 60000) return clearInterval(poll);
+          browserPathCache = null;
+          if (await chromePath()) { clearInterval(poll); setTimeout(() => { if (next) openInChrome(next); else send('toast', 'Chrome ist installiert – Google-Anmeldung klappt jetzt'); }, 4000); }
+        }, 5000);
+      }
     });
   });
 }

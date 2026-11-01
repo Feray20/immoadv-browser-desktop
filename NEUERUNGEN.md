@@ -1,3 +1,6 @@
+ImmoAdv Browser 3.0.20
+- Kein Chrome auf dem PC: „Chrome jetzt herunterladen“ startet die Installation nach dem Download automatisch – danach öffnet sich die Google-Anmeldung von selbst
+
 ImmoAdv Browser 3.0.19
 - YouTube, Gmail & Google-Anmeldung öffnen als schlankes App-Fenster ohne Chrome-Tabs und -Adressleiste
 
