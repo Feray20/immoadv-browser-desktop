@@ -60,9 +60,9 @@ nsis:
   artifactName: ImmoAdv-Browser-Setup-${version}.${ext}
   include: build/installer.nsh
 appx:
-  # Beide Werte EXAKT aus Partner Center → App → Produktidentität kopieren (Publisher sieht aus wie CN=XXXXXXXX-XXXX-…)
-  identityName: ImmoAdv.Browser
-  publisher: CN=BITTE-AUS-PARTNER-CENTER-EINTRAGEN
+  # Produktidentität aus Partner Center (App „ImmoAdv Browser“, Store-ID 9MWQZKWQ9J8H) – 01.11.2026
+  identityName: FerayKorkmaz.ImmoAdvBrowser
+  publisher: CN=48D30524-28E4-4D4B-B2FF-B368E72F1A66
   publisherDisplayName: Feray Korkmaz
   displayName: ImmoAdv Browser
   languages: [de-DE]

@@ -13,9 +13,8 @@
 #   ARTIFACT_SIGNING_PROFILE      Name des Zertifikatprofils
 #   ARTIFACT_SIGNING_PUBLISHER    Herausgebername exakt wie im Zertifikat (CN)
 #
-# Microsoft Store (kostenlos, Microsoft signiert): unter Settings → Secrets and variables → Actions → „Variables“ anlegen:
-#   STORE_IDENTITY_NAME, STORE_PUBLISHER   (aus Partner Center → App → Produktverwaltung → Produktidentität)
-#   Das fertige Paket liegt danach im Build unter „Artifacts“ → microsoft-store-paket.
+# Microsoft Store (kostenlos, Microsoft signiert): Produktidentität steht in electron-builder.yml (appx).
+#   Das fertige Paket liegt nach jedem Build unter „Artifacts“ → microsoft-store-paket → in Partner Center hochladen.
 #
 # Mac-Signierung/Beglaubigung (optional): CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
 
