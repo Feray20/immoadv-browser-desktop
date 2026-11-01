@@ -8,6 +8,10 @@ trigger:
     include: [main]
 pr: none
 
+variables:
+  # Mac vorerst aus (Feray 01.11.2026: erst nur Windows). Sobald der Mac-Agent im Pool „ImmoAdv“ online ist: 'true'.
+  MAC_BAUEN: 'false'
+
 stages:
   - stage: windows
     displayName: Windows
@@ -37,6 +41,7 @@ stages:
   - stage: mac
     displayName: Mac
     dependsOn: []
+    condition: eq(variables['MAC_BAUEN'], 'true')
     jobs:
       - job: mac
         displayName: Browser für Mac
