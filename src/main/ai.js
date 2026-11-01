@@ -46,9 +46,10 @@ function config() {
 // ---------- Gespräche (nur lokal) ----------
 const convFile = () => path.join(app.getPath('userData'), 'ki-gespraeche.json');
 let convs = null;
-function loadConvs() { if (convs) return convs; try { convs = JSON.parse(fs.readFileSync(convFile(), 'utf8')); } catch { convs = []; } return convs; }
+let convsLocked = false; // Datei gesperrt/beschädigt → nicht überschreiben (Prüfung 01.11.2026)
+function loadConvs() { if (convs) return convs; try { convs = JSON.parse(fs.readFileSync(convFile(), 'utf8')); if (!Array.isArray(convs)) convs = []; } catch (e) { convs = []; if (!e || e.code !== 'ENOENT') convsLocked = true; } return convs; }
 function saveConvs() {
-  if (store.get('aiKeepHistory') === false) return;
+  if (store.get('aiKeepHistory') === false || convsLocked) return;
   try { fs.writeFileSync(convFile(), JSON.stringify(convs.slice(0, 60)), { mode: 0o600 }); } catch { /* egal */ }
 }
 function conversations() { return loadConvs().map(({ id, title, updated, project }) => ({ id, title, updated, project: project || '' })); }

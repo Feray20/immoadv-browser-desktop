@@ -100,26 +100,44 @@ export function showImage(root, { blob, name, ext, token }) {
         ${[['b', 'Helligkeit'], ['c', 'Kontrast'], ['s', 'Sättigung'], ['w', 'Wärme']].map(([k, l]) => `<label class="pv-sl"><span>${l}<output data-o="${k}">0</output></span><input type="range" data-k="${k}" min="${k === 'w' ? -50 : 0}" max="${k === 'w' ? 50 : 200}" value="${k === 'w' ? 0 : 100}"></label>`).join('')}
         <button type="button" class="pv-b pv-reset" data-a="reset">Zurücksetzen</button>
         ${canSave ? '' : `<p class="pv-note">„.${esc(ext)}“ wird als Kopie im PNG-Format gespeichert.</p>`}
+        ${/^(jpe?g|webp)$/.test(ext) ? '<p class="pv-note">Hinweis: Beim Speichern gehen Aufnahmedaten (Datum, Ort, Kamera) verloren. Wer sie behalten will, nimmt „Als Kopie“.</p>' : ''}
       </aside></div>`;
     const cv = root.querySelector('canvas'), ctx = cv.getContext('2d'), wrap = root.querySelector('.pv-cv'), stage = root.querySelector('.pv-stage'), box = root.querySelector('.pv-crop');
-    const filter = () => `brightness(${S.b}%) contrast(${S.c}%) saturate(${S.s}%)${S.w ? ` sepia(${Math.abs(S.w) * 0.6}%) hue-rotate(${S.w < 0 ? 180 : 0}deg)` : ''}`;
-    // Volle Auflösung rendern (für Speichern) – für die Anzeige skaliert CSS.
-    function render(target, withCrop) {
+    // Wärme als echter Weißabgleich (Rot/Blau-Kanal), nicht mehr Sepia + Farbdrehung – die drehte bei „kühl“ alle Farben
+    // um 180° (Prüfung 01.11.2026). Filter liegt als SVG-feColorMatrix im Dokument.
+    let wf = document.getElementById('pvWarmSvg');
+    if (!wf) { document.body.insertAdjacentHTML('beforeend', '<svg id="pvWarmSvg" width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="pvWarm" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0"/></filter></svg>'); wf = document.getElementById('pvWarmSvg'); }
+    const warmMatrix = () => { const t = S.w / 50; const r = 1 + 0.18 * t, gg = 1 + 0.03 * t, b = 1 - 0.18 * t; wf.querySelector('feColorMatrix').setAttribute('values', `${r} 0 0 0 0 0 ${gg} 0 0 0 0 0 ${b} 0 0 0 0 0 1 0`); };
+    const filter = () => `brightness(${S.b}%) contrast(${S.c}%) saturate(${S.s}%)${S.w ? ' url(#pvWarm)' : ''}`;
+    const start = JSON.stringify({ rot: 0, flipX: false, flipY: false, b: 100, c: 100, s: 100, w: 0, crop: null });
+    const changed = () => JSON.stringify({ rot: S.rot, flipX: S.flipX, flipY: S.flipY, b: S.b, c: S.c, s: S.s, w: S.w, crop: S.crop }) !== start;
+    // Anzeige in Bildschirmgröße (ds), volle Auflösung nur beim Speichern – Regler reagieren sofort, viel weniger Speicher
+    // bei großen Fotos (Prüfung 01.11.2026). Zuschnitt-Werte bleiben immer in voller Auflösung.
+    let ds = 1;
+    function render(target, withCrop, scale = 1) {
       const rw = S.rot % 180 ? src.naturalHeight : src.naturalWidth, rh = S.rot % 180 ? src.naturalWidth : src.naturalHeight;
       const c = withCrop && S.crop ? S.crop : { x: 0, y: 0, w: rw, h: rh };
-      target.width = Math.max(1, Math.round(c.w)); target.height = Math.max(1, Math.round(c.h));
+      target.width = Math.max(1, Math.round(c.w * scale)); target.height = Math.max(1, Math.round(c.h * scale));
       const g = target.getContext('2d');
-      g.save(); g.filter = filter(); g.translate(-c.x, -c.y); g.translate(rw / 2, rh / 2); g.rotate((S.rot * Math.PI) / 180); g.scale(S.flipX ? -1 : 1, S.flipY ? -1 : 1);
+      if (S.w) warmMatrix();
+      g.save(); g.scale(scale, scale); g.filter = filter(); g.translate(-c.x, -c.y); g.translate(rw / 2, rh / 2); g.rotate((S.rot * Math.PI) / 180); g.scale(S.flipX ? -1 : 1, S.flipY ? -1 : 1);
       g.drawImage(src, -src.naturalWidth / 2, -src.naturalHeight / 2); g.restore();
     }
     function layout() {
       const r = stage.getBoundingClientRect(); const k = Math.min(1, (r.width - 48) / cv.width, (r.height - 48) / cv.height) || 1;
-      wrap.style.width = `${cv.width * k}px`; wrap.style.height = `${cv.height * k}px`; wrap.dataset.k = String(k);
+      wrap.style.width = `${cv.width * k}px`; wrap.style.height = `${cv.height * k}px`; wrap.dataset.k = String(k * ds);
     }
-    function draw() { render(cv, !S.cropping); layout(); drawBox(); }
+    const fullW = () => cv.width / ds, fullH = () => cv.height / ds;
+    function draw() {
+      const rw = S.rot % 180 ? src.naturalHeight : src.naturalWidth, rh = S.rot % 180 ? src.naturalWidth : src.naturalHeight;
+      const c = !S.cropping && S.crop ? S.crop : { w: rw, h: rh };
+      ds = Math.min(1, (Math.max(800, Math.min(2400, Math.max(innerWidth, innerHeight) * (devicePixelRatio || 1)))) / Math.max(c.w, c.h));
+      render(cv, !S.cropping, ds); layout(); drawBox();
+    }
+    let raf = 0; const drawSoon = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); };
     function drawBox() {
       box.hidden = !S.cropping; if (!S.cropping) return;
-      const k = Number(wrap.dataset.k) || 1, c = S.crop || { x: 0, y: 0, w: cv.width, h: cv.height };
+      const k = Number(wrap.dataset.k) || 1, c = S.crop || { x: 0, y: 0, w: fullW(), h: fullH() };
       Object.assign(box.style, { left: `${c.x * k}px`, top: `${c.y * k}px`, width: `${c.w * k}px`, height: `${c.h * k}px` });
     }
     // Zuschneiden: Rahmen aufziehen; erneut auf „Zuschneiden“ übernimmt den Ausschnitt.
@@ -130,20 +148,23 @@ export function showImage(root, { blob, name, ext, token }) {
     });
     wrap.addEventListener('pointermove', (e) => {
       if (!d0) return; const r = wrap.getBoundingClientRect(), k = Number(wrap.dataset.k) || 1;
-      const x = Math.min(cv.width, Math.max(0, (e.clientX - r.left) / k)), y = Math.min(cv.height, Math.max(0, (e.clientY - r.top) / k));
+      const x = Math.min(fullW(), Math.max(0, (e.clientX - r.left) / k)), y = Math.min(fullH(), Math.max(0, (e.clientY - r.top) / k));
       S.crop = { x: Math.min(d0.x, x), y: Math.min(d0.y, y), w: Math.abs(x - d0.x), h: Math.abs(y - d0.y) }; drawBox();
     });
     const endDrag = () => { d0 = null; if (S.crop && (S.crop.w < 8 || S.crop.h < 8)) { S.crop = null; drawBox(); } };
     wrap.addEventListener('pointerup', endDrag); wrap.addEventListener('pointercancel', endDrag);
     const cropBtn = root.querySelector('[data-a="crop"]');
     root.querySelectorAll('input[type=range]').forEach((i) => {
-      i.oninput = () => { S[i.dataset.k] = Number(i.value); const o = root.querySelector(`[data-o="${i.dataset.k}"]`); o.textContent = String(i.dataset.k === 'w' ? S.w : S[i.dataset.k] - 100); draw(); };
+      i.oninput = () => { S[i.dataset.k] = Number(i.value); const o = root.querySelector(`[data-o="${i.dataset.k}"]`); o.textContent = String(i.dataset.k === 'w' ? S.w : S[i.dataset.k] - 100); drawSoon(); };
     });
     async function blobOut(type) {
       const c = document.createElement('canvas'); render(c, true);
-      return new Promise((res) => c.toBlob((b) => res(b), type, type === 'image/png' ? undefined : 0.92));
+      // 0,95 statt 0,92: weniger Qualitätsverlust bei JPEG/WebP (Prüfung 01.11.2026)
+      return new Promise((res) => c.toBlob((b) => res(b), type, type === 'image/png' ? undefined : 0.95));
     }
     async function save() {
+      // Ohne Änderung nichts schreiben – das Original bleibt unangetastet (kein erneutes Komprimieren, Metadaten bleiben).
+      if (!changed()) { toast('Keine Änderungen – Original bleibt unverändert'); preview(); return; }
       const b = await blobOut(SAVE_TYPE[ext]); if (!b) { toast('Speichern ist fehlgeschlagen.'); return; }
       try {
         const r = await fetch(`/__save/${encodeURIComponent(token)}`, { method: 'POST', body: b });
@@ -162,7 +183,7 @@ export function showImage(root, { blob, name, ext, token }) {
       b.onclick = () => {
         const a = b.dataset.a;
         if (a === 'rotl' || a === 'rotr') { S.rot = (S.rot + (a === 'rotr' ? 90 : 270)) % 360; S.crop = null; draw(); }
-        else if (a === 'flip') { S.flipX = !S.flipX; draw(); }
+        else if (a === 'flip') { S.flipX = !S.flipX; S.crop = null; draw(); }   // Zuschnitt passt nach Spiegeln nicht mehr
         else if (a === 'crop') { S.cropping = !S.cropping; cropBtn.setAttribute('aria-pressed', String(S.cropping)); if (S.cropping) S.crop = null; draw(); }
         else if (a === 'reset') { Object.assign(S, { rot: 0, flipX: false, flipY: false, b: 100, c: 100, s: 100, w: 0, crop: null, cropping: false }); cropBtn.setAttribute('aria-pressed', 'false'); root.querySelectorAll('input[type=range]').forEach((i) => { i.value = i.dataset.k === 'w' ? '0' : '100'; }); root.querySelectorAll('output').forEach((o) => { o.textContent = '0'; }); draw(); }
         else if (a === 'cancel') preview();

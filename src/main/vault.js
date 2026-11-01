@@ -5,7 +5,7 @@ const { safeStorage, systemPreferences } = require('electron');
 const { execFile } = require('node:child_process');
 const crypto = require('node:crypto');
 const store = require('./store');
-const { siteOf } = require('../shared/lists');
+const { siteOf, sharedSite } = require('../shared/lists');
 
 let unlockedUntil = 0;
 
@@ -16,11 +16,25 @@ const hostOf = (u) => { try { return new URL(/^[a-z]+:\/\//i.test(u) ? u : 'http
 function all() { return store.get('passwords') || []; }
 function save(list) { store.set('passwords', list); }
 
-/** Einträge für eine Seite (gleiche registrierbare Domain), ohne Passwörter */
+const noWww = (h) => String(h || '').replace(/^www\./, '');
+const plainHttp = (u) => { try { const x = new URL(u); return x.protocol === 'http:' && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(x.hostname); } catch { return false; } };
+/**
+ * Passt ein gespeicherter Eintrag zu dieser Adresse? (Prüfung 01.11.2026)
+ * – nie auf unverschlüsseltem http (außer localhost)
+ * – Hosting-Dienste (vercel.app, github.io …): nur exakt derselbe Host – fremde Subdomains gehören anderen Betreibern
+ * – sonst wie bisher: dieselbe Seite inkl. Subdomains (login.amazon.de ⇄ amazon.de)
+ */
+function matches(p, url) {
+  if (plainHttp(url)) return false;
+  const h = hostOf(url); if (!h) return false;
+  const site = siteOf(h);
+  if (p.site !== site) return false;
+  if (sharedSite(site)) return noWww(p.host) === noWww(h);
+  return true;
+}
+/** Einträge für eine Seite, ohne Passwörter */
 function forUrl(url) {
-  const site = siteOf(hostOf(url));
-  if (!site) return [];
-  return all().filter((p) => p.site === site).map(({ id, user, host }) => ({ id, user, host }));
+  return all().filter((p) => matches(p, url)).map(({ id, user, host }) => ({ id, user, host }));
 }
 
 function add({ url, user, pass }) {
@@ -28,7 +42,8 @@ function add({ url, user, pass }) {
   const host = hostOf(url), site = siteOf(host);
   if (!site) return false;
   const list = all();
-  const same = list.find((p) => p.site === site && p.user === (user || ''));
+  // Gleicher Eintrag nur bei derselben Seite – bei Hosting-Diensten nur beim selben Host (nichts quer überschreiben)
+  const same = list.find((p) => p.site === site && p.user === (user || '') && (!sharedSite(site) || noWww(p.host) === noWww(host)));
   if (same) { same.pass = enc(pass); same.changed = Date.now(); }
   else list.push({ id: crypto.randomUUID(), site, host, user: user || '', pass: enc(pass), added: Date.now() });
   save(list);
@@ -37,7 +52,7 @@ function add({ url, user, pass }) {
 
 function known(url, user, pass) {
   const site = siteOf(hostOf(url));
-  return all().some((p) => p.site === site && p.user === (user || '') && dec(p.pass) === pass);
+  return all().some((p) => p.site === site && matches(p, url) && p.user === (user || '') && dec(p.pass) === pass);
 }
 
 function remove(id) { save(all().filter((p) => p.id !== id)); }
@@ -117,7 +132,7 @@ function importCSV(text) {
   return { added, skipped };
 }
 
-module.exports = {
+module.exports = { matches,
   forUrl, add, known, remove, unlock, reveal, importCSV,
   list: () => all().map(({ id, site, host, user, added }) => ({ id, site, host, user, added })),
   /** Für das Ausfüllen: Passwort erst nach Freigabe */

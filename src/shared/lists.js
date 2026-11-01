@@ -47,7 +47,11 @@ function cleanDomain(input) {
 }
 
 // Häufige zweistufige Endungen, damit z. B. „bbc.co.uk“ als eine Seite zählt
-const SECOND = new Set(['co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'com.tr', 'org.tr', 'gen.tr', 'com.au', 'co.at', 'or.at', 'co.jp', 'com.br', 'co.nz', 'co.za', 'com.cn', 'com.mx']);
+const SECOND = new Set(['co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'com.tr', 'org.tr', 'gen.tr', 'com.au', 'co.at', 'or.at', 'co.jp', 'com.br', 'co.nz', 'co.za', 'com.cn', 'com.mx', 'com.ua', 'co.in', 'co.kr', 'co.il', 'com.sg', 'com.ar', 'com.hk', 'com.tw', 'co.id', 'com.my', 'com.ph', 'com.pl', 'com.es', 'com.gr', 'co.th', 'com.vn', 'com.eg', 'com.sa', 'co.ke', 'com.ng']);
+// Hosting-Dienste, unter denen jede Subdomain einem anderen Betreiber gehört (Passwörter nie quer ausfüllen, Prüfung 01.11.2026)
+const SHARED = new Set(['vercel.app', 'github.io', 'netlify.app', 'herokuapp.com', 'web.app', 'firebaseapp.com', 'blogspot.com', 'pages.dev', 'workers.dev', 'azurewebsites.net', 'cloudfront.net', 'appspot.com', 'onrender.com', 'fly.dev', 'glitch.me', 'wordpress.com', 'wixsite.com', 'ngrok.io', 'ngrok-free.app', 'github.dev', 'gitlab.io', 'surge.sh', 'now.sh', 'repl.co', 'replit.app', 'myshopify.com', 'squarespace.com', 'webflow.io', 'carrd.co', 'framer.app', 'notion.site', 'amplifyapp.com', 'azurestaticapps.net', 'railway.app', 'deno.dev', 'supabase.co', 'cloudflareaccess.com', 'jimdosite.com', 'weebly.com', 'tumblr.com', 'substack.com', 'hubspotpagebuilder.com']);
+/** Gehört die „Seite“ zu einem Hosting-Dienst mit fremden Subdomains? */
+const sharedSite = (site) => SHARED.has(String(site || '').toLowerCase());
 /** Hostname → Seite (registrierbare Domain, vereinfacht) */
 function siteOf(hostname) {
   const h = String(hostname || '').toLowerCase().replace(/\.$/, '');
@@ -70,4 +74,4 @@ function inSet(set, host) {
   return false;
 }
 
-module.exports = { NEVER, parseLine, parseList, cleanDomain, siteOf, inSet };
+module.exports = { sharedSite, NEVER, parseLine, parseList, cleanDomain, siteOf, inSet };

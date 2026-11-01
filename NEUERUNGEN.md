@@ -1,3 +1,13 @@
+ImmoAdv Browser 3.0.15 – Prüf-Update (Sicherheit, Datenschutz, Leistung)
+- Einstellungen, Passwörter und Verlauf gehen nicht mehr verloren, wenn die Datei beim Start kurz gesperrt ist (Virenscanner)
+- Anmelde-Pop-ups verraten die echte IP-Adresse nicht mehr am VPN vorbei
+- Passwörter werden nur noch auf der richtigen Seite ausgefüllt: nie auf fremden Seiten bei Hosting-Diensten (z. B. *.vercel.app, *.github.io) und nie auf unverschlüsseltem http
+- Link-Vorschau baut keine Verbindungen mehr zu gesperrten Werbe-, Tracker-, Malware- oder Phishing-Adressen auf
+- Updates: keine Endlosschleife mehr bei Download-Fehlern; am Mac wird ein fertiges Update beim Beenden installiert; Mac-Prüfsumme friert den Browser nicht mehr ein
+- Bild-Vorschau: Strg+R/S/P/E/+/−/0 funktionieren in der Vorschau (Strg+R lädt nicht mehr neu); „Wärme“ verfärbt das Bild nicht mehr; Spiegeln nach Zuschneiden korrekt; ohne Änderung wird nichts gespeichert; bessere JPEG-Qualität; Regler reagieren sofort auch bei großen Fotos
+- Keine Spuren: Seitensymbole besuchter Seiten werden nicht mehr dauerhaft gespeichert (nur von Lesezeichen)
+- Schneller: Werbeblocker-Listen laden beim Start parallel, Einstellungen und Verlauf werden im Hintergrund gespeichert
+
 ImmoAdv Browser 3.0.14
 - Eingescannte PDFs werden beim Öffnen automatisch gerade ausgerichtet und durchsuchbar gemacht (Texterkennung, offline) – direkt im PDF-Betrachter, ohne Extra-Programm
 - Hinweis unten im PDF: „Speichern“ legt die durchsuchbare Fassung neben das Original, „Original anzeigen“ schaltet zurück

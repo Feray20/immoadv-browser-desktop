@@ -55,7 +55,9 @@ function getSession() {
     if (u.pathname.startsWith('/__file/')) {
       const p = files.get(u.pathname.slice('/__file/'.length));
       if (!p) return new Response('Nicht gefunden', { status: 404 });
-      return new Response(await fs.promises.readFile(p), { headers: { 'content-type': FILE_MIME[path.extname(p).toLowerCase()] || 'application/octet-stream' } });
+      // Datei inzwischen gelöscht/verschoben: saubere Meldung statt Abbruch (Prüfung 01.11.2026)
+      try { return new Response(await fs.promises.readFile(p), { headers: { 'content-type': FILE_MIME[path.extname(p).toLowerCase()] || 'application/octet-stream' } }); }
+      catch { return new Response('Datei nicht gefunden', { status: 404 }); }
     }
     // Bild bearbeitet → zurück in die Originaldatei (01.11.2026). Nur für die Datei dieser Kennung, nur PNG/JPEG/WebP,
     // nur wenn der Inhalt wirklich ein Bild dieses Typs ist; atomar über eine Zwischendatei.
@@ -141,4 +143,10 @@ async function save(webContents, filePath) {
   await fs.promises.rename(tmp, filePath);
 }
 
-module.exports = { registerScheme, getSession, viewerURL, officeURL, studioURL, save };
+/** Tab geschlossen: Kennungen dieser Adresse ungültig machen (Lesen/Speichern nur, solange der Tab offen ist). */
+function release(url) {
+  const u = String(url || ''); if (!u) return;
+  for (const k of [...files.keys()]) if (u.includes(k)) files.delete(k);
+}
+
+module.exports = { release, registerScheme, getSession, viewerURL, officeURL, studioURL, save };

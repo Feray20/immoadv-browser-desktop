@@ -9,23 +9,36 @@ const store = require('./store');
 const file = () => path.join(app.getPath('userData'), 'verlauf.json');
 let items = null;
 let saveTimer = null;
+let readOnly = false;   // Datei gesperrt/beschädigt → nie mit leerem Verlauf überschreiben (Prüfung 01.11.2026)
 
 function load() {
   if (items) return items;
-  try { items = JSON.parse(fs.readFileSync(file(), 'utf8')); if (!Array.isArray(items)) items = []; } catch { items = []; }
+  try { items = JSON.parse(fs.readFileSync(file(), 'utf8')); if (!Array.isArray(items)) items = []; }
+  catch (e) { items = []; if (!e || e.code !== 'ENOENT') readOnly = true; }
   prune();
   return items;
 }
+let gen = 0;
 function writeNow() {
   clearTimeout(saveTimer); saveTimer = null;
-  if (!items) return;
+  if (!items || readOnly) return;
+  gen++;
   try {
     const tmp = file() + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(items), { mode: 0o600 });
     fs.renameSync(tmp, file());
   } catch { /* nicht kritisch */ }
 }
-function persist() { if (!saveTimer) saveTimer = setTimeout(writeNow, 3000); }
+// Beim Surfen im Hintergrund asynchron schreiben (kein Ruckeln im Hauptprozess); writeNow bleibt fürs Beenden.
+let asyncBusy = false;
+async function writeAsync() {
+  saveTimer = null;
+  if (!items || readOnly) return;
+  asyncBusy = true;
+  const my = gen;
+  try { const tmp = file() + '.a.tmp'; await fs.promises.writeFile(tmp, JSON.stringify(items), { mode: 0o600 }); if (my !== gen) { await fs.promises.unlink(tmp).catch(() => {}); return; } await fs.promises.rename(tmp, file()); } catch { /* nicht kritisch */ } finally { asyncBusy = false; }
+}
+function persist() { if (!saveTimer) saveTimer = setTimeout(writeAsync, 3000); }
 function prune() {
   const days = Number(store.get('historyDays'));
   if (!days) { if (items.length) { items = []; persist(); } return; }
@@ -91,4 +104,4 @@ function suggest(q, limit = 6) {
 function remove(ids) { load(); const set = new Set(ids); items = items.filter((i) => !set.has(i.id)); persist(); }
 function clear(from = 0, to = Infinity) { load(); items = items.filter((i) => i.t < from || i.t > to); persist(); }
 
-module.exports = { flush: () => { if (saveTimer) writeNow(); }, add, setTitle, search, suggest, remove, clear, prune: () => { load(); prune(); }, count: () => load().length };
+module.exports = { flush: () => { if (saveTimer || asyncBusy) writeNow(); }, add, setTitle, search, suggest, remove, clear, prune: () => { load(); prune(); }, count: () => load().length };

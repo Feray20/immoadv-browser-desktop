@@ -71,11 +71,23 @@ const defaults = {
 };
 
 let data = null;
+let readOnly = false;   // Datei war nicht lesbar → nie mit Standardwerten überschreiben
 
 function load() {
   if (data) return data;
-  try { data = { ...defaults, ...JSON.parse(fs.readFileSync(file(), 'utf8')) }; }
-  catch { data = { ...defaults }; }
+  // Kein Datenverlust (Prüfung 01.11.2026): Fehlt die Datei, starten wir frisch. Ist sie nur kurz gesperrt (Virenscanner,
+  // EBUSY) oder beschädigt, wird sie NIE mit Standardwerten überschrieben: erst erneut lesen, sonst eine Kopie
+  // „einstellungen.defekt-<Zeit>.json“ sichern und bis zum Neustart nichts zurückschreiben.
+  let raw = null, missing = false;
+  for (let i = 0; i < 4; i++) {
+    try { raw = fs.readFileSync(file(), 'utf8'); break; }
+    catch (e) { if (e && e.code === 'ENOENT') { missing = true; break; } const t = Date.now() + 150; while (Date.now() < t) { /* kurz warten */ } }
+  }
+  if (raw != null) {
+    try { data = { ...defaults, ...JSON.parse(raw) }; }
+    catch { readOnly = true; try { fs.copyFileSync(file(), file().replace(/\.json$/, `.defekt-${Date.now()}.json`)); } catch {} data = { ...defaults }; }
+  } else { if (!missing) readOnly = true; data = { ...defaults }; }
+  if (readOnly) { console.error('Einstellungen nicht lesbar – Datei bleibt unverändert'); return data; }
   if (!data.migratedV3) {
     // Umstieg vom Tor-Browser (1.x): Lesezeichen/Download-Ordner bleiben, neue Grundeinstellungen gelten
     const backup = path.join(app.getPath('userData'), 'Sicherung-1.x-einstellungen.json');
@@ -89,9 +101,11 @@ function load() {
 
 // Schreiben gebündelt (nach 400 ms, spätestens nach 3 s) – nicht bei jeder Kleinigkeit die ganze Datei
 let saveTimer = null, firstPending = 0;
+let gen = 0;   // jede synchrone Speicherung erhöht – ein älterer asynchroner Schreibvorgang überschreibt sie dann nicht
 function writeNow() {
   clearTimeout(saveTimer); saveTimer = null; firstPending = 0;
-  if (!data) return;
+  if (!data || readOnly) return;
+  gen++;
   try {
     fs.mkdirSync(path.dirname(file()), { recursive: true });
     const tmp = file() + '.tmp';
@@ -99,11 +113,27 @@ function writeNow() {
     fs.renameSync(tmp, file());
   } catch (e) { console.error('Einstellungen speichern', e); }
 }
+// Im Betrieb asynchron schreiben (kein Ruckeln im Hauptprozess, Prüfung 01.11.2026); flush() beim Beenden bleibt synchron.
+let writing = null;
+async function writeAsync() {
+  clearTimeout(saveTimer); saveTimer = null; firstPending = 0;
+  if (!data || readOnly) return;
+  if (writing) { await writing.catch(() => {}); }
+  const body = JSON.stringify(data), my = gen;
+  writing = (async () => {
+    await fs.promises.mkdir(path.dirname(file()), { recursive: true });
+    const tmp = file() + '.a.tmp';
+    await fs.promises.writeFile(tmp, body, { mode: 0o600 });
+    if (my !== gen) { await fs.promises.unlink(tmp).catch(() => {}); return; }
+    await fs.promises.rename(tmp, file());
+  })().catch((e) => console.error('Einstellungen speichern', e)).finally(() => { writing = null; });
+  return writing;
+}
 function save() {
   const now = Date.now();
   if (!firstPending) firstPending = now;
   clearTimeout(saveTimer);
-  saveTimer = now - firstPending > 3000 ? setTimeout(writeNow, 0) : setTimeout(writeNow, 400);
+  saveTimer = now - firstPending > 3000 ? setTimeout(writeAsync, 0) : setTimeout(writeAsync, 400);
 }
 
 module.exports = {

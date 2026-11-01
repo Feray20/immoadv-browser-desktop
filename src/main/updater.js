@@ -51,7 +51,7 @@ async function init(onState) {
   autoUpdater.on('checking-for-update', () => emit({ status: 'checking', message: 'Suche nach Updates …' }));
   autoUpdater.on('update-not-available', () => { failures = 0; emit({ status: 'current', message: 'Aktuell' }); });
   autoUpdater.on('update-available', (i) => {
-    failures = 0;
+    // failures hier NICHT zurücksetzen (Prüfung 01.11.2026): sonst Endlosschleife Download-Fehler → alle 2 Min. neu laden.
     const z = (i.files || []).find((f) => /-mac\.zip$/.test(f.url || ''));
     macSha = z && z.sha512 ? z.sha512 : null;
     emit({ status: autoUpdater.autoDownload ? 'downloading' : 'available', version: i.version, notes: notesText(i.releaseNotes), progress: 0, message: `Version ${i.version} verfügbar` });
@@ -59,6 +59,7 @@ async function init(onState) {
   });
   autoUpdater.on('download-progress', (p) => emit({ status: 'downloading', progress: Math.round(p.percent || 0), message: `Lädt Version ${state.version} …` }));
   autoUpdater.on('update-downloaded', (i) => {
+    failures = 0;
     emit({ status: 'ready', version: i.version, notes: notesText(i.releaseNotes) || state.notes, message: `Version ${i.version} ist bereit` });
     if (installWhenReady) install();
   });
@@ -86,13 +87,24 @@ function download() {
   autoUpdater.downloadUpdate().catch(() => {});
 }
 
+// Prüfsumme als Datenstrom – die ZIP-Datei ist mehrere 100 MB, synchrones Lesen fror den Browser ein (Prüfung 01.11.2026).
+function sha512File(f) {
+  return new Promise((res, rej) => { const h = require('node:crypto').createHash('sha512'); fs.createReadStream(f).on('error', rej).on('data', (c) => h.update(c)).on('end', () => res(h.digest('base64'))); });
+}
+let macBusy = false;
 function downloadMac() {
+  if (macBusy) return false; macBusy = true;
+  return downloadMacRaw().catch((e) => { log('Mac-Download: ' + (e && e.message)); emit({ status: 'error', message: 'Update konnte nicht geladen werden – neuer Versuch später' }); }).finally(() => { macBusy = false; });
+}
+async function downloadMacRaw() {
   if (!state.version || state.status === 'downloading') return;
   const v = state.version;
   const dir = path.join(app.getPath('userData'), 'update');
   const target = path.join(dir, `ImmoAdv-Browser-${v}-universal-mac.zip`);
   fs.mkdirSync(dir, { recursive: true });
-  if (macSha && fs.existsSync(target) && fs.statSync(target).size > 5 * 1024 * 1024 && require('node:crypto').createHash('sha512').update(fs.readFileSync(target)).digest('base64') === macSha) {
+  let cachedOk = false;
+  try { cachedOk = Boolean(macSha && fs.existsSync(target) && fs.statSync(target).size > 5 * 1024 * 1024 && (await sha512File(target)) === macSha); } catch { cachedOk = false; }
+  if (cachedOk) {
     macZip = target; emit({ status: 'ready', message: `Version ${v} ist bereit` });
     if (installWhenReady) install();
     return;
@@ -102,11 +114,11 @@ function downloadMac() {
   ses.once('will-download', (_e, item) => {
     item.setSavePath(target + '.part');
     item.on('updated', () => { const t = item.getTotalBytes(); if (t) emit({ status: 'downloading', progress: Math.round(item.getReceivedBytes() / t * 100) }); });
-    item.once('done', (_e2, st) => {
+    item.once('done', async (_e2, st) => {
       if (st === 'completed') {
         try {
           // Prüfsumme gegen die Update-Info – sonst nicht installieren
-          const sum = require('node:crypto').createHash('sha512').update(fs.readFileSync(target + '.part')).digest('base64');
+          const sum = await sha512File(target + '.part');
           if (!macSha || sum !== macSha) { log(`Mac-Update: Prüfsumme passt nicht (${macSha ? 'abweichend' : 'fehlt'})`); fs.unlinkSync(target + '.part'); return emit({ status: 'error', message: 'Update-Datei beschädigt – neuer Versuch später' }); }
           fs.renameSync(target + '.part', target); macZip = target;
           emit({ status: 'ready', message: `Version ${v} ist bereit` });
@@ -122,7 +134,7 @@ function downloadMac() {
 }
 
 // Mac: nach dem Beenden neue Version entpacken, alte App ersetzen, neu starten (nur das Programm – Einstellungen bleiben)
-function installMac() {
+function installMac({ relaunch = true } = {}) {
   const bundle = path.resolve(app.getPath('exe'), '..', '..', '..');
   if (!macZip || !bundle.endsWith('.app')) return false;
   try { fs.accessSync(path.dirname(bundle), fs.constants.W_OK); } catch {
@@ -149,11 +161,18 @@ else
   echo "$(date -u +%FT%TZ) Mac-Update: Entpacken fehlgeschlagen" >> "$LOG"
 fi
 rm -rf "$TMP"
-open "$APP"
+${relaunch ? 'open "$APP"' : ''}
 `, { mode: 0o755 });
   require('node:child_process').spawn('/bin/bash', [script], { detached: true, stdio: 'ignore' }).unref();
-  setImmediate(() => app.quit());
+  if (relaunch) setImmediate(() => app.quit());
   return true;
+}
+// Mac: Ein fertig geladenes Update wird beim Beenden installiert (wie unter Windows) – ohne Neustart (Prüfung 01.11.2026).
+let quitInstalled = false;
+function installOnQuit() {
+  if (quitInstalled || !macManual || state.status !== 'ready' || store.get('autoUpdate') === false) return;
+  quitInstalled = true;
+  try { installMac({ relaunch: false }); } catch (e) { log('Mac-Update beim Beenden: ' + e.message); }
 }
 
 /** Jetzt installieren – still, ohne Rückfragen; der Browser startet danach selbst neu. */
@@ -180,4 +199,4 @@ function setAuto(on) {
   if (supported() && !macManual) { autoUpdater.autoDownload = !!on; autoUpdater.autoInstallOnAppQuit = !!on; }
 }
 
-module.exports = { init, check, download, install, updateNow, setAuto, logPath: () => path.join(app.getPath('userData'), 'update.log'), state: snapshot, onChange: (l) => listeners.push(l) };
+module.exports = { init, check, download, install, installOnQuit, updateNow, setAuto, logPath: () => path.join(app.getPath('userData'), 'update.log'), state: snapshot, onChange: (l) => listeners.push(l) };

@@ -13,7 +13,7 @@ const vault = require('./vault');
 const history = require('./history');
 const ai = require('./ai');
 const { cleanURL, createBrowsingSession, tabPreferences, hostOf, startupCleanup, siteLeft } = require('./privacy');
-const { cleanDomain, siteOf } = require('../shared/lists');
+const { cleanDomain, siteOf, sharedSite } = require('../shared/lists');
 const { LISTING_SCRIPT } = require('../shared/listing');
 const { SUMMARY_SCRIPT } = require('../shared/summary');
 const { parseBookmarksHTML, bookmarksHTML } = require('../shared/bookmarks');
@@ -173,8 +173,11 @@ function showWindow() {
 }
 
 // Vorab verbinden: Lesezeichen sind beim Klick schon „warm“
-function preconnect(origin) {
+function preconnect(origin, pageUrl = '') {
   if (!browsingSession) return;
+  // Vorab-Verbindungen laufen am Blocker vorbei (Prüfung 01.11.2026) – darum hier selbst prüfen: keine Verbindung zu
+  // Malware-, Phishing-, Werbe-/Tracker- oder selbst gesperrten Adressen, nur weil die Maus über einem Link war.
+  try { if (blocker.check({ url: origin, resourceType: 'other' }, pageUrl || origin)) return; } catch { return; }
   try { browsingSession.preconnect({ url: origin, numSockets: 1 }); } catch { /* ungültig */ }
 }
 function warmFavorites() {
@@ -224,6 +227,8 @@ function makeView(kind) {
   return view;
 }
 
+const popupWins = new Set();
+const webrtcPolicy = () => (vpn.loggedIn() ? 'disable_non_proxied_udp' : 'default_public_interface_only');
 function wireView(tab) {
   const wc = tab.view.webContents;
   // WebRTC: mit VPN nur über das VPN, sonst keine lokalen IP-Adressen preisgeben
@@ -242,6 +247,10 @@ function wireView(tab) {
   });
   wc.on('did-create-window', (child) => {
     child.setMenuBarVisibility(false);
+    // Pop-ups bekommen dieselbe WebRTC-Regel wie Tabs – sonst verrät ein STUN-Aufruf die echte IP am VPN vorbei
+    // (Prüfung 01.11.2026). VPN-Wechsel aktualisiert sie über popupWins.
+    try { child.webContents.setWebRTCIPHandlingPolicy(webrtcPolicy()); } catch {}
+    popupWins.add(child); child.once('closed', () => popupWins.delete(child));
     child.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/i.test(url)) newTab(url, { ws: tab.ws }); return { action: 'deny' }; });
     child.webContents.on('will-navigate', (e, u) => { if (!/^https?:/i.test(u)) e.preventDefault(); });
   });
@@ -334,7 +343,14 @@ function favRemember(host, data) {
   const keys = Object.keys(m); if (keys.length > 400) delete m[keys[0]];
   send('favicon', { host, data });
   clearTimeout(favSaveTimer);
-  favSaveTimer = setTimeout(() => { try { fs.writeFileSync(favFile(), JSON.stringify(m)); } catch {} }, 3000);
+  favSaveTimer = setTimeout(() => { fs.promises.writeFile(favFile(), favPersistJson()).catch(() => {}); }, 3000);
+}
+// Keine Spuren (Prüfung 01.11.2026): Dauerhaft auf dem Gerät nur die Symbole von Lesezeichen – besuchte Seiten bleiben
+// nur im Arbeitsspeicher, solange der Browser läuft.
+function favPersistJson() {
+  const keep = new Set((store.get('bookmarks') || []).filter((b) => !b.folder).map((b) => hostOf(b.url)).filter(Boolean));
+  const out = {}; for (const [h, d] of Object.entries(favMap || {})) if (keep.has(h)) out[h] = d;
+  return JSON.stringify(out);
 }
 const IMG = /^image\/(png|x-icon|vnd\.microsoft\.icon|svg\+xml|jpeg|gif|webp|avif|ico)$/;
 function sniff(buf) {
@@ -405,7 +421,7 @@ function newTab(url, opts = {}) {
   const kind = opts.kind || 'web';
   const tab = {
     id: crypto.randomUUID(), ws: opts.ws || activeWs(), pinned: !!opts.pinned, kind, view: null,
-    url: url || '', title: opts.title || (url ? hostOf(url) : 'Startseite'), filePath: opts.filePath || null, lastActive: Date.now()
+    url: url || '', srcUrl: opts.kind === 'pdf' ? url : null, title: opts.title || (url ? hostOf(url) : 'Startseite'), filePath: opts.filePath || null, lastActive: Date.now()
   };
   if (opts.localFile && url) tab.localFile = url;
   if (opts.studio) tab.studio = true;
@@ -479,6 +495,7 @@ function closeTab(id) {
   const [t] = tabs.splice(i, 1);
   if (t.kind === 'web' && t.url) { closedStack.push({ url: t.url, ws: t.ws }); if (closedStack.length > 25) closedStack.shift(); }
   pwPending.delete(t.id);
+  if (t.srcUrl) { try { pdf.release(t.srcUrl); } catch {} }
   if (t.view) { win.contentView.removeChildView(t.view); t.view.webContents.close(); }
   if (t.site) siteLeft(browsingSession, t.site, siteOpen);
   if (split && (split.a === id || split.b === id)) split = null;
@@ -683,6 +700,7 @@ function wireStudioDownloads() {
   });
 }
 
+// Bild-/Office-Anzeige; Bilder lassen sich dort auch bearbeiten und speichern (/__save/).
 function openOffice(filePath) { newTab(pdf.officeURL(filePath), { kind: 'pdf', title: path.basename(filePath), filePath, viewOnly: true }); }
 
 // ---------- Tastenkürzel (auch wenn der Fokus in einer Webseite liegt) ----------
@@ -697,6 +715,9 @@ function handleShortcut(e, input) {
     if (input.alt && (k === 'arrowleft' || k === 'arrowright') && t) { e.preventDefault(); const wc = wcOf(t); if (wc) k === 'arrowleft' ? wc.navigationHistory.goBack() : wc.navigationHistory.goForward(); }
     return;
   }
+  // Bild-Vorschau (Prüfung 01.11.2026): Strg+R/S/P/E/+/−/0 gehören der Vorschau (Drehen, Speichern, Drucken, Bearbeiten,
+  // Zoom) – nicht abfangen, sonst lädt Strg+R den Tab neu und Bearbeitungen gehen verloren.
+  if (t?.viewOnly && /\.(png|jpe?g|gif|webp|bmp)$/i.test(t.filePath || '') && ['r', 's', 'p', 'e', '+', '=', '-', '0'].includes(k)) return;
   if (k === 'tab') { e.preventDefault(); return cycleTab(input.shift ? -1 : 1); }
   if (/^[1-9]$/.test(k) && !input.shift) {
     e.preventDefault();
@@ -791,9 +812,10 @@ async function pageText(t) {
 }
 
 // Passwort in die Seite eintragen – nur auf der Seite, für die es gespeichert wurde
-const FILL = (user, pass, site) => `(() => {
-  const h = location.hostname; const s = ${JSON.stringify(site || '')};
-  if (!(h === s || h.endsWith('.' + s))) return false;
+const FILL = (user, pass, site, exactHost = '') => `(() => {
+  const h = location.hostname; const s = ${JSON.stringify(site || '')}; const x = ${JSON.stringify(exactHost || '')};
+  if (x ? h !== x : !(h === s || h.endsWith('.' + s))) return false;
+  if (location.protocol === 'http:' && !/^(localhost|127\\.0\\.0\\.1)$/.test(h)) return false;
   const vis = (el) => !!(el && el.offsetParent !== null && !el.disabled && !el.readOnly);
   const pw = [...document.querySelectorAll('input[type="password"]')].find(vis);
   const set = (el, v) => { if (!el) return; const d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value'); d.set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); };
@@ -827,11 +849,11 @@ function pageMenu(tab, p) {
   }
   if (p.isEditable) items.push({ role: 'undo', label: 'Rückgängig' }, { role: 'cut', label: 'Ausschneiden' }, { role: 'copy', label: 'Kopieren' }, { role: 'paste', label: 'Einfügen' }, { role: 'selectAll', label: 'Alles auswählen' }, { type: 'separator' });
   if (p.mediaType === 'image' && p.srcURL && /^https?:/.test(p.srcURL)) {
-    items.push({ label: 'Bild speichern', click: () => wc.downloadURL(p.srcURL) }, { label: 'Bildadresse kopieren', click: () => clipboard.writeText(p.srcURL) }, { type: 'separator' });
+    items.push({ label: 'Bild speichern', click: () => !wc.isDestroyed() && wc.downloadURL(p.srcURL) }, { label: 'Bildadresse kopieren', click: () => clipboard.writeText(p.srcURL) }, { type: 'separator' });
   }
   items.push(
-    { label: 'Zurück', enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() },
-    { label: 'Neu laden', click: () => wc.reload() },
+    { label: 'Zurück', enabled: wc.navigationHistory.canGoBack(), click: () => !wc.isDestroyed() && wc.navigationHistory.goBack() },
+    { label: 'Neu laden', click: () => !wc.isDestroyed() && wc.reload() },
     { label: 'Seite übersetzen', enabled: tab.kind === 'web', click: () => translate(tab) },
     { label: 'Seite vorlesen', enabled: tab.kind === 'web', click: () => send('tts', 'start') },
     { type: 'separator' },
@@ -980,11 +1002,12 @@ function registerIPC() {
     const t = active(); const wc = wcOf(t);
     if (!wc || t.kind !== 'web') return false;
     const entry = vault.list().find((x) => x.id === id);
-    if (!entry || entry.site !== siteOf(hostOf(wc.getURL()))) return false;   // nie auf fremden Seiten
+    if (!entry || !vault.matches(entry, wc.getURL())) return false;   // nie auf fremden Seiten (inkl. Hosting-Subdomains, http)
     const c = await vault.credentialsFor(id);
     if (!c) { send('toast', 'Freigabe abgebrochen'); return false; }
-    if (wc.isDestroyed() || entry.site !== siteOf(hostOf(wc.getURL()))) return false;   // Seite hat während der Freigabe gewechselt
-    try { return await wc.executeJavaScriptInIsolatedWorld(1005, [{ code: FILL(c.user, c.pass, entry.site) }]); } catch { return false; }
+    if (wc.isDestroyed() || !vault.matches(entry, wc.getURL())) return false;   // Seite hat während der Freigabe gewechselt
+    const exact = sharedSite(entry.site) ? hostOf(wc.getURL()) : '';
+    try { return await wc.executeJavaScriptInIsolatedWorld(1005, [{ code: FILL(c.user, c.pass, entry.site, exact) }]); } catch { return false; }
   });
   handle('pw:list', () => vault.list());
   // Passwort kopieren: nach 30 s aus der Zwischenablage entfernen – nur, wenn dort noch dieses Passwort steht
@@ -1092,7 +1115,8 @@ function registerIPC() {
     if ('dnsProvider' in obj) applyDNS();
     if ('historyDays' in obj) history.prune();
     if ('restoreSession' in obj) saveSession(true);
-    if ('blockAds' in obj || 'blockMalware' in obj || 'blockPhishing' in obj || 'freshLists' in obj) blocker.load();
+    // Die Schalter fragt check() selbst ab – neu laden nur, wenn sich die Listen-Quelle ändert (Leistung, Prüfung 01.11.2026).
+    if ('freshLists' in obj) blocker.loadAsync().catch(() => blocker.load());
     if ('javaScript' in obj) send('toast', 'Gilt für neu geöffnete Tabs');
     return publicSettings();
   });
@@ -1121,7 +1145,7 @@ function tabMenu(id, pos) {
   const ws = store.get('workspaces') || [];
   fadeMenu([
     { label: 'Neuer Tab daneben', click: () => newTab(undefined, { ws: t.ws, index: tabs.indexOf(t) + 1 }) },
-    { label: 'Neu laden', enabled: !!wcOf(t), click: () => wcOf(t).reload() },
+    { label: 'Neu laden', enabled: !!wcOf(t), click: () => wcOf(t)?.reload() },
     { label: 'Duplizieren', enabled: t.kind === 'web' && !!t.url, click: () => newTab(t.url, { ws: t.ws, index: tabs.indexOf(t) + 1 }) },
     { label: t.pinned ? 'Lösen' : 'Anheften', click: () => { t.pinned = !t.pinned; tabs.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)); pushTabs(); } },
     { label: 'Geteilte Ansicht mit diesem Tab', click: () => toggleSplit(t.id) },
@@ -1287,7 +1311,7 @@ function wireTabMessages() {
   let pcCount = 0; setInterval(() => { pcCount = 0; }, 60000);
   ipcMain.on('preconnect', (e, origin) => {
     if (!tabOf(e) || ++pcCount > 30) return;
-    if (typeof origin === 'string' && /^https?:\/\/[^/]+$/.test(origin)) preconnect(origin);
+    if (typeof origin === 'string' && /^https?:\/\/[^/]+$/.test(origin)) preconnect(origin, e.sender.getURL());
   });
 }
 
@@ -1317,7 +1341,7 @@ app.whenReady().then(async () => {
   def.setSpellCheckerEnabled(false);
   def.webRequest.onBeforeRequest((d, cb) => cb({ cancel: /^(https?|wss?|ftp):/i.test(d.url) }));
 
-  blocker.load();
+  const listsReady = blocker.loadAsync().catch(() => blocker.load());   // parallel zum Aufräumen statt davor
   browsingSession = createBrowsingSession();
   wireDownloads(browsingSession);
   try { wireStudioDownloads(); } catch (e) { console.error('PDF-Studio', e); }
@@ -1325,8 +1349,10 @@ app.whenReady().then(async () => {
   vpn.onState((s) => {
     send('vpn', s);
     for (const t of tabs) { const wc = wcOf(t); if (wc && t.kind === 'web') wc.setWebRTCIPHandlingPolicy(vpn.loggedIn() ? 'disable_non_proxied_udp' : 'default_public_interface_only'); }
+    for (const w of popupWins) { try { if (!w.isDestroyed()) w.webContents.setWebRTCIPHandlingPolicy(webrtcPolicy()); } catch {} }
   });
   await vpn.init(browsingSession);
+  await listsReady;
   await createWindow();
 
   updater.init((s) => send('update', s));
@@ -1340,7 +1366,7 @@ app.whenReady().then(async () => {
 app.on('second-instance', (_e, argv) => { const t = argvTargets(argv); if (t.length) openTargets(t); else showWindow(); });
 app.on('activate', () => showWindow());
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => { saveSession(true); history.flush(); store.flush(); try { if (favMap) fs.writeFileSync(favFile(), JSON.stringify(favMap)); } catch {} });
+app.on('before-quit', () => { saveSession(true); history.flush(); store.flush(); try { updater.installOnQuit(); } catch {} try { if (favMap) fs.writeFileSync(favFile(), favPersistJson()); } catch {} });
 app.on('web-contents-created', (_e, wc) => {
   // Sicherheitsnetz: niemals <webview> für Webinhalte, keine Pop-up-Fenster
   wc.on('will-attach-webview', (e) => e.preventDefault());

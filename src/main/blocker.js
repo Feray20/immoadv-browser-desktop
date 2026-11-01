@@ -17,6 +17,16 @@ const cacheDir = () => path.join(app.getPath('userData'), 'listen');
 
 function readJson(f) { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } }
 
+// Asynchron (Leistung, Prüfung 01.11.2026): große Listen lesen, ohne den Hauptprozess zu blockieren – läuft beim Start
+// parallel zum Aufräumen; die ersten Seiten laden erst danach (Schutz von Anfang an).
+async function readJsonAsync(f) { try { return JSON.parse(await fs.promises.readFile(f, 'utf8')); } catch { return null; } }
+async function loadAsync() {
+  sources = (await readJsonAsync(path.join(bundled(), 'sources.json'))) || {};
+  await Promise.all(Object.keys(sets).map(async (kind) => {
+    const fresh = kind !== 'werbung' && store.get('freshLists') !== false ? await readJsonAsync(path.join(cacheDir(), `${kind}.json`)) : null;
+    sets[kind] = new Set(fresh || (await readJsonAsync(path.join(bundled(), `${kind}.json`))) || []);
+  }));
+}
 function load() {
   sources = readJson(path.join(bundled(), 'sources.json')) || {};
   for (const kind of Object.keys(sets)) {
@@ -91,7 +101,7 @@ function record(wcId, kind, url, isMain) {
 }
 
 module.exports = {
-  load, refresh, check, record,
+  load, loadAsync, refresh, check, record,
   forget: (wcId) => lastBlock.delete(wcId),
   takeBlock: (wcId) => { const b = lastBlock.get(wcId); lastBlock.delete(wcId); return b || null; },
   allowOnce: (url) => { const d = cleanDomain(url); if (d) sessionAllow.add(siteOf(d)); },
