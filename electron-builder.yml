@@ -75,6 +75,9 @@ appx:
 # ---------- Mac ----------
 mac:
   icon: build/icon.png
+  # 7-Zip wird nur unter Windows gebraucht (Firefox-Installer entpacken) – am Mac nicht mitliefern
+  files:
+    - "!node_modules/7zip-bin/**/*"
   # nur am Mac über electron-builder (Windows: build/installer.nsh, ohne Standard ungefragt umzustellen)
   fileAssociations:
     - ext: [html, htm]
