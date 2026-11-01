@@ -1,4 +1,4 @@
-body { width: 340px; padding: 8px; background: #183863; }
+body { width: 370px; padding: 8px; background: #183863; }
 .status { display: flex; align-items: center; gap: 6px; padding: 4px 4px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 .chip-btn { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); font-size: 12px; }
 .chip-btn:hover { background: var(--surface-3); }
