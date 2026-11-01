@@ -1,6 +1,7 @@
 // Word-, Excel-, PowerPoint- und Bild-Anzeige im ImmoAdv Browser (01.11.2026). Läuft in der abgeschotteten
 // Dokument-Sitzung ohne Internet; die Datei kommt nur über die einmalige Kennung vom Programm. Nur anzeigen und drucken.
 import { readDocx, readXlsx, readPptx, readCsv } from './ooxml.mjs';
+import { showImage } from './image.mjs';
 
 const q = new URLSearchParams(location.search);
 const token = q.get('file') || '', name = q.get('name') || 'Dokument';
@@ -66,7 +67,9 @@ function showSlides(m) {
   try {
     const blob = await bytes();
     if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(ext)) {
-      out.innerHTML = `<div class="photo"><img alt="${esc(name)}" src="${URL.createObjectURL(blob)}"></div>`; sub('Bild'); return;
+      // Gleiche Vorschau wie früher in der ImmoAdv-Software: eigene Leiste statt der Dokument-Leiste (01.11.2026).
+      document.body.classList.add('pv-mode');
+      showImage(out, { blob, name, ext, token }); return;
     }
     if (ext === 'docx') { out.innerHTML = `<article class="page">${await readDocx(blob)}</article>`; sub('Word-Dokument'); return; }
     if (ext === 'xlsx') { showSheets(await readXlsx(blob)); return; }

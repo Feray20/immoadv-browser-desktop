@@ -1,3 +1,7 @@
+ImmoAdv Browser 3.0.12
+- Bilder vom Schreibtisch öffnen in der gewohnten ImmoAdv-Vorschau: Name mit Größe (px · KB), Verkleinern/Vergrößern, An Fenster anpassen, Drehen, Drucken, Kopie speichern
+- Neu: „Bearbeiten“ direkt im Browser – Drehen, Spiegeln, Zuschneiden, Helligkeit, Kontrast, Sättigung, Wärme; Speichern in die Originaldatei oder als Kopie
+
 ImmoAdv Browser 3.0.11
 - Taskleiste: neues, randloses Programm-Symbol wird nach dem Update sofort angezeigt (Windows-Symbolspeicher wird aufgefrischt)
 

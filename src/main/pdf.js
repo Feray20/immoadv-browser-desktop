@@ -52,6 +52,23 @@ function getSession() {
       if (!p) return new Response('Nicht gefunden', { status: 404 });
       return new Response(await fs.promises.readFile(p), { headers: { 'content-type': FILE_MIME[path.extname(p).toLowerCase()] || 'application/octet-stream' } });
     }
+    // Bild bearbeitet → zurück in die Originaldatei (01.11.2026). Nur für die Datei dieser Kennung, nur PNG/JPEG/WebP,
+    // nur wenn der Inhalt wirklich ein Bild dieses Typs ist; atomar über eine Zwischendatei.
+    if (u.pathname.startsWith('/__save/') && req.method === 'POST') {
+      const p = files.get(u.pathname.slice('/__save/'.length));
+      if (!p) return new Response('Datei nicht gefunden', { status: 404 });
+      const ext = path.extname(p).toLowerCase();
+      const buf = Buffer.from(await req.arrayBuffer());
+      if (!buf.length || buf.length > 200 * 1024 * 1024) return new Response('Ungültige Größe', { status: 413 });
+      const ok = (ext === '.png' && buf[0] === 0x89 && buf[1] === 0x50)
+        || ((ext === '.jpg' || ext === '.jpeg') && buf[0] === 0xff && buf[1] === 0xd8)
+        || (ext === '.webp' && buf.slice(8, 12).toString() === 'WEBP');
+      if (!ok) return new Response('Dateityp passt nicht', { status: 415 });
+      const tmp = p + '.immoadv-tmp';
+      try { await fs.promises.writeFile(tmp, buf); await fs.promises.rename(tmp, p); }
+      catch (e) { try { await fs.promises.unlink(tmp); } catch {} return new Response('Speichern nicht möglich', { status: 500 }); }
+      return new Response('ok');
+    }
     // Office-/Bild-Anzeige (01.11.2026): eigene Seite im Programm, gleiche abgeschottete Sitzung wie der PDF-Betrachter.
     if (u.pathname.startsWith('/office/')) {
       const rel = decodeURIComponent(u.pathname.slice('/office/'.length)).replace(/^\/+/, '');
