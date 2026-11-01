@@ -1,0 +1,128 @@
+# ImmoAdv Browser – Build über GitHub Actions (kostenlos, weil das Repo öffentlich ist: Windows + Mac ohne Minutenlimit).
+# Baut bei jedem Push auf „main“ erst Windows, dann Mac, und veröffentlicht die neue Version als GitHub-Release.
+# Die installierten Programme holen sich das Update von dort (Knopf „Update jetzt installieren“).
+# Neue Version = in package.json "version" erhöhen. Gleiche Versionsnummer wird nicht erneut veröffentlicht.
+#
+# Kein Token nötig – GitHub bringt ihn selbst mit.
+#
+# Windows-Signierung mit Azure Artifact Signing (optional – fehlt etwas, wird unsigniert gebaut).
+# Unter Settings → Secrets and variables → Actions als „Repository secrets“ anlegen:
+#   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET   App-Registrierung mit Rolle „Artifact Signing Certificate Profile Signer“
+#   ARTIFACT_SIGNING_ENDPOINT     z. B. https://weu.codesigning.azure.net/
+#   ARTIFACT_SIGNING_ACCOUNT      Name des Artifact-Signing-Kontos
+#   ARTIFACT_SIGNING_PROFILE      Name des Zertifikatprofils
+#   ARTIFACT_SIGNING_PUBLISHER    Herausgebername exakt wie im Zertifikat (CN)
+#
+# Mac-Signierung/Beglaubigung (optional): CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}        # zusätzlich per Knopf „Run workflow“ startbar
+
+permissions:
+  contents: write              # Release anlegen und Dateien hochladen
+  statuses: write              # Fehlerstatus am Commit
+
+concurrency:
+  group: build-main
+  cancel-in-progress: false    # laufender Build wird nie abgebrochen
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  windows:
+    name: Windows-Installer
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Abhängigkeiten
+        run: set -o pipefail; npm install --no-audit --no-fund 2>&1 | tee -a build.log
+      - name: Tests
+        run: set -o pipefail; npm test 2>&1 | tee -a build.log
+      - name: Windows-Installer bauen, signieren, veröffentlichen
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARTIFACT_SIGNING_ENDPOINT: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
+          ARTIFACT_SIGNING_ACCOUNT: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
+          ARTIFACT_SIGNING_PROFILE: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
+          ARTIFACT_SIGNING_PUBLISHER: ${{ secrets.ARTIFACT_SIGNING_PUBLISHER }}
+        run: |
+          set -eo pipefail
+          ARGS=(--win --x64 --publish always)
+          if [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_CLIENT_SECRET" ] && [ -n "$ARTIFACT_SIGNING_ACCOUNT" ]; then
+            echo "Signiere mit Azure Artifact Signing ($ARTIFACT_SIGNING_ACCOUNT / $ARTIFACT_SIGNING_PROFILE)"
+            ARGS+=(
+              "-c.win.azureSignOptions.endpoint=$ARTIFACT_SIGNING_ENDPOINT"
+              "-c.win.azureSignOptions.codeSigningAccountName=$ARTIFACT_SIGNING_ACCOUNT"
+              "-c.win.azureSignOptions.certificateProfileName=$ARTIFACT_SIGNING_PROFILE"
+              "-c.win.azureSignOptions.publisherName=$ARTIFACT_SIGNING_PUBLISHER"
+            )
+          else
+            echo "Keine Artifact-Signing-Daten hinterlegt – Windows-Installer wird unsigniert gebaut."
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          {
+            node scripts/fetch-vendor.mjs &&
+            node scripts/build-rules.mjs &&
+            node scripts/ensure-release.mjs &&
+            npx electron-builder "${ARGS[@]}" &&
+            node scripts/finalize-release.mjs
+          } 2>&1 | tee -a build.log
+      - name: Fehlerprotokoll an GitHub melden
+        if: failure()
+        run: bash scripts/fehlerbericht.sh Windows
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows
+          path: dist/*.exe
+          if-no-files-found: ignore
+
+  mac:
+    name: Mac-App (.dmg)
+    needs: windows             # nacheinander, damit beide Dateien im selben Release landen
+    runs-on: macos-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Abhängigkeiten
+        run: set -o pipefail; npm install --no-audit --no-fund 2>&1 | tee -a build.log
+      - name: Tests
+        run: set -o pipefail; npm test 2>&1 | tee -a build.log
+      - name: Mac-App bauen, signieren, veröffentlichen
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # ohne Zertifikat: unsigniert bauen
+          if [ -z "$CSC_LINK" ]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; unset CSC_LINK CSC_KEY_PASSWORD; fi
+          [ -z "$APPLE_ID" ] && unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+          set -o pipefail; npm run dist:mac 2>&1 | tee -a build.log
+      - name: Fehlerprotokoll an GitHub melden
+        if: failure()
+        run: bash scripts/fehlerbericht.sh Mac
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac
+          path: dist/*.dmg
+          if-no-files-found: ignore
