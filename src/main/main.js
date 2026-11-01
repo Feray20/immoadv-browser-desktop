@@ -109,6 +109,18 @@ async function googleHandoff(url, fromWc) {
   openInChrome(url);
 }
 
+// Kein Chrome/Edge/Firefox auf dem PC: einmal fragen und die offizielle Chrome-Seite im neuen Tab öffnen
+let askingInstall = false;
+async function offerChromeInstall() {
+  if (askingInstall || !win) return; askingInstall = true;
+  try {
+    const { response } = await dialog.showMessageBox(win, { type: 'info', buttons: ['Chrome jetzt herunterladen', 'Später'], defaultId: 0, cancelId: 1,
+      title: 'Google-Anmeldung', message: 'Für die Google-Anmeldung fehlt noch Chrome',
+      detail: 'Google lässt die Anmeldung mit dem Google-Konto nur in Chrome, Edge oder Firefox zu – auf diesem PC ist keiner davon installiert. YouTube & Co. funktionieren hier trotzdem, nur ohne Anmeldung.\n\nNach der Installation öffnet der ImmoAdv Browser Google-Anmeldungen automatisch in Chrome.' });
+    if (response === 0) newTab('https://www.google.com/chrome/');
+  } finally { askingInstall = false; }
+}
+
 let lastChrome = { url: '', at: 0 };
 async function openInChrome(url) {
   if (lastChrome.url === url && Date.now() - lastChrome.at < 3000) return;   // Doppelklicks/Weiterleitungen
@@ -120,7 +132,7 @@ async function openInChrome(url) {
         .on('exit', (code) => { if (code) spawn('open', ['-a', 'Safari', url], { detached: true, stdio: 'ignore' }).unref(); }).unref();
     } else {
       const exe = await chromePath();
-      if (!exe) { send('toast', 'Kein Chrome, Edge oder Firefox gefunden – Google erlaubt die Anmeldung nur dort. Bitte Chrome installieren.'); return; }
+      if (!exe) { offerChromeInstall(); return; }
       spawn(exe, [url], { detached: true, stdio: 'ignore' }).unref();
     }
     send('toast', `Google-Konto in ${process.platform === 'darwin' ? 'Chrome' : /msedge/i.test(browserPathCache || '') ? 'Edge' : /firefox/i.test(browserPathCache || '') ? 'Firefox' : 'Chrome'} geöffnet – Google erlaubt die Anmeldung nur dort`);

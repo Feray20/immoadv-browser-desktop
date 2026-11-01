@@ -1,3 +1,6 @@
+ImmoAdv Browser 3.0.17
+- Google-Anmeldung ohne Chrome auf dem PC: statt eines Hinweises kommt eine Frage mit „Chrome jetzt herunterladen“ – danach klappt die Anmeldung automatisch über Chrome
+
 ImmoAdv Browser 3.0.16
 - Google-Anmeldung: die Seite „Anmeldung nicht möglich“ erscheint nicht mehr – Google-Konto-Seiten werden immer an Chrome weitergegeben, auch aus Pop-ups und Weiterleitungen
 - „Mit Google anmelden“ auf anderen Seiten: klare Frage, ob die Seite in Chrome geöffnet werden soll (Google erlaubt es nur dort)
