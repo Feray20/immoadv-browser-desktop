@@ -5,7 +5,7 @@ Der komplett neue ImmoAdv Browser 2.0
 - Datenschutz-Center: Werbung, Tracker, Malware und Phishing blockiert – mit echten Zählern
 - NordVPN direkt eingebaut (ohne NordVPN-App): einmal anmelden, danach automatisch
 - Spurlos surfen: kein Verlauf, Website-Daten werden nach dem Schließen gelöscht
-- Windows Hello / Touch ID vor dem Ausfüllen von Passwörtern
+- Passwörter speichern, ausfüllen und synchronisieren auf allen Geräten – bestätigt mit Windows Hello / Touch ID
 - Tor ist entfernt; deine Lesezeichen werden übernommen
 - Passwörter von iCloud übernehmen: danach ohne 6-stelligen Code, mit Windows Hello, Touch ID und Face ID
 - Chrome bleibt nach dem Schließen im Hintergrund bereit – startet sofort

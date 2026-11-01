@@ -153,6 +153,10 @@ function applyPrefs(dnsKey) {
   const prefs = readJson(pf) || {};
   deepSet(prefs, 'https_only_mode_enabled', true);
   deepSet(prefs, 'password_manager.biometric_authentication_filling', true);
+  // „Passwort speichern?“ immer anbieten + automatische Anmeldung – gespeichert im Google-Passwortmanager, synchron auf allen Geräten
+  deepSet(prefs, 'credentials_enable_service', true);
+  deepSet(prefs, 'credentials_enable_autosignin', true);
+  deepSet(prefs, 'autofill.profile_enabled', true);
   deepSet(prefs, 'profile.name', 'ImmoAdv');
   deepSet(prefs, 'browser.show_home_button', true);
   writeJson(pf, prefs);
