@@ -12,7 +12,7 @@ const vpn = require('./vpn');
 const vault = require('./vault');
 const history = require('./history');
 const ai = require('./ai');
-const { cleanURL, createBrowsingSession, tabPreferences, hostOf, startupCleanup, siteLeft } = require('./privacy');
+const { cleanURL, createBrowsingSession, tabPreferences, hostOf, startupCleanup, siteLeft, setGoogleHook } = require('./privacy');
 const { cleanDomain, siteOf, sharedSite } = require('../shared/lists');
 const { LISTING_SCRIPT } = require('../shared/listing');
 const { SUMMARY_SCRIPT } = require('../shared/summary');
@@ -84,6 +84,31 @@ async function chromePath() {
   browserPathCache = found || null;
   return browserPathCache;
 }
+// „Mit Google anmelden“ auf fremden Seiten (OAuth): Google erlaubt es hier nicht – die ganze Seite in Chrome öffnen,
+// damit die Anmeldung dort vollständig klappt. Sonst (Gmail, Drive, Konto) die Google-Seite selbst in Chrome.
+const isGoogleOAuth = (u) => /^https:\/\/accounts\.google\.[a-z.]+\/(o\/oauth2|signin\/oauth|gsi\/|v3\/signin\/.*oauth)/i.test(u) || /[?&](client_id|redirect_uri)=/i.test(u);
+let askingOAuth = false;
+async function googleHandoff(url, fromWc) {
+  const tab = tabs.find((t) => t.view && t.view.webContents === fromWc);
+  const pageUrl = tab && tab.url && !GOOGLE_ACCOUNT.test(tab.url) ? tab.url : null;
+  // Pop-up-Fenster (z. B. „Mit Google anmelden“): Fenster schließen
+  const child = fromWc && !tab ? BrowserWindow.fromWebContents(fromWc) : null;
+  let opener = null;
+  if (child && child !== win) { try { opener = child.getParentWindow(); child.close(); } catch {} }
+  if (isGoogleOAuth(url)) {
+    const site = pageUrl || (active() && active().url) || '';
+    if (askingOAuth || !win) return; askingOAuth = true;
+    try {
+      const host = hostOf(site) || 'Diese Seite';
+      const { response } = await dialog.showMessageBox(win, { type: 'info', buttons: [`${host} in Chrome öffnen`, 'Abbrechen'], defaultId: 0, cancelId: 1,
+        title: 'Mit Google anmelden', message: `„Mit Google anmelden“ geht nur in Chrome, Edge oder Firefox`, detail: `Google sperrt die Anmeldung mit dem Google-Konto in eigenen Browsern. ${host} kann in Chrome geöffnet werden – dort klappt die Anmeldung. Tipp: Viele Seiten bieten auch Anmelden mit E-Mail und Passwort an, das geht hier im ImmoAdv Browser.` });
+      if (response === 0 && /^https?:/.test(site)) openInChrome(site);
+    } finally { askingOAuth = false; }
+    return;
+  }
+  openInChrome(url);
+}
+
 let lastChrome = { url: '', at: 0 };
 async function openInChrome(url) {
   if (lastChrome.url === url && Date.now() - lastChrome.at < 3000) return;   // Doppelklicks/Weiterleitungen
@@ -236,7 +261,7 @@ function wireView(tab) {
 
   // Neue Fenster → neuer Tab im selben Arbeitsbereich (keine Pop-ups)
   wc.setWindowOpenHandler(({ url, disposition, features }) => {
-    if (needsChrome(url)) { openInChrome(url); return { action: 'deny' }; }
+    if (needsChrome(url)) { googleHandoff(url, wc); return { action: 'deny' }; }
     if (/^(mailto|tel):/i.test(url)) { askExternal(url); return { action: 'deny' }; }
     // echte Pop-ups (PayPal, „Mit Apple/Microsoft anmelden“, 3-D-Secure) brauchen ein Kindfenster mit Verbindung zur Seite
     if (/^https?:/i.test(url) && disposition === 'new-window' && features) {
@@ -252,12 +277,13 @@ function wireView(tab) {
     try { child.webContents.setWebRTCIPHandlingPolicy(webrtcPolicy()); } catch {}
     popupWins.add(child); child.once('closed', () => popupWins.delete(child));
     child.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/i.test(url)) newTab(url, { ws: tab.ws }); return { action: 'deny' }; });
-    child.webContents.on('will-navigate', (e, u) => { if (!/^https?:/i.test(u)) e.preventDefault(); });
+    child.webContents.on('will-navigate', (e, u) => { if (needsChrome(u)) { e.preventDefault(); return googleHandoff(u, child.webContents); } if (!/^https?:/i.test(u)) e.preventDefault(); });
+    child.webContents.on('will-redirect', (e, u) => { if (needsChrome(u)) { e.preventDefault(); googleHandoff(u, child.webContents); } });
   });
   // Nur Webadressen – keine Programme oder lokalen Dateien aus Webseiten heraus öffnen
   // lokale HTML-Datei (vom System geöffnet): nur diese eine Datei, Links daraus nur ins Web
   const allowed = (url) => (tab.kind === 'pdf' ? url.startsWith('immoadv-pdf:') : /^https?:/i.test(url) || (tab.localFile && url === tab.localFile));
-  const toChrome = (e, url) => { if (tab.kind === 'web' && needsChrome(url)) { e.preventDefault(); openInChrome(url); return true; } return false; };
+  const toChrome = (e, url) => { if (tab.kind === 'web' && needsChrome(url)) { e.preventDefault(); googleHandoff(url, wc); return true; } return false; };
   wc.on('will-navigate', (e, url) => {
     if (toChrome(e, url)) return;
     if (/^(mailto|tel):/i.test(url)) { e.preventDefault(); return askExternal(url); }
@@ -1343,6 +1369,7 @@ app.whenReady().then(async () => {
 
   const listsReady = blocker.loadAsync().catch(() => blocker.load());   // parallel zum Aufräumen statt davor
   browsingSession = createBrowsingSession();
+  setGoogleHook((d) => { if (!needsChrome(d.url)) return false; setImmediate(() => googleHandoff(d.url, d.webContents)); return true; });
   wireDownloads(browsingSession);
   try { wireStudioDownloads(); } catch (e) { console.error('PDF-Studio', e); }
   await startupCleanup(browsingSession);

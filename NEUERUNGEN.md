@@ -1,3 +1,7 @@
+ImmoAdv Browser 3.0.16
+- Google-Anmeldung: die Seite „Anmeldung nicht möglich“ erscheint nicht mehr – Google-Konto-Seiten werden immer an Chrome weitergegeben, auch aus Pop-ups und Weiterleitungen
+- „Mit Google anmelden“ auf anderen Seiten: klare Frage, ob die Seite in Chrome geöffnet werden soll (Google erlaubt es nur dort)
+
 ImmoAdv Browser 3.0.15 – Prüf-Update (Sicherheit, Datenschutz, Leistung)
 - Einstellungen, Passwörter und Verlauf gehen nicht mehr verloren, wenn die Datei beim Start kurz gesperrt ist (Virenscanner)
 - Anmelde-Pop-ups verraten die echte IP-Adresse nicht mehr am VPN vorbei

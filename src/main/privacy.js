@@ -81,6 +81,8 @@ function createBrowsingSession() {
     const url = details.url;
     if (!/^https?:/.test(url)) return cb({});
     const isMain = details.resourceType === 'mainFrame';
+    // Letzte Sicherung: Google-Konto-Seiten nie im ImmoAdv Browser laden (auch aus Pop-ups, Weiterleitungen, alten Tabs)
+    if (isMain && googleHook && googleHook(details)) return cb({ cancel: true });
     // HTTPS-Zwang. Leitet ein Server trotzdem auf http zurück, wird abgebrochen statt endlos umzuleiten.
     if (store.get('httpsOnly') !== false && url.startsWith('http:') && isMain && !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(url)) {
       const secure = 'https:' + url.slice(5);
@@ -184,4 +186,5 @@ function tabPreferences(ses) {
   };
 }
 
-module.exports = { noteOrigin, cleanURL, createBrowsingSession, tabPreferences, userAgent, hostOf, startupCleanup, siteLeft, keep };
+let googleHook = null;
+module.exports = { setGoogleHook: (fn) => { googleHook = fn; }, noteOrigin, cleanURL, createBrowsingSession, tabPreferences, userAgent, hostOf, startupCleanup, siteLeft, keep };
