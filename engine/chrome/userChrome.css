@@ -204,3 +204,6 @@ findbar { background: var(--immo-bg-1) !important; border-top: 1px solid var(--i
 
 /* Bewegung reduzieren, wenn Windows/Mac es wünscht */
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ImmoAdv-Seiten: kein „Erweiterung (…)“-Hinweis in der Adressleiste */
+#identity-box.extensionPage #identity-icon-label, #identity-box.extensionPage #identity-icon-box { display: none !important; }

@@ -70,13 +70,6 @@
         "updates_disabled": false
       }
     },
-    "Handlers": {
-      "mimeTypes": {
-        "application/pdf": {
-          "action": "handleInternally"
-        }
-      }
-    },
     "SkipTermsOfUse": true
   }
 }

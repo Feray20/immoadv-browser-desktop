@@ -1,3 +1,11 @@
+ImmoAdv Browser 4.0 – neuer Motor: Google-Anmeldung direkt im Browser
+- Neuer Motor: Firefox von Mozilla (wird beim ersten Start einmal geladen, geprüft und eingerichtet – dauert 1–2 Minuten)
+- Google, YouTube Premium, Gmail und Passkeys mit Windows Hello funktionieren jetzt direkt im ImmoAdv Browser – Chrome ist nicht mehr nötig
+- ImmoAdv-Oberfläche im Fade-Design, ImmoAdv-Startseite, ImmoAdv-Menü (Schutz, NordVPN, Werkzeuge)
+- Werbe-, Tracker-, Malware- und Phishing-Blocker, NordVPN ohne App, spurloses Surfen, Passwort-Tresor mit Windows Hello
+- KI-Assistent in der Seitenleiste, Immobilien-Check mit Merkliste, PDF-Texterkennung, Word/Excel/PowerPoint-Ansicht
+- Deine Lesezeichen, Passwörter, NordVPN-Zugang und Einstellungen werden übernommen
+- Anders als bisher: Statt Bereichen gibt es Tab-Gruppen; eingescannte PDFs per Rechtsklick „Text erkennen & gerade ausrichten“
 ImmoAdv Browser 3.0.21
 - Updates kommen jetzt direkt von immoadv.de – privat, ohne Umweg über GitHub
 - Store-Version: Hinweis, dass Updates automatisch über den Microsoft Store kommen
