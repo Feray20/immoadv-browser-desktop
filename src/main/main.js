@@ -727,7 +727,8 @@ function pageMenu(tab, p) {
     { type: 'separator' },
     { label: 'Untersuchen (Entwicklertools)', click: () => { wc.inspectElement(p.x, p.y); } }
   );
-  Menu.buildFromTemplate(items).popup({ window: win });
+  const b = tab.view.getBounds();
+  fadeMenu(items, { x: b.x + p.x, y: b.y + p.y }, wc);
 }
 
 function translate(t) {
@@ -784,7 +785,7 @@ function registerIPC() {
   on('tab:toWorkspace', (_e, id, ws) => moveToWorkspace(id, ws));
   on('tab:closeOthers', (_e, id) => { for (const t of tabs.filter((x) => x.id !== id && x.ws === activeWs() && !x.pinned)) closeTab(t.id); });
   on('tab:split', (_e, id) => toggleSplit(id || activeId));
-  on('tab:menu', (_e, id) => tabMenu(id));
+  on('tab:menu', (_e, id, pos) => tabMenu(id, pos));
   handle('tab:preview', async (_e, id) => {
     const t = tabs.find((x) => x.id === id); const wc = wcOf(t);
     if (!wc || !t.url || t.id === activeId) return null;
@@ -976,7 +977,7 @@ function registerIPC() {
     if ('javaScript' in obj) send('toast', 'Gilt für neu geöffnete Tabs');
     return publicSettings();
   });
-  on('menu', () => showMenu());
+  on('menu', (_e, pos) => showMenu(pos));
   handle('default:status', () => isDefaultBrowser());
   handle('default:set', () => makeDefaultBrowser());
 }
@@ -995,11 +996,11 @@ function toURL(input) {
   return `https://www.google.com/search?q=${q}&hl=de`;
 }
 
-function tabMenu(id) {
+function tabMenu(id, pos) {
   const t = tabs.find((x) => x.id === id);
   if (!t) return;
   const ws = store.get('workspaces') || [];
-  Menu.buildFromTemplate([
+  fadeMenu([
     { label: 'Neuer Tab daneben', click: () => newTab(undefined, { ws: t.ws, index: tabs.indexOf(t) + 1 }) },
     { label: 'Neu laden', enabled: !!wcOf(t), click: () => wcOf(t).reload() },
     { label: 'Duplizieren', enabled: t.kind === 'web' && !!t.url, click: () => newTab(t.url, { ws: t.ws, index: tabs.indexOf(t) + 1 }) },
@@ -1010,10 +1011,80 @@ function tabMenu(id) {
     { type: 'separator' },
     { label: 'Andere Tabs schließen', click: () => { for (const x of tabs.filter((y) => y.id !== t.id && y.ws === t.ws && !y.pinned)) closeTab(x.id); } },
     { label: 'Schließen', click: () => closeTab(t.id) }
-  ]).popup({ window: win });
+  ], pos);
 }
 
-function showMenu() {
+// ---------- ImmoAdv-Fade-Menü: eigene durchsichtige Ebene über Fenster und Webseite (statt weißem Systemmenü) ----------
+let menuView = null, menuReady = null, menuHandlers = new Map(), menuPos = null, menuSeq = 0;
+function accelText(a) {
+  if (!a) return '';
+  const mac = process.platform === 'darwin';
+  return a.replace('CmdOrCtrl', mac ? '⌘' : 'Strg').replace('Shift', mac ? '⇧' : 'Umschalt').replace('Plus', '+').replace(/\+/g, mac ? '' : '+').replace(/\+\+$/, '++');
+}
+function menuItems(template, wcForRoles) {
+  const out = [];
+  for (const it of template) {
+    if (!it) continue;
+    if (it.type === 'separator') { if (out.length && !out[out.length - 1].sep) out.push({ sep: true }); continue; }
+    if (it.enabled === false) continue;                       // nur, was gerade wirklich geht
+    const id = String(++menuSeq);
+    if (it.submenu) {
+      const sub = menuItems(it.submenu, wcForRoles);
+      if (sub.filter((x) => !x.sep).length) out.push({ id, label: it.label, sub });
+      continue;
+    }
+    let click = it.click;
+    if (!click && it.role && wcForRoles) click = () => ({ undo: () => wcForRoles.undo(), cut: () => wcForRoles.cut(), copy: () => wcForRoles.copy(), paste: () => wcForRoles.paste(), selectAll: () => wcForRoles.selectAll() })[it.role]?.();
+    if (!click) continue;
+    menuHandlers.set(id, click);
+    out.push({ id, label: it.label, accel: accelText(it.accelerator), checked: !!it.checked });
+  }
+  while (out.length && out[out.length - 1].sep) out.pop();
+  return out;
+}
+function ensureMenuView() {
+  if (menuView && !menuView.webContents.isDestroyed()) return menuReady;
+  menuView = new WebContentsView({ webPreferences: { preload: path.join(__dirname, '..', 'preload', 'menu-preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false } });
+  menuView.setBackgroundColor('#00000000');
+  menuView.setVisible(false);
+  menuView.webContents.on('blur', () => setTimeout(closeFadeMenu, 60));
+  menuView.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  menuView.webContents.on('will-navigate', (e) => e.preventDefault());
+  menuReady = menuView.webContents.loadFile(path.join(__dirname, '..', 'renderer', 'menu.html'));
+  return menuReady;
+}
+function closeFadeMenu() { if (menuView && !menuView.webContents.isDestroyed()) menuView.setVisible(false); menuHandlers.clear(); }
+/** pos: { x, y, alignRight } in Fenster-Koordinaten */
+async function fadeMenu(template, pos, wcForRoles) {
+  if (!win) return;
+  menuHandlers.clear();
+  const items = menuItems(template, wcForRoles);
+  if (!items.length) return;
+  await ensureMenuView();
+  menuPos = pos || { x: 40, y: 40 };
+  try { win.contentView.removeChildView(menuView); } catch {}
+  win.contentView.addChildView(menuView);                   // immer ganz oben
+  menuView.setBounds({ x: 0, y: 0, width: 360, height: 20 });
+  menuView.webContents.send('menu:show', { items });
+}
+function registerMenuIPC() {
+  const fromMenu = (e) => menuView && e.sender === menuView.webContents;
+  ipcMain.on('menu:size', (e, { w, h }) => {
+    if (!fromMenu(e) || !win) return;
+    const [W, H] = win.getContentSize();
+    const width = Math.min(Math.max(200, w | 0), 380), height = Math.min(Math.max(40, h | 0), H - 20);
+    let x = menuPos.alignRight ? menuPos.x - width + 14 : menuPos.x - 14;
+    let y = menuPos.y - 6;
+    x = Math.max(0, Math.min(x, W - width)); if (y + height > H) y = Math.max(0, H - height);
+    menuView.setBounds({ x: Math.round(x), y: Math.round(y), width, height });
+    menuView.setVisible(true);
+    menuView.webContents.focus();
+  });
+  ipcMain.on('menu:pick', (e, id) => { if (!fromMenu(e)) return; const fn = menuHandlers.get(String(id)); closeFadeMenu(); if (fn) setTimeout(fn, 10); });
+  ipcMain.on('menu:close', (e) => { if (fromMenu(e)) closeFadeMenu(); });
+}
+
+function showMenu(pos) {
   const t = active(); const wc = wcOf(t);
   const ws = store.get('workspaces') || [];
   const template = [
@@ -1039,7 +1110,7 @@ function showMenu() {
     { label: 'Lesezeichen', click: () => send('open-panel', 'bookmarks') },
     { label: 'Downloads', accelerator: 'CmdOrCtrl+E', click: () => send('open-panel', 'downloads') },
     { label: 'Passwörter', click: () => send('open-panel', 'passwords') },
-    { label: 'Merkliste & Vergleich', click: () => send('open-panel', 'watch') },
+    { label: 'Merkliste & Vergleich', enabled: (store.get('watchlist') || []).length > 0 || !!t?.listing, click: () => send('open-panel', 'watch') },
     { type: 'separator' },
     { label: 'PDF öffnen & unterschreiben …', click: () => openPDFDialog() },
     ...(t?.kind === 'pdf' ? [{ label: 'PDF speichern', accelerator: 'CmdOrCtrl+S', click: () => savePDF(t) }] : []),
@@ -1049,7 +1120,7 @@ function showMenu() {
     { label: 'Datenschutz-Center', click: () => send('open-panel', 'privacy') },
     { label: 'Einstellungen', accelerator: 'CmdOrCtrl+,', click: () => send('open-panel', 'settings') }
   ];
-  Menu.buildFromTemplate(template).popup({ window: win });
+  fadeMenu(template, pos ? { x: pos.x, y: pos.y, alignRight: true } : null);
 }
 
 // Bericht des Immobilien-Checks als PDF in den Download-Ordner (ohne Netzwerk erzeugt)
@@ -1112,6 +1183,7 @@ app.whenReady().then(async () => {
 
   applyDNS();
   registerIPC();
+  registerMenuIPC();
   wireTabMessages();
 
   // Standard-Sitzung (Fenster-Oberfläche): kein Netzverkehr

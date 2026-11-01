@@ -1,4 +1,5 @@
-ImmoAdv Browser 3.0.6
+ImmoAdv Browser 3.0.7
+- Menüs (⋯, Rechtsklick auf Tab und Seite) im ImmoAdv-Fade-Design – zeigen nur, was gerade wirklich geht
 - Google-Konto: Chrome bzw. Edge wird jetzt zuverlässig gefunden
 - Echte Seitensymbole überall (Tabs, Lesezeichenleiste, Startseite, Verlauf) – auch für Seiten ohne gemeldetes Symbol
 - Neues Programm-Symbol für Windows: randlos wie die anderen Programme in der Taskleiste

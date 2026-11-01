@@ -1,0 +1,17 @@
+/* ImmoAdv-Fade-Menü */
+html, body { margin: 0; background: transparent; overflow: hidden; }
+body { font: 13px/1.4 "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; color: #eef3fb; -webkit-font-smoothing: antialiased; user-select: none; }
+.menu { margin: 6px 14px 18px; min-width: 248px; max-width: 320px; padding: 6px; border-radius: 14px; background: linear-gradient(180deg, rgba(18,36,64,.97), rgba(11,26,46,.98)); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 16px 40px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06); animation: in 130ms cubic-bezier(.2,.8,.2,1); max-height: calc(100vh - 30px); overflow-y: auto; }
+@keyframes in { from { opacity: 0; transform: translateY(-4px) scale(.985); } }
+@media (prefers-reduced-motion: reduce) { .menu { animation: none; } }
+.it { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.it:hover, .it.sel { background: linear-gradient(90deg, rgba(42,91,215,.45), rgba(25,194,176,.28)); }
+.it .ic { width: 16px; text-align: center; color: #19C2B0; font-size: 12px; flex: none; }
+.it .lb { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.it .ac { color: #7f8fa8; font-size: 11.5px; margin-left: 16px; }
+.it .ar { color: #7f8fa8; transition: transform 160ms; }
+.it.open .ar { transform: rotate(90deg); }
+.sub { padding-left: 14px; }
+.sep { height: 1px; margin: 5px 8px; background: rgba(255,255,255,.08); }
+.head { padding: 6px 10px 4px; font-size: 10.5px; letter-spacing: .9px; text-transform: uppercase; color: #6f7f97; }
+::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }

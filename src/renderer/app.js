@@ -104,7 +104,7 @@ function renderTabs() {
     const id = el.dataset.id;
     el.onclick = (e) => { if (!e.target.closest('[data-close]')) api.selectTab(id); };
     el.onauxclick = (e) => { if (e.button === 1) api.closeTab(id); };
-    el.oncontextmenu = (e) => { e.preventDefault(); api.tabMenu(id); };
+    el.oncontextmenu = (e) => { e.preventDefault(); api.tabMenu(id, { x: e.clientX, y: e.clientY }); };
     el.ondragstart = (e) => { dragId = id; e.dataTransfer.effectAllowed = 'move'; };
     el.ondragover = (e) => { if (dragId && dragId !== id) { e.preventDefault(); el.classList.add('drop'); } };
     el.ondragleave = () => el.classList.remove('drop');
@@ -877,7 +877,7 @@ $('sideCollapse').onclick = async () => { await setS({ sidebarCollapsed: !settin
 $('back').onclick = () => api.nav('back');
 $('forward').onclick = () => api.nav('forward');
 $('reload').onclick = () => { const t = activeTab(); api.nav(t && t.loading ? 'stop' : 'reload'); };
-$('menuBtn').onclick = () => api.menu();
+$('menuBtn').onclick = () => { const r = $('menuBtn').getBoundingClientRect(); api.menu({ x: Math.round(r.right), y: Math.round(r.bottom + 4) }); };
 $('aiBtn').onclick = () => togglePanel('ai');
 $('dlBtn').onclick = () => togglePanel('downloads');
 $('shield').onclick = () => togglePanel('privacy');
