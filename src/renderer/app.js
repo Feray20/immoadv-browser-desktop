@@ -615,21 +615,37 @@ function setGeneral() {
   $('sDl').onclick = async () => { const n = await api.chooseDownloadDir(); if (n) { settings._dlName = n; setGeneral(); } };
 }
 
+// Lange Listen einklappbar (nur Anzeige – ändert nichts an den Regeln)
+const openLists = new Set();
+function foldList(key, label, itemsHTML, count) {
+  return `<details class="fold" data-fold="${key}" ${openLists.has(key) ? 'open' : ''}><summary>${label} <span class="hint">${count}</span></summary>${itemsHTML}</details>`;
+}
+function wireFolds() { $('panelBody').querySelectorAll('details[data-fold]').forEach((d) => { d.ontoggle = () => (d.open ? openLists.add(d.dataset.fold) : openLists.delete(d.dataset.fold)); }); }
+
+// aktuelle Seite nur anbieten, wenn sie noch nicht (auch nicht über die Hauptdomain) in der Liste ist
+function curKeepable() {
+  const t = activeTab(); const h = t && /^https?:/.test(t.url) ? hostOf(t.url) : '';
+  if (!h) return '';
+  const site = h.split('.').slice(-2).join('.');
+  return (settings.keepSignedIn || []).some((d) => h === d || h.endsWith('.' + d)) ? '' : site;
+}
+
 function setPrivacy() {
   setBody(`<div class="group"><h3>Angemeldet bleiben</h3><p class="small">Überall sonst werden Cookies gelöscht, sobald du eine Seite verlässt.</p>
-      ${(settings.keepSignedIn || []).map((d, i) => `<div class="list-item"><div class="grow"><b>${esc(d)}</b></div><button class="icon" data-k="${i}" title="Entfernen">✕</button></div>`).join('')}
+      ${foldList('keep', 'Seiten anzeigen', (settings.keepSignedIn || []).map((d, i) => `<div class="list-item"><div class="grow"><b>${esc(d)}</b></div><button class="icon" data-k="${i}" title="Entfernen">✕</button></div>`).join(''), (settings.keepSignedIn || []).length)}
       <div class="row"><input type="text" id="kAdd" placeholder="z. B. amazon.de"><button class="pill" id="kAddBtn">Hinzufügen</button></div>
-      ${activeTab() && activeTab().url ? `<button class="secondary" id="kCur">Aktuelle Seite (${esc(hostOf(activeTab().url))}) hinzufügen</button>` : ''}</div>
+      ${curKeepable() ? `<button class="secondary" id="kCur">Aktuelle Seite (${esc(curKeepable())}) hinzufügen</button>` : ''}</div>
     <div class="group"><h3>Verlauf</h3><div class="row"><span>Verlauf aufbewahren<span class="desc">nur auf diesem Computer</span></span><select id="pHist">${[[0, 'Gar nicht'], [7, '7 Tage'], [30, '30 Tage'], [90, '90 Tage'], [365, '1 Jahr']].map(([v, l]) => `<option value="${v}" ${Number(settings.historyDays) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
     <div class="group"><h3>Links & Berechtigungen</h3>
       ${sw('pClean', settings.cleanLinks !== false, 'Tracking aus Links entfernen', 'utm, fbclid, gclid …')}
       <button class="secondary" id="pPerms">Gespeicherte Seiten-Berechtigungen zurücksetzen</button></div>
     <div class="group"><h3>KI</h3>${sw('pAiHist', settings.aiKeepHistory !== false, 'KI-Gespräche speichern', 'nur lokal')}<button class="secondary" id="pAiDel">Alle KI-Gespräche löschen</button></div>
     <button class="danger" id="pAll">Alle Website-Daten löschen</button>`);
+  wireFolds();
   $('panelBody').querySelectorAll('[data-k]').forEach((b) => { b.onclick = async () => { const l = [...settings.keepSignedIn]; l.splice(+b.dataset.k, 1); await setS({ keepSignedIn: l }); setPrivacy(); }; });
   const addKeep = async (v) => { const d = String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]; if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(d)) return toast('Bitte eine Domain wie amazon.de eingeben'); await setS({ keepSignedIn: [...new Set([...(settings.keepSignedIn || []), d])] }); setPrivacy(); };
   $('kAddBtn').onclick = () => addKeep($('kAdd').value);
-  if ($('kCur')) $('kCur').onclick = () => addKeep(hostOf(activeTab().url));
+  if ($('kCur')) $('kCur').onclick = () => addKeep(curKeepable());
   $('pHist').onchange = async () => { const v = Number($('pHist').value); if (v === 0 && !confirm('Verlauf ausschalten und den bisherigen Verlauf löschen?')) { $('pHist').value = settings.historyDays; return; } await setS({ historyDays: v }); };
   bindSwitch('pClean', 'cleanLinks');
   bindSwitch('pAiHist', 'aiKeepHistory');
@@ -646,16 +662,17 @@ function setSecurity() {
       ${sw('xPhi', settings.blockPhishing !== false, 'Phishing-Seiten blockieren', 'Phishing-Filter, täglich frisch')}
       ${sw('xFresh', settings.freshLists !== false, 'Listen täglich aktualisieren')}</div>
     <div class="group"><h3>Ausnahmen</h3><p class="small">Auf diesen Seiten wird nichts blockiert:</p>
-      ${(settings.allowlist || []).map((d, i) => `<div class="list-item"><div class="grow"><b>${esc(d)}</b></div><button class="icon" data-a="${i}">✕</button></div>`).join('') || '<p class="hint">keine</p>'}
+      ${(settings.allowlist || []).length ? foldList('allow', 'Ausnahmen anzeigen', settings.allowlist.map((d, i) => `<div class="list-item"><div class="grow"><b>${esc(d)}</b></div><button class="icon" data-a="${i}">✕</button></div>`).join(''), settings.allowlist.length) : '<p class="hint">keine</p>'}
       <div class="row"><input type="text" id="aAdd" placeholder="z. B. meinebank.de"><button class="pill" id="aAddBtn">Hinzufügen</button></div>
       <p class="small">Eigene Sperrliste:</p>
-      ${(settings.blocklist || []).map((d, i) => `<div class="list-item"><div class="grow"><b>${esc(d)}</b></div><button class="icon" data-b="${i}">✕</button></div>`).join('') || '<p class="hint">leer</p>'}
+      ${(settings.blocklist || []).length ? foldList('block', 'Sperrliste anzeigen', settings.blocklist.map((d, i) => `<div class="list-item"><div class="grow"><b>${esc(d)}</b></div><button class="icon" data-b="${i}">✕</button></div>`).join(''), settings.blocklist.length) : '<p class="hint">leer</p>'}
       <div class="row"><input type="text" id="bAdd" placeholder="Domain sperren"><button class="pill" id="bAddBtn">Sperren</button></div></div>
     <div class="group"><h3>Verbindung</h3>
       ${sw('xHttps', settings.httpsOnly !== false, 'Nur HTTPS', 'unverschlüsselte Seiten werden umgestellt')}
       <div class="row"><span>Verschlüsseltes DNS<span class="desc">wenn NordVPN aus ist</span></span><select id="xDns">${dnsList.map((d) => `<option value="${d.id}" ${settings.dnsProvider === d.id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></div>
       ${sw('xJs', settings.javaScript !== false, 'JavaScript', 'aus = sicherer, aber viele Seiten gehen nicht')}</div>
     <div class="group"><h3>Sperre</h3>${sw('xLock', !!settings.appLock, `Beim Start mit ${lockName} entsperren`)}<button class="secondary" id="xTest">${lockName} testen</button></div>`);
+  wireFolds();
   bindSwitch('xAds', 'blockAds'); bindSwitch('xMal', 'blockMalware'); bindSwitch('xPhi', 'blockPhishing'); bindSwitch('xFresh', 'freshLists');
   bindSwitch('xHttps', 'httpsOnly'); bindSwitch('xJs', 'javaScript'); bindSwitch('xLock', 'appLock');
   const dom = (v) => String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
