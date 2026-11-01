@@ -3,11 +3,11 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
 :root {
-  --immo-bg-0: #07111f;
-  --immo-bg-1: #0b1a2e;
-  --immo-surface: rgba(255,255,255,.045);
-  --immo-surface-2: rgba(255,255,255,.075);
-  --immo-surface-3: rgba(255,255,255,.11);
+  --immo-bg-0: #0f2240;
+  --immo-bg-1: #14305a;
+  --immo-surface: rgba(255,255,255,.07);
+  --immo-surface-2: rgba(255,255,255,.11);
+  --immo-surface-3: rgba(255,255,255,.16);
   --immo-line: rgba(255,255,255,.08);
   --immo-line-2: rgba(255,255,255,.14);
   --immo-text: #eef3fb;
@@ -30,19 +30,19 @@
   --toolbar-bgcolor: transparent !important;
   --toolbar-color: var(--immo-text) !important;
   --toolbar-field-background-color: var(--immo-surface) !important;
-  --toolbar-field-focus-background-color: #0d1b30 !important;
+  --toolbar-field-focus-background-color: #183863 !important;
   --toolbar-field-color: var(--immo-text) !important;
   --toolbar-field-focus-color: var(--immo-text) !important;
   --toolbar-field-border-color: var(--immo-line-2) !important;
   --toolbar-field-focus-border-color: var(--immo-blue-2) !important;
-  --urlbar-box-bgcolor: #0d1b30 !important;
+  --urlbar-box-bgcolor: #183863 !important;
   --urlbar-box-hover-bgcolor: var(--immo-surface-2) !important;
   --focus-outline-color: var(--immo-blue-2) !important;
   --button-primary-bgcolor: var(--immo-blue) !important;
   --button-primary-hover-bgcolor: #3a6cf0 !important;
   --button-primary-active-bgcolor: #2450c0 !important;
   --color-accent-primary: var(--immo-blue-2) !important;
-  --arrowpanel-background: rgba(13,27,48,.97) !important;
+  --arrowpanel-background: rgba(24,56,99,.97) !important;
   --arrowpanel-color: var(--immo-text) !important;
   --arrowpanel-border-color: var(--immo-line-2) !important;
   --arrowpanel-border-radius: 16px !important;
@@ -52,14 +52,14 @@
   --panel-item-active-bgcolor: var(--immo-surface-3) !important;
   --arrowpanel-dimmed: var(--immo-surface-2) !important;
   --arrowpanel-dimmed-further: var(--immo-surface-3) !important;
-  --menu-background-color: rgba(13,27,48,.98) !important;
+  --menu-background-color: rgba(24,56,99,.98) !important;
   --menu-color: var(--immo-text) !important;
   --menu-border-color: var(--immo-line-2) !important;
   --menuitem-hover-background-color: var(--immo-surface-2) !important;
   --menu-disabled-color: rgba(167,180,200,.5) !important;
   --menuitem-border-radius: 8px !important;
   --menuitem-padding: 6px 10px !important;
-  --panel-background: rgba(13,27,48,.98) !important;
+  --panel-background: rgba(24,56,99,.98) !important;
   --panel-color: var(--immo-text) !important;
   --panel-border-color: var(--immo-line-2) !important;
   --sidebar-background-color: var(--immo-bg-1) !important;
@@ -73,8 +73,8 @@
 #navigator-toolbox {
   background-color: var(--immo-bg-0) !important;
   background-image:
-    radial-gradient(900px 260px at 8% -60%, rgba(42,91,215,.38), transparent 70%),
-    radial-gradient(700px 240px at 100% -40%, rgba(25,194,176,.20), transparent 70%) !important;
+    radial-gradient(900px 260px at 8% -60%, rgba(42,91,215,.55), transparent 70%),
+    radial-gradient(700px 240px at 100% -40%, rgba(25,194,176,.3), transparent 70%) !important;
   border-bottom: 1px solid var(--immo-line) !important;
   color: var(--immo-text) !important;
 }
@@ -129,7 +129,7 @@
 }
 #urlbar:not([focused]):hover > #urlbar-background { background-color: var(--immo-surface-2) !important; }
 #urlbar[focused] > #urlbar-background, #urlbar[open] > #urlbar-background {
-  background-color: #0d1b30 !important;
+  background-color: #183863 !important;
   border-color: transparent !important;
   outline: 2px solid var(--immo-blue-2) !important; outline-offset: -1px !important;
   box-shadow: 0 18px 48px rgba(0,0,0,.45) !important;
@@ -154,7 +154,7 @@ toolbar .toolbarbutton-1:hover { fill: var(--immo-text) !important; }
 #downloads-button[attention="success"] .toolbarbutton-icon, #downloads-indicator-progress-inner { fill: var(--immo-teal) !important; }
 /* Menü-Knopf (≡) als ⋯ wie im ImmoAdv Browser 3 */
 #PanelUI-menu-button .toolbarbutton-icon { list-style-image: url("chrome://global/skin/icons/more.svg") !important; }
-#fxa-toolbar-menu-button, #firefox-view-button, #save-to-pocket-button, #privatebrowsing-button,
+#unified-extensions-button, #fxa-toolbar-menu-button, #firefox-view-button, #save-to-pocket-button, #privatebrowsing-button,
 #reader-mode-button, #pocket-button, #translations-button-locale, #picture-in-picture-button,
 #urlbar-zoom-button, #shopping-sidebar-button, #review-checker-button { display: none !important; }
 
@@ -181,17 +181,17 @@ panelview { background: transparent !important; }
 .subviewbutton { border-radius: 8px !important; }
 .subviewbutton:hover { background: var(--immo-surface-2) !important; }
 #appMenu-popup, #downloadsPanel, #unified-extensions-panel, #identity-popup, #protections-popup, #permission-popup-container {
-  --arrowpanel-background: rgba(13,27,48,.97) !important;
+  --arrowpanel-background: rgba(24,56,99,.97) !important;
 }
 button.footer-button, .panel-footer button { border-radius: 10px !important; }
 .panel-footer button[default], button.footer-button[default], button.popup-notification-primary-button {
   background: var(--immo-fade) !important; color: #fff !important; border: 0 !important;
 }
-.popup-notification-panel, .popup-notification-body { background: rgba(13,27,48,.98) !important; color: var(--immo-text) !important; }
+.popup-notification-panel, .popup-notification-body { background: rgba(24,56,99,.98) !important; color: var(--immo-text) !important; }
 
 /* Hinweisleisten (z. B. „Firefox hat … blockiert“) */
 notification-message, .notificationbox-stack notification-message {
-  --message-bar-background-color: #0d1b30 !important; --message-bar-text-color: var(--immo-text) !important;
+  --message-bar-background-color: #183863 !important; --message-bar-text-color: var(--immo-text) !important;
   border-radius: 12px !important; margin: 6px 8px !important; border: 1px solid var(--immo-line-2) !important;
 }
 

@@ -138,6 +138,7 @@ user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", 
 user_pref("messaging-system.rsexperimentloader.enabled", false);
 
 // ---------- Downloads ----------
+user_pref("browser.download.autohideButton", false);   // Download-Knopf immer sichtbar
 user_pref("browser.download.useDownloadDir", true);
 user_pref("browser.download.dir", "{{downloadDir}}");
 user_pref("browser.download.folderList", 2);

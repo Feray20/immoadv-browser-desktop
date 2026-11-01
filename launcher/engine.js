@@ -131,6 +131,25 @@ async function install(onProgress = () => {}) {
   if (!installed()) throw new Error('Firefox-Motor wurde nicht gefunden – bitte noch einmal versuchen.');
 }
 
+/** Windows: ImmoAdv-Logo statt Firefox-Logo im Programm des Motors (Taskleiste, Fenster, Alt+Tab).
+ *  Nur die lokale Kopie im ImmoAdv-Ordner; nach jedem Mozilla-Update erneut (Merker: Größe + Zeit der Datei). */
+async function brandIcon() {
+  if (!isWin) return false;
+  const file = exe(), ico = path.join(paths.engineFiles(), 'icons', 'main-window.ico');
+  const mark = path.join(paths.engine(), '.immoadv-logo');
+  let st; try { st = fs.statSync(file); } catch { return false; }
+  const key = `${st.size}:${st.mtimeMs}`;
+  try { if (fs.readFileSync(mark, 'utf8') === key) return false; } catch { /* noch nie */ }
+  try {
+    const bin = require.resolve('rcedit/bin/rcedit-x64.exe').replace('app.asar', 'app.asar.unpacked');
+    await run(bin, [file, '--set-icon', ico], { timeout: 60000 });
+    const st2 = fs.statSync(file);
+    fs.writeFileSync(mark, `${st2.size}:${st2.mtimeMs}`);
+    log('ImmoAdv-Logo gesetzt');
+    return true;
+  } catch (e) { log('Logo: ' + (e.message || e)); return false; }
+}
+
 /** Läuft der Motor gerade mit dem ImmoAdv-Profil? */
 function running() {
   const dir = paths.profile();
@@ -266,4 +285,4 @@ async function version() {
   } catch { return null; }
 }
 
-module.exports = { EXT_ID, EXT_UUID, paths, installed, install, running, waitClosed, deploy, writeProfile, writeEngineConfig, launch, extUrl, version, log, needsRestart: () => pendingRestart };
+module.exports = { brandIcon, EXT_ID, EXT_UUID, paths, installed, install, running, waitClosed, deploy, writeProfile, writeEngineConfig, launch, extUrl, version, log, needsRestart: () => pendingRestart };

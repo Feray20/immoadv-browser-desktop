@@ -1,9 +1,9 @@
 /* ImmoAdv Fade – Designsystem (identisch mit Version 3) für alle ImmoAdv-Seiten im Browser */
 :root {
-  --bg-0: #07111f; --bg-1: #0b1a2e;
-  --surface: rgba(255,255,255,.045); --surface-2: rgba(255,255,255,.075); --surface-3: rgba(255,255,255,.11);
-  --panel: rgba(13,27,48,.92); --line: rgba(255,255,255,.08); --line-2: rgba(255,255,255,.14);
-  --text: #eef3fb; --text-2: #a7b4c8; --text-3: #6f7f97;
+  --bg-0: #0f2240; --bg-1: #14305a;
+  --surface: rgba(255,255,255,.07); --surface-2: rgba(255,255,255,.11); --surface-3: rgba(255,255,255,.16);
+  --panel: rgba(24,56,99,.92); --line: rgba(255,255,255,.12); --line-2: rgba(255,255,255,.2);
+  --text: #eef3fb; --text-2: #a7b4c8; --text-3: #8a9ab3;
   --blue: #2A5BD7; --blue-2: #4b7bff; --teal: #19C2B0; --green: #2fcf8a; --amber: #f2b34a; --red: #ff5d6c;
   --fade: linear-gradient(120deg, #2A5BD7 0%, #3a6cf0 45%, #19C2B0 100%);
   --r-s: 8px; --r-m: 12px; --r-l: 16px; --r-xl: 22px;
@@ -19,8 +19,8 @@ body { font: 13px/1.45 var(--font); color: var(--text); background: var(--bg-0);
 body.glow::before {
   content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1;
   background:
-    radial-gradient(900px 520px at 12% -10%, rgba(42,91,215,.28), transparent 60%),
-    radial-gradient(760px 480px at 100% 0%, rgba(25,194,176,.14), transparent 60%),
+    radial-gradient(900px 520px at 12% -10%, rgba(42,91,215,.5), transparent 60%),
+    radial-gradient(760px 480px at 100% 0%, rgba(25,194,176,.26), transparent 60%),
     radial-gradient(900px 600px at 60% 120%, rgba(42,91,215,.12), transparent 60%);
 }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -61,7 +61,7 @@ input[type=text], input[type=password], input[type=number], input[type=email], i
 }
 textarea { height: auto; padding: 8px 10px; resize: vertical; }
 input:focus, select:focus, textarea:focus { border-color: var(--blue-2); }
-select option { background: #0d1b30; }
+select option { background: #183863; }
 .switch { position: relative; width: 40px; height: 24px; flex: none; }
 .switch input { opacity: 0; position: absolute; inset: 0; margin: 0; cursor: pointer; }
 .switch i { position: absolute; inset: 0; border-radius: 999px; background: var(--surface-3); border: 1px solid var(--line-2); transition: background var(--t) var(--ease); pointer-events: none; }
@@ -81,7 +81,7 @@ select option { background: #0d1b30; }
 .badge.ok { background: rgba(47,207,138,.16); color: #8ff0c2; }
 .badge.warn { background: rgba(242,179,74,.16); color: #ffd99a; }
 .badge.bad { background: rgba(255,93,108,.16); color: #ffb3bb; }
-.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgba(13,27,48,.97); border: 1px solid var(--line-2); border-radius: 999px; padding: 10px 18px; box-shadow: var(--shadow); z-index: 10; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgba(24,56,99,.97); border: 1px solid var(--line-2); border-radius: 999px; padding: 10px 18px; box-shadow: var(--shadow); z-index: 10; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; color: var(--text-2); letter-spacing: .2px; }
 .brand img { width: 30px; height: 30px; border-radius: 8px; }
 .brand b { color: var(--text); }

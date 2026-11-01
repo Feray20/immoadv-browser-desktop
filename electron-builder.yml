@@ -22,6 +22,7 @@ extraResources:
     to: dateisymbole
 asarUnpack:
   - node_modules/7zip-bin/**/*
+  - node_modules/rcedit/**/*
 asar: true
 # Als Webbrowser wählbar (Mac: „Standard-Webbrowser“, Windows: über build/installer.nsh)
 protocols:
@@ -81,6 +82,7 @@ mac:
     - src/shared/lists.js
     - package.json
     - "!node_modules/7zip-bin/**/*"
+    - "!node_modules/rcedit/**/*"
   # nur am Mac über electron-builder (Windows: build/installer.nsh, ohne Standard ungefragt umzustellen)
   fileAssociations:
     - ext: [html, htm]

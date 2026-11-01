@@ -58,4 +58,6 @@ async function render() {
   }
 }
 render();
+// Lesezeichen kommen beim ersten Start erst nach und nach (Übernahme aus Version 3) – Favoriten sofort mitziehen
+for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) browser.bookmarks[ev].addListener(() => { clearTimeout(window.__bm); window.__bm = setTimeout(render, 300); });
 browser.runtime.onMessage.addListener((m) => { if (m && m.type === 'vpn') render(); });

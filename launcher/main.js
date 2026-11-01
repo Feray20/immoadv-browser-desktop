@@ -24,6 +24,7 @@ if (process.argv.includes('--selbsttest')) {
       note('Motor da: ' + engine.installed());
       if (!engine.installed()) await engine.install((p) => { if (p.step !== 'download' || p.p % 25 === 0) note('Schritt ' + JSON.stringify(p)); });
       note('Motor installiert: ' + engine.installed() + ' Version ' + await engine.version());
+      note('Logo: ' + await engine.brandIcon());
       note('Einrichten: ' + engine.deploy());
       note('Gegenstelle angemeldet: ' + require('./nativehost').register());
       const { spawnSync } = require('node:child_process');
@@ -116,7 +117,7 @@ function starter() {
     const urls = targets(argv);
     if (!(await ensureEngine())) return false;
     if (wait) await engine.waitClosed();
-    try { engine.deploy(); } catch (e) { engine.log('Einrichten: ' + (e && e.stack || e)); }
+    try { if (!engine.running()) await engine.brandIcon(); engine.deploy(); } catch (e) { engine.log('Einrichten: ' + (e && e.stack || e)); }
     engine.launch(urls);
     if (win && !win.isDestroyed()) { progress({ step: 'done' }); setTimeout(() => win && win.close(), 900); }
     return true;

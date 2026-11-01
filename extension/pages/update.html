@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><title>Neue Version – ImmoAdv Browser</title><link rel="icon" href="../icons/icon32.png"><link rel="stylesheet" href="fade.css">
+<style>
+  html, body { height: 100%; }
+  body { display: grid; place-items: center; padding: 18px; }
+  .card { width: 100%; max-width: 420px; text-align: center; }
+  .card img { width: 56px; height: 56px; border-radius: 14px; }
+  h1 { font-size: 21px; margin: 12px 0 8px; }
+  .notes { text-align: left; max-height: 170px; overflow-y: auto; white-space: pre-line; color: var(--text-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 10px 12px; margin: 0 0 10px; font-size: 12.5px; }
+  .bar { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin: 6px 0; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--fade); transition: width .3s var(--ease); }
+  .link { background: none; border: 0; color: var(--text-3); margin-top: 10px; text-decoration: underline; }
+</style></head>
+<body class="glow">
+  <div class="card">
+    <img src="../icons/icon128.png" alt="">
+    <h1 id="title">Neue Version verfügbar</h1>
+    <div id="notes" class="notes"></div>
+    <div id="barWrap" class="bar hidden"><i id="bar"></i></div>
+    <p id="hint" class="hint"></p>
+    <button class="primary" id="now">Update jetzt installieren</button>
+    <button class="link" id="later">Später</button>
+  </div>
+  <script src="update.js"></script>
+</body>
+</html>

@@ -1,3 +1,9 @@
+ImmoAdv Browser 4.0.1
+- Heller: Oberfläche, Startseite und Menüs im helleren ImmoAdv-Fade
+- ImmoAdv-Logo statt Firefox-Logo in Taskleiste und Fenster (Windows), Fenstertitel „ImmoAdv Browser“ statt „Mozilla Firefox“
+- Neue ImmoAdv-Version: Update-Fenster wie gewohnt (Neuerungen, „Update jetzt installieren“), Hinweis ↑ am ImmoAdv-Knopf
+- Favoriten auf der Startseite erscheinen sofort, Download-Knopf immer sichtbar, Erweiterungs-Puzzle ausgeblendet
+
 ImmoAdv Browser 4.0 – neuer Motor: Google-Anmeldung direkt im Browser
 - Neuer Motor: Firefox von Mozilla (wird beim ersten Start einmal geladen, geprüft und eingerichtet – dauert 1–2 Minuten)
 - Google, YouTube Premium, Gmail und Passkeys mit Windows Hello funktionieren jetzt direkt im ImmoAdv Browser – Chrome ist nicht mehr nötig

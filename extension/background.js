@@ -36,11 +36,30 @@ async function start() {
   menus();
   // Daten aus Version 3 einmalig übernehmen (Lesezeichen)
   migrate().catch((e) => console.warn('Übernahme', e));
-  try { updateState = await Native.call('update.state'); } catch (e) {}
+  try { updateState = await Native.call('update.state'); updateBadge(); setTimeout(offerUpdate, 4000); } catch (e) {}
 }
 Native.on((ev, d) => {
-  if (ev === 'update') { updateState = d; broadcast('update', d); if (d.status === 'restarting') restartForUpdate(); }
+  if (ev === 'update') { updateState = d; broadcast('update', d); updateBadge(); if (d.status === 'restarting') restartForUpdate(); else offerUpdate(); }
 });
+
+// ---------- Neue ImmoAdv-Version: Fenster wie in Version 3 (einmal je Version, „Später“ merkt sich das) ----------
+let updateWin = null;
+async function offerUpdate() {
+  const u = updateState || {};
+  if (!['available', 'downloading', 'ready'].includes(u.status) || !u.version) return;
+  const { updateLater } = await browser.storage.local.get('updateLater');
+  if (updateLater === u.version || updateWin) return;
+  try {
+    const w = await browser.windows.create({ url: browser.runtime.getURL('pages/update.html'), type: 'popup', width: 470, height: 520, allowScriptsToClose: true });
+    updateWin = w.id;
+  } catch (e) { /* kein Fenster offen – kommt beim nächsten Mal */ }
+}
+browser.windows.onRemoved.addListener((id) => { if (id === updateWin) updateWin = null; });
+function updateBadge() {
+  const on = ['available', 'downloading', 'ready'].includes((updateState || {}).status);
+  browser.browserAction.setBadgeText({ text: on ? '↑' : '' }).catch(() => {});
+  if (on) browser.browserAction.setBadgeBackgroundColor({ color: '#19C2B0' }).catch(() => {});
+}
 
 function setIcon() {
   const t = vpnState.status === 'on' ? 'NordVPN aktiv' : vpnState.loggedIn ? 'NordVPN verbindet …' : 'Geschützt';
@@ -144,6 +163,7 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'vpn:logout': return Vpn.logout();
     case 'vpn:country': return Vpn.setCountry(m.code);
     case 'vpn:recheck': return Vpn.recheck();
+    case 'update:later': return browser.storage.local.set({ updateLater: m.version }).then(() => true);
     case 'update:check': return Native.call('update.check').catch((e) => ({ status: 'error', message: e.message }));
     case 'update:now': return Native.call('update.now', {}, 30 * 60000).catch((e) => ({ status: 'error', message: e.message }));
     case 'engine:set': return Native.call('engine.set', { patch: m.patch }).catch((e) => ({ ok: false, error: e.message }));

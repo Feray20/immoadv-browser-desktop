@@ -38,12 +38,12 @@
     host.style.cssText = 'all:initial;position:fixed;z-index:2147483647;top:12px;right:12px;';
     root = host.attachShadow({ mode: 'closed' });
     root.innerHTML = `<style>
-      .box{font:13px/1.45 "Segoe UI Variable Text","Segoe UI",-apple-system,system-ui,sans-serif;color:#eef3fb;background:rgba(13,27,48,.97);
+      .box{font:13px/1.45 "Segoe UI Variable Text","Segoe UI",-apple-system,system-ui,sans-serif;color:#eef3fb;background:rgba(24,56,99,.97);
         border:1px solid rgba(255,255,255,.14);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.45);padding:14px;width:300px}
       .t{font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:8px}.t i{width:22px;height:22px;border-radius:7px;background:linear-gradient(120deg,#2A5BD7,#3a6cf0 45%,#19C2B0);display:inline-grid;place-items:center;font-style:normal;font-size:12px}
       p{margin:0 0 10px;color:#a7b4c8}.row{display:flex;gap:6px;flex-wrap:wrap}
-      button{font:inherit;height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.045);color:#eef3fb;cursor:pointer}
-      button:hover{background:rgba(255,255,255,.11)}button.a{border:0;background:linear-gradient(120deg,#2A5BD7,#3a6cf0 45%,#19C2B0);color:#fff}
+      button{font:inherit;height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:#eef3fb;cursor:pointer}
+      button:hover{background:rgba(255,255,255,.16)}button.a{border:0;background:linear-gradient(120deg,#2A5BD7,#3a6cf0 45%,#19C2B0);color:#fff}
       .u{display:block;width:100%;text-align:left;border-radius:10px;margin:0 0 6px}
       @media (prefers-reduced-motion:no-preference){.box{animation:in .18s cubic-bezier(.2,.8,.2,1)}@keyframes in{from{opacity:0;transform:translateY(-6px)}}}
     </style><div class="box" role="dialog" aria-live="polite"></div>`;

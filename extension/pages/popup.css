@@ -1,4 +1,4 @@
-body { width: 360px; padding: 14px; background: #0d1b30; }
+body { width: 360px; padding: 14px; background: #183863; }
 .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .brand img { width: 26px; height: 26px; }
 section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); padding: 12px; margin-bottom: 10px; }
