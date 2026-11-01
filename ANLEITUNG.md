@@ -29,4 +29,4 @@ npm install
 npm start          # lädt PDF.js + Test-Filterlisten, startet den Browser
 npm test
 ```
-Neue Version: `version` in package.json erhöhen und auf `main` pushen – CircleCI baut Windows und Mac und veröffentlicht das GitHub-Release; die Programme holen es sich selbst. Details und Umsetzungsstand: `docs/ARCHITEKTUR.md`.
+Neue Version: `version` in package.json erhöhen und auf `main` pushen – Azure Pipelines (`azure-pipelines.yml`) baut Windows und Mac und veröffentlicht das GitHub-Release; die Programme holen es sich selbst. Ist Azure Artifact Signing hinterlegt, wird der Windows-Installer automatisch signiert (Variablen: siehe Kopf von `azure-pipelines.yml`). Details und Umsetzungsstand: `docs/ARCHITEKTUR.md`.

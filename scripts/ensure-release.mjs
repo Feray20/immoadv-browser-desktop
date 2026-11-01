@@ -32,7 +32,7 @@ if (rel) {
 
 const res = await api('/releases', {
   method: 'POST',
-  body: JSON.stringify({ tag_name: tag, target_commitish: process.env.CIRCLE_SHA1 || 'main', name: `ImmoAdv Browser ${version}`, body: notes, draft: true, prerelease: false })
+  body: JSON.stringify({ tag_name: tag, target_commitish: process.env.CIRCLE_SHA1 || process.env.BUILD_SOURCEVERSION || 'main', name: `ImmoAdv Browser ${version}`, body: notes, draft: true, prerelease: false })
 });
 if (!res.ok) { console.error(`Release konnte nicht angelegt werden: ${res.status} ${await res.text()}`); process.exit(1); }
 console.log(`Release ${tag} als Entwurf angelegt.`);
