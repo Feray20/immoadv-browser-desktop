@@ -1,3 +1,7 @@
+ImmoAdv Browser 3.0.18
+- YouTube öffnet automatisch in Chrome – dort bist du mit deinem Google-Konto angemeldet (Abos, Verlauf, Kommentare). Abschaltbar unter Einstellungen → Allgemein → Google-Konto
+- An Chrome übergebene Seiten zeigen im ImmoAdv Browser keine Fehlermeldung mehr und werden beim Start nicht erneut geöffnet
+
 ImmoAdv Browser 3.0.17
 - Google-Anmeldung ohne Chrome auf dem PC: statt eines Hinweises kommt eine Frage mit „Chrome jetzt herunterladen“ – danach klappt die Anmeldung automatisch über Chrome
 

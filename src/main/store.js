@@ -53,6 +53,7 @@ const defaults = {
   ],
   activeWorkspace: 'privat',
   restoreSession: true,
+  youtubeExternal: true,       // YouTube in Chrome öffnen (dort mit Google-Konto angemeldet)
   googleExternal: true,        // Google-Konto (Gmail, Drive, Anmeldung) in Chrome öffnen – Google sperrt eigene Browser
 
   lastSession: null,

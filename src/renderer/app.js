@@ -608,7 +608,7 @@ const bindSwitch = (id, key, after) => { const el = $(id); if (el) el.onchange =
 function setGeneral() {
   const engines = [['google', 'Google'], ['duckduckgo', 'DuckDuckGo'], ['startpage', 'Startpage'], ['bing', 'Bing'], ['ecosia', 'Ecosia']];
   setBody(`<div class="group"><h3>Standardbrowser</h3><div class="row"><span>ImmoAdv Browser als Standard<span class="desc" id="defDesc">Links aus Mails, Programmen und PDFs öffnen hier</span></span><button class="pill accent" id="defBtn">Festlegen</button></div></div>
-    <div class="group"><h3>Google-Konto</h3>${sw('sGoogle', settings.googleExternal !== false, 'Gmail, Drive & Google-Anmeldung in Chrome öffnen', 'Google erlaubt die Anmeldung nur in Chrome, Edge, Firefox und Safari. Suche und YouTube bleiben hier.')}</div>
+    <div class="group"><h3>Google-Konto</h3>${sw('sGoogle', settings.googleExternal !== false, 'Gmail, Drive & Google-Anmeldung in Chrome öffnen', 'Google erlaubt die Anmeldung nur in Chrome, Edge, Firefox und Safari. Die Google-Suche bleibt hier.')}${sw('sYoutube', settings.youtubeExternal !== false, 'YouTube in Chrome öffnen', 'Dort bist du mit deinem Google-Konto angemeldet (Abos, Verlauf, Kommentare). Aus: YouTube hier ohne Anmeldung, mit Werbeblocker.')}</div>
     <div class="group"><h3>Start & Tabs</h3>
       ${sw('sRestore', settings.restoreSession !== false, 'Offene Tabs beim Start wiederherstellen', 'Nur Adressen, keine Inhalte')}
       <div class="row"><span>Tabs anzeigen</span><select id="sLayout"><option value="horizontal" ${!vertical() ? 'selected' : ''}>Oben (waagerecht)</option><option value="vertical" ${vertical() ? 'selected' : ''}>Links (senkrecht)</option></select></div>
@@ -626,6 +626,7 @@ function setGeneral() {
   };
   bindSwitch('sRestore', 'restoreSession');
   bindSwitch('sGoogle', 'googleExternal');
+  bindSwitch('sYoutube', 'youtubeExternal');
   bindSwitch('sBar', 'bookmarkBar', renderBookmarkBar);
   $('sLayout').onchange = async () => { await setS({ tabLayout: $('sLayout').value }); renderAll(); };
   $('sSuspend').onchange = () => setS({ suspendMinutes: Number($('sSuspend').value) });

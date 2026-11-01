@@ -50,7 +50,10 @@ app.on('open-file', (e, file) => { e.preventDefault(); openTargets([file]); }); 
 // ---------- Google-Konto: Google lässt die Anmeldung nur in Chrome/Edge/Firefox/Safari zu ----------
 // Gmail, Drive, Kalender und die Google-Anmeldung öffnen deshalb automatisch in Chrome (dort bist du angemeldet).
 const GOOGLE_ACCOUNT = /^https:\/\/(accounts|mail|drive|docs|sheets|slides|calendar|myaccount|photos|contacts|keep|meet|chat|admin|takeout|passwords|myactivity|pay|one)\.google\.[a-z.]+(\/|$)/i;
-const needsChrome = (url) => store.get('googleExternal') !== false && GOOGLE_ACCOUNT.test(String(url || ''));
+// YouTube mit Konto (Abos, Verlauf, Kommentare) gibt es nur angemeldet – darum wahlweise ebenfalls in Chrome
+const YOUTUBE = /^https:\/\/((www|m|music)\.)?youtube\.com(\/|$)|^https:\/\/youtu\.be\//i;
+const needsChrome = (url) => { const u = String(url || '');
+  return (store.get('googleExternal') !== false && GOOGLE_ACCOUNT.test(u)) || (store.get('youtubeExternal') !== false && YOUTUBE.test(u)); };
 // Browser, in dem Google die Anmeldung erlaubt: Chrome, Edge oder Firefox – Pfad über die Windows-Programmregistrierung
 let browserPathCache = null;
 function regAppPath(exe) {
@@ -135,7 +138,7 @@ async function openInChrome(url) {
       if (!exe) { offerChromeInstall(); return; }
       spawn(exe, [url], { detached: true, stdio: 'ignore' }).unref();
     }
-    send('toast', `Google-Konto in ${process.platform === 'darwin' ? 'Chrome' : /msedge/i.test(browserPathCache || '') ? 'Edge' : /firefox/i.test(browserPathCache || '') ? 'Firefox' : 'Chrome'} geöffnet – Google erlaubt die Anmeldung nur dort`);
+    send('toast', `${YOUTUBE.test(url) ? 'YouTube' : 'Google-Konto'} in ${process.platform === 'darwin' ? 'Chrome' : /msedge/i.test(browserPathCache || '') ? 'Edge' : /firefox/i.test(browserPathCache || '') ? 'Firefox' : 'Chrome'} geöffnet – dort bist du angemeldet`);
   } catch { send('toast', 'Chrome konnte nicht geöffnet werden'); }
 }
 
@@ -335,6 +338,7 @@ function wireView(tab) {
     if (code === -20) {
       const b = blocker.takeBlock(wc.id);
       if (b) { tab.blocked = b; tab.error = null; pushTabs(); positionViews(); return; }
+      if (needsChrome(url)) { tab.loading = false; pushTabs(); return; }   // an Chrome übergeben – keine Fehlermeldung
     }
     // kein Internet → Hinweis, lädt automatisch neu, sobald wieder Netz da ist
     if (code === -106 || !net.isOnline()) { tab.error = 'Derzeit keine Internetverbindung'; tab.offlineUrl = url || tab.url; pushTabs(); positionViews(); return; }
@@ -613,6 +617,7 @@ function restoreSession() {
   const known = new Set((store.get('workspaces') || []).map((w) => w.id));
   let act = null;
   for (const t of s.tabs) {
+    if (needsChrome(t.url)) continue;   // YouTube/Google-Konto-Tabs nicht beim Start nach Chrome schicken
     const ws = known.has(t.ws) ? t.ws : activeWs();
     // nur der aktive Tab lädt sofort – die anderen schlafen, bis sie angeklickt werden (schneller Start)
     const tab = newTab(t.url, { ws, pinned: t.pinned, title: t.title, suspended: true, background: true });
@@ -909,7 +914,7 @@ function translate(t) {
 // ---------- Verbindung zum Fenster ----------
 const SETTINGS_KEYS = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'allowlist', 'blocklist', 'httpsOnly', 'cleanLinks', 'javaScript',
   'dnsProvider', 'keepSignedIn', 'appLock', 'bookmarks', 'rememberFrequent', 'bookmarkBar', 'searchEngine', 'neverSave', 'restoreSession',
-  'tabLayout', 'sidebarCollapsed', 'googleExternal', 'suspendMinutes', 'historyDays', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'workspaces', 'autoUpdate'];
+  'tabLayout', 'sidebarCollapsed', 'googleExternal', 'youtubeExternal', 'suspendMinutes', 'historyDays', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'workspaces', 'autoUpdate'];
 const PRIVATE_KEYS = ['vpnCreds', 'passwords', 'aiKeys', 'lastSession', 'vpnServers', 'permissions'];
 
 function publicSettings() {
