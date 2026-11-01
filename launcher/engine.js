@@ -214,6 +214,10 @@ function readPref(name) {
   } catch { return null; }
 }
 
+function readNumPref(name) {
+  try { const m = new RegExp(`user_pref\\("${name.replace(/\./g, '\\.')}",\\s*(\\d+)\\);`).exec(fs.readFileSync(path.join(paths.profile(), 'prefs.js'), 'utf8')); return m ? Number(m[1]) : 0; } catch { return 0; }
+}
+
 /** user.js aus den ImmoAdv-Einstellungen (gleiche Datei wie Version 3) */
 function userJs() {
   const s = store.all();
@@ -239,7 +243,9 @@ function userJs() {
   };
   let txt = fs.readFileSync(path.join(paths.engineFiles(), 'user.js'), 'utf8').replace(/\{\{(\w+)\}\}/g, (_, k) => (k in vars ? vars[k] : ''));
   // Symbolleiste nur beim ersten Mal festlegen – danach bleibt, was du selbst angepasst hast
-  if (readPref('browser.uiCustomization.state')) txt = txt.replace(/^user_pref\("browser\.uiCustomization\.state".*$/m, '');
+  // (neue ImmoAdv-Anordnung ⇒ höhere immoadv.ui.version ⇒ einmal neu gesetzt)
+  const UI_VERSION = 2;
+  if (readPref('browser.uiCustomization.state') && Number(readNumPref('immoadv.ui.version')) >= UI_VERSION) txt = txt.replace(/^user_pref\("browser\.uiCustomization\.state".*$/m, '');
   return txt;
 }
 

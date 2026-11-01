@@ -1,7 +1,9 @@
-ImmoAdv Browser 4.0.1
+ImmoAdv Browser 4.0.1 – sieht aus wie dein ImmoAdv Browser
+- Symbolleiste wie in Version 3: grünes „Geschützt“ in der Adressleiste, ✦ KI-Assistent, ↓ Downloads und ⋯ ImmoAdv-Menü
+- ⋯-Menü wie gewohnt: Neuer Tab/Fenster, geschlossenen Tab öffnen, KI, Immobilien-Check, Suchen, Zoom, Drucken, Bildschirmfoto, Verlauf, Lesezeichen, Downloads, Passwörter, Merkliste, PDF, Datenschutz-Center, Einstellungen
 - Heller: Oberfläche, Startseite und Menüs im helleren ImmoAdv-Fade
 - ImmoAdv-Logo statt Firefox-Logo in Taskleiste und Fenster (Windows), Fenstertitel „ImmoAdv Browser“ statt „Mozilla Firefox“
-- Einstellungen: ≡-Menü und Strg+, öffnen die ImmoAdv-Einstellungen statt der Firefox-Seite
+- Einstellungen: Strg+, und about:preferences öffnen die ImmoAdv-Einstellungen statt der Firefox-Seite
 - Neue ImmoAdv-Version: Update-Fenster wie gewohnt (Neuerungen, „Update jetzt installieren“), Hinweis ↑ am ImmoAdv-Knopf
 - Favoriten auf der Startseite erscheinen sofort, Download-Knopf immer sichtbar, Erweiterungs-Puzzle ausgeblendet
 

@@ -49,7 +49,8 @@ user_pref("intl.accept_languages", "de-DE,de,en-US,en");
 user_pref("font.language.group", "x-western");
 
 // Symbolleiste: Zurück, Vor, Neu laden, Adresse, ImmoAdv-Knöpfe, Downloads, Menü
-user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"urlbar-container\",\"browser_immoadv_de-browser-action\",\"downloads-button\",\"unified-extensions-button\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"vertical-tabs\":[],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"browser_immoadv_de-browser-action\",\"developer-button\",\"save-to-pocket-button\",\"profile-button\"],\"dirtyAreaCache\":[\"nav-bar\",\"TabsToolbar\",\"PersonalToolbar\",\"vertical-tabs\",\"toolbar-menubar\"],\"currentVersion\":23,\"newElementCount\":0}");
+user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"urlbar-container\",\"immoadv-ki-button\",\"downloads-button\",\"browser_immoadv_de-browser-action\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\"],\"vertical-tabs\":[],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"browser_immoadv_de-browser-action\",\"immoadv-ki-button\",\"developer-button\",\"save-to-pocket-button\",\"profile-button\"],\"dirtyAreaCache\":[\"nav-bar\",\"TabsToolbar\",\"PersonalToolbar\",\"vertical-tabs\",\"toolbar-menubar\"],\"currentVersion\":23,\"newElementCount\":0}");
+user_pref("immoadv.ui.version", 2);
 
 // ---------- Suche ----------
 user_pref("browser.urlbar.suggest.quicksuggest.sponsored", false);

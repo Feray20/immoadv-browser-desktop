@@ -163,6 +163,13 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'vpn:logout': return Vpn.logout();
     case 'vpn:country': return Vpn.setCountry(m.code);
     case 'vpn:recheck': return Vpn.recheck();
+    case 'screenshot': return (async () => {
+      const data = await browser.tabs.captureVisibleTab(m.windowId);
+      const url = URL.createObjectURL(await (await fetch(data)).blob());
+      await browser.downloads.download({ url, filename: `Bildschirmfoto ${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`, saveAs: false });
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return true;
+    })();
     case 'update:later': return browser.storage.local.set({ updateLater: m.version }).then(() => true);
     case 'update:check': return Native.call('update.check').catch((e) => ({ status: 'error', message: e.message }));
     case 'update:now': return Native.call('update.now', {}, 30 * 60000).catch((e) => ({ status: 'error', message: e.message }));
