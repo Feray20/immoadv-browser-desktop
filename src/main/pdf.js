@@ -40,6 +40,8 @@ const SETUP = `document.addEventListener('webviewerloaded', () => {
   set('localeProperties', { lang: 'de' });
   set('isEvalSupported', false);
   set('defaultUrl', '');
+  // Eingescannte PDFs automatisch gerade ausrichten und Text erkennen (läuft nur lokal)
+  const m = document.createElement('script'); m.type = 'module'; m.src = '/studio/auto.mjs'; document.head.append(m);
 });`;
 
 function getSession() {

@@ -829,7 +829,7 @@ function palCommands() {
     ['Kurzfassung (ohne KI)', () => openPanel('summary')], ['Seite übersetzen', () => api.translate()], ['Seite vorlesen', () => tts()],
     ['Geteilte Ansicht', () => api.split()], ['Alle Tabs', () => openPanel('tabs')], ['Verlauf', () => openPanel('history')], ['Lesezeichen', () => openPanel('bookmarks')],
     ['Downloads', () => openPanel('downloads')], ['Passwörter', () => openPanel('passwords')], ['Datenschutz-Center', () => openPanel('privacy')], ['Einstellungen', () => openPanel('settings')],
-    ['Merkliste & Vergleich', () => openPanel('watch')], ['PDF öffnen & unterschreiben', () => api.openPDF()], ['PDF-Studio: Text erkennen (OCR) & gerade ausrichten', () => api.openStudio()], ['Bildschirmfoto der Seite', () => takeShot()],
+    ['Merkliste & Vergleich', () => openPanel('watch')], ['PDF öffnen & unterschreiben', () => api.openPDF()], ['Seiten bearbeiten / PDFs zusammenfügen', () => api.openStudio()], ['Bildschirmfoto der Seite', () => takeShot()],
     ['Link ohne Tracking kopieren', async () => toast((await api.copyCleanLink()) ? 'Link kopiert' : 'Kein Link')], ['Geschlossenen Tab wieder öffnen', () => api.reopenTab()],
     ['Tabs links/oben umschalten', async () => { await setS({ tabLayout: vertical() ? 'horizontal' : 'vertical' }); renderAll(); }],
     ['Als Standardbrowser festlegen', () => api.makeDefaultBrowser()], ['Entwicklertools', () => api.devtools()], ['Drucken', () => api.print()], ['Nach Updates suchen', () => { openPanel('settings', 'updates'); api.checkUpdate(); }],

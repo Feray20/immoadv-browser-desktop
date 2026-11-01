@@ -660,11 +660,11 @@ function openPDF(filePath) { newTab(pdf.viewerURL(filePath), { kind: 'pdf', titl
 // PDF-Studio: Texterkennung, Geradeziehen, Seiten drehen/löschen/sortieren/anhängen
 const STUDIO_RE = /\.(pdf|png|jpe?g|gif|webp|bmp)$/i;
 function openStudio(filePath) {
-  if (!filePath || !STUDIO_RE.test(filePath)) return send('toast', 'PDF-Studio öffnet PDFs und Bilder');
-  newTab(pdf.studioURL(filePath), { kind: 'pdf', title: `PDF-Studio – ${path.basename(filePath)}`, filePath, viewOnly: true, studio: true });
+  if (!filePath || !STUDIO_RE.test(filePath)) return send('toast', 'Seiten bearbeiten geht bei PDFs und Bildern');
+  newTab(pdf.studioURL(filePath), { kind: 'pdf', title: `Seiten bearbeiten – ${path.basename(filePath)}`, filePath, viewOnly: true, studio: true });
 }
 async function openStudioDialog() {
-  const r = await dialog.showOpenDialog(win, { title: 'PDF oder Bild für das PDF-Studio wählen', properties: ['openFile'], filters: [{ name: 'PDF und Bilder', extensions: ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }], defaultPath: downloadDir() });
+  const r = await dialog.showOpenDialog(win, { title: 'PDF oder Bild zum Bearbeiten wählen', properties: ['openFile'], filters: [{ name: 'PDF und Bilder', extensions: ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }], defaultPath: downloadDir() });
   if (!r.canceled && r.filePaths[0]) openStudio(r.filePaths[0]);
 }
 // Ergebnis des PDF-Studios: neben der Originaldatei speichern und gleich im PDF-Betrachter öffnen
@@ -678,7 +678,7 @@ function wireStudioDownloads() {
     item.once('done', (_ev, st) => {
       if (st !== 'completed') return send('toast', 'Speichern abgebrochen');
       send('toast', `Gespeichert: ${path.basename(target)}`);
-      if (/\.pdf$/i.test(target)) openPDF(target);
+      if (/\.pdf$/i.test(target) && tab && tab.studio) openPDF(target);
     });
   });
 }
@@ -1237,7 +1237,8 @@ function showMenu(pos) {
     { label: 'Merkliste & Vergleich', enabled: (store.get('watchlist') || []).length > 0 || !!t?.listing, click: () => send('open-panel', 'watch') },
     { type: 'separator' },
     { label: 'PDF öffnen & unterschreiben …', click: () => openPDFDialog() },
-    { label: t?.filePath && STUDIO_RE.test(t.filePath) && !t.studio ? 'Im PDF-Studio bearbeiten (Text erkennen, gerade ausrichten)' : 'PDF-Studio (Text erkennen, gerade ausrichten) …', click: () => (t?.filePath && STUDIO_RE.test(t.filePath) && !t.studio ? openStudio(t.filePath) : openStudioDialog()) },
+    ...(t?.kind === 'pdf' && /\.pdf$/i.test(t.filePath || '') && !t.studio ? [{ label: 'Text erkennen & gerade ausrichten', click: () => wcOf(t)?.executeJavaScript('window.__immoImprove && window.__immoImprove()').catch(() => {}) }] : []),
+    { label: t?.filePath && STUDIO_RE.test(t.filePath) && !t.studio ? 'Seiten bearbeiten (drehen, löschen, sortieren, anhängen)' : 'Seiten bearbeiten / PDFs zusammenfügen …', click: () => (t?.filePath && STUDIO_RE.test(t.filePath) && !t.studio ? openStudio(t.filePath) : openStudioDialog()) },
     ...(t?.kind === 'pdf' ? [{ label: 'PDF speichern', accelerator: 'CmdOrCtrl+S', click: () => savePDF(t) }] : []),
     { label: 'Bildschirmfoto der Seite', enabled: !!t?.url, click: () => send('screenshot') },
     { label: 'Entwicklertools', accelerator: 'F12', enabled: !!wc, click: () => devTools(t) },

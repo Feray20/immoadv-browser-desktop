@@ -1,3 +1,8 @@
+ImmoAdv Browser 3.0.14
+- Eingescannte PDFs werden beim Öffnen automatisch gerade ausgerichtet und durchsuchbar gemacht (Texterkennung, offline) – direkt im PDF-Betrachter, ohne Extra-Programm
+- Hinweis unten im PDF: „Speichern“ legt die durchsuchbare Fassung neben das Original, „Original anzeigen“ schaltet zurück
+- ⋯ → „Text erkennen & gerade ausrichten“ für jede PDF; „Seiten bearbeiten“ statt „PDF-Studio“ (drehen, löschen, sortieren, PDFs/Bilder anhängen)
+
 ImmoAdv Browser 3.0.13 – PDF-Studio
 - Neu: PDF-Studio (Knopf „PDF-Studio“ bei PDFs und Bildern bzw. ⋯ → PDF-Studio)
 - Texterkennung (OCR, Deutsch + Englisch): eingescannte PDFs und Fotos werden durchsuchbar, Text lässt sich markieren und kopieren – komplett offline
