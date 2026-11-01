@@ -110,5 +110,7 @@ module.exports = {
   get: (k) => load()[k],
   all: () => ({ ...load() }),
   set(k, v) { load()[k] = v; save(); },
-  setMany(obj) { Object.assign(load(), obj); save(); }
+  setQuiet(k, v) { load()[k] = v; save(); },       // interne Daten (Statistik, Sitzung, besuchte Seiten)
+  setMany(obj) { Object.assign(load(), obj); save(); },
+  flush: () => writeNow()
 };

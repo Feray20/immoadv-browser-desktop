@@ -1,3 +1,6 @@
+ImmoAdv Browser 3.0.10
+- Fehlerbehebung: Fehlermeldung „store.setQuiet is not a function“ beim Surfen – Seiten laden wieder normal
+
 ImmoAdv Browser 3.0.9 – großes Prüf-Update
 - ⋯-Menü öffnet wieder zuverlässig (ImmoAdv-Fade-Design)
 - Google-Konto: sucht Chrome, Edge oder Firefox – keine PowerShell-Fenster mehr; klare Meldung, wenn keiner installiert ist
