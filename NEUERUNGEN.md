@@ -1,4 +1,5 @@
-ImmoAdv Browser 3.0.1
+ImmoAdv Browser 3.0.2
+- Google-Konto: Gmail, Drive, Kalender und die Google-Anmeldung öffnen automatisch in Chrome (Google erlaubt die Anmeldung nur dort). Suche und YouTube bleiben im ImmoAdv Browser. Abschaltbar unter Einstellungen → Allgemein.
 - Als Standardbrowser festlegbar: Einstellungen → Allgemein → „Festlegen“ (Windows: erscheint unter Standard-Apps, Mac: unter Standard-Webbrowser)
 - Links aus Mails und anderen Programmen öffnen direkt in einem neuen Tab, PDF- und HTML-Dateien ebenfalls
 

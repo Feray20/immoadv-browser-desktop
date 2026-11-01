@@ -30,7 +30,7 @@ const pendingOpen = [];      // vor dem Start übergebene Adressen/Dateien
 function openTargets(list) {
   const items = (list || []).map((a) => String(a || '').trim()).filter(Boolean);
   for (const a of items) {
-    if (/^https?:\/\//i.test(a)) { if (win) newTab(a); else pendingOpen.push(a); continue; }
+    if (/^https?:\/\//i.test(a)) { if (needsChrome(a)) { openInChrome(a); continue; } if (win) newTab(a); else pendingOpen.push(a); continue; }
     const file = a.replace(/^file:\/\//i, '');
     if (!/\.(pdf|html?)$/i.test(file) || !fs.existsSync(file)) continue;
     if (!win) { pendingOpen.push(file); continue; }
@@ -43,6 +43,40 @@ const argvTargets = (argv) => (argv || []).slice(1).filter((a) => /^https?:\/\//
 pendingOpen.push(...argvTargets(process.argv));
 app.on('open-url', (e, url) => { e.preventDefault(); openTargets([url]); });      // Mac: Link aus anderer App
 app.on('open-file', (e, file) => { e.preventDefault(); openTargets([file]); });  // Mac: HTML/PDF-Datei
+
+// ---------- Google-Konto: Google lässt die Anmeldung nur in Chrome/Edge/Firefox/Safari zu ----------
+// Gmail, Drive, Kalender und die Google-Anmeldung öffnen deshalb automatisch in Chrome (dort bist du angemeldet).
+const GOOGLE_ACCOUNT = /^https:\/\/(accounts|mail|drive|docs|sheets|slides|calendar|myaccount|photos|contacts|keep|meet|chat|admin|takeout|passwords|myactivity|pay|one)\.google\.[a-z.]+(\/|$)/i;
+const needsChrome = (url) => store.get('googleExternal') !== false && GOOGLE_ACCOUNT.test(String(url || ''));
+function chromePath() {
+  if (process.platform === 'darwin') return null;
+  const env = process.env;
+  const c = [
+    path.join(env.ProgramFiles || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    path.join(env.ProgramFiles || 'C:\\Program Files', 'Microsoft', 'Edge', 'Application', 'msedge.exe')
+  ];
+  return c.find((p) => p && fs.existsSync(p)) || null;
+}
+let lastChrome = { url: '', at: 0 };
+function openInChrome(url) {
+  if (lastChrome.url === url && Date.now() - lastChrome.at < 3000) return;   // Doppelklicks/Weiterleitungen
+  lastChrome = { url, at: Date.now() };
+  const { spawn } = require('node:child_process');
+  try {
+    if (process.platform === 'darwin') {
+      spawn('open', ['-a', 'Google Chrome', url], { detached: true, stdio: 'ignore' })
+        .on('exit', (code) => { if (code) spawn('open', ['-a', 'Safari', url], { detached: true, stdio: 'ignore' }).unref(); }).unref();
+    } else {
+      const exe = chromePath();
+      if (!exe) { send('toast', 'Google-Konto: bitte Chrome oder Edge installieren – Google erlaubt die Anmeldung nur dort'); return; }
+      spawn(exe, [url], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
+    }
+    send('toast', 'Google-Konto in Chrome geöffnet – Google erlaubt die Anmeldung nur dort');
+  } catch { send('toast', 'Chrome konnte nicht geöffnet werden'); }
+}
 
 function isDefaultBrowser() {
   try { return app.isDefaultProtocolClient('https') && app.isDefaultProtocolClient('http'); } catch { return false; }
@@ -155,14 +189,16 @@ function wireView(tab) {
 
   // Neue Fenster → neuer Tab im selben Arbeitsbereich (keine Pop-ups)
   wc.setWindowOpenHandler(({ url, disposition }) => {
+    if (needsChrome(url)) { openInChrome(url); return { action: 'deny' }; }
     if (/^https?:/i.test(url)) newTab(url, { ws: tab.ws, background: disposition === 'background-tab' });
     return { action: 'deny' };
   });
   // Nur Webadressen – keine Programme oder lokalen Dateien aus Webseiten heraus öffnen
   // lokale HTML-Datei (vom System geöffnet): nur diese eine Datei, Links daraus nur ins Web
   const allowed = (url) => (tab.kind === 'pdf' ? url.startsWith('immoadv-pdf:') : /^https?:/i.test(url) || (tab.localFile && url === tab.localFile));
-  wc.on('will-navigate', (e, url) => { if (!allowed(url)) e.preventDefault(); });
-  wc.on('will-redirect', (e, url) => { if (!allowed(url)) e.preventDefault(); });
+  const toChrome = (e, url) => { if (tab.kind === 'web' && needsChrome(url)) { e.preventDefault(); openInChrome(url); return true; } return false; };
+  wc.on('will-navigate', (e, url) => { if (toChrome(e, url)) return; if (!allowed(url)) e.preventDefault(); });
+  wc.on('will-redirect', (e, url) => { if (toChrome(e, url)) return; if (!allowed(url)) e.preventDefault(); });
   wc.on('will-frame-navigate', (e) => { if (!allowed(e.url) && !/^(about|blob|data):/i.test(e.url)) e.preventDefault(); });
 
   const update = () => {
@@ -269,6 +305,7 @@ function newTab(url, opts = {}) {
 }
 
 function load(tab, url) {
+  if (tab.kind === 'web' && needsChrome(url)) { openInChrome(url); if (!tab.url) pushTabs(); return; }
   if (!tab.view) attachView(tab);
   tab.url = url;
   tab.error = null; tab.blocked = null; tab.offlineUrl = null;
@@ -657,7 +694,7 @@ function translate(t) {
 // ---------- Verbindung zum Fenster ----------
 const SETTINGS_KEYS = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'allowlist', 'blocklist', 'httpsOnly', 'cleanLinks', 'javaScript',
   'dnsProvider', 'keepSignedIn', 'appLock', 'bookmarks', 'rememberFrequent', 'bookmarkBar', 'searchEngine', 'neverSave', 'restoreSession',
-  'tabLayout', 'sidebarCollapsed', 'suspendMinutes', 'historyDays', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'workspaces', 'autoUpdate'];
+  'tabLayout', 'sidebarCollapsed', 'googleExternal', 'suspendMinutes', 'historyDays', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'workspaces', 'autoUpdate'];
 const PRIVATE_KEYS = ['vpnCreds', 'passwords', 'aiKeys', 'lastSession', 'vpnServers', 'permissions'];
 
 function publicSettings() {

@@ -53,6 +53,8 @@ const defaults = {
   ],
   activeWorkspace: 'privat',
   restoreSession: true,
+  googleExternal: true,        // Google-Konto (Gmail, Drive, Anmeldung) in Chrome öffnen – Google sperrt eigene Browser
+
   lastSession: null,
   tabLayout: 'horizontal',     // 'horizontal' oder 'vertical' (Tabs links)
   sidebarCollapsed: false,
