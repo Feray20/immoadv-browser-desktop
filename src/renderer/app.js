@@ -19,6 +19,7 @@ let passwords = [];
 let online = true;
 let aiInfo = { hasKey: false }, aiProviders = [], dnsList = [], countries = [];
 let updDismissed = null;
+let favicons = {};          // Seite → Symbol (data:), vom Hauptprozess geladen und gemerkt
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const eur = (v, d = 0) => (v ?? 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: d, maximumFractionDigits: d });
@@ -59,8 +60,10 @@ function toast(text) {
 function favHTML(t) {
   if (t.loading && !t.suspended) return '<span class="tab-fav spin"></span>';
   if (t.kind === 'pdf') return '<span class="tab-fav" style="background:#d4483b">P</span>';
-  if (t.favicon) return `<span class="tab-fav"><img src="${esc(t.favicon)}" alt=""></span>`;
   const h = hostOf(t.url);
+  const icon = t.favicon || favicons[h] || favicons[h.split('.').slice(-2).join('.')];
+  if (icon) return `<span class="tab-fav"><img src="${esc(icon)}" alt=""></span>`;
+  if (!h) return '<span class="tab-fav"><img src="emblem.png" alt=""></span>';
   return `<span class="tab-fav" style="background:${h ? colorFor(h) : 'var(--surface-3)'}">${esc((h || '+')[0].toUpperCase())}</span>`;
 }
 function colorFor(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 55% 42%)`; }
@@ -74,7 +77,8 @@ function renderWorkspaces() {
     el.querySelectorAll('[data-ws]').forEach((b) => { b.onclick = () => api.selectWorkspace(b.dataset.ws); });
     el.querySelector('[data-wsadd]').onclick = () => openPanel('settings', 'bereiche');
   }
-  $('wsSwitch').classList.toggle('hidden', state.workspaces.length < 2 && !vertical());
+  // Bereichs-Knöpfe oben links ausgeblendet (Wunsch Feray) – Wechsel über ⋯ → Arbeitsbereich
+  $('wsSwitch').classList.add('hidden'); $('sideWs').classList.add('hidden');
 }
 
 // ---------- Tabs ----------
@@ -945,6 +949,7 @@ api.onBlocker((b) => { blockerInfo = b; if (b.stats) { settings.stats = b.stats;
 api.onDownloads((d) => { downloads = d; $('dlBtn').classList.toggle('on', d.some((x) => x.state === 'progress' || x.state === 'scanning')); if (panel === 'downloads') renderDownloads(); });
 api.onOnline((o) => { if (o !== online) { online = o; renderShield(); } });
 api.onToast(toast);
+api.onFavicons((m) => { favicons = m || {}; renderTabs(); renderBookmarkBar(); renderStart(); });
 api.onFindOpen(openFind);
 api.onFindResult((r) => { $('findCount').textContent = r.total ? `${r.active}/${r.total}` : 'Keine Treffer'; });
 api.onFocusAddress(() => { $('address').focus(); $('address').select(); });
@@ -963,6 +968,7 @@ api.onTts(() => tts());
   vpnState = s.vpn; blockerInfo = s.blocker; countries = s.countries; dnsList = s.dns;
   aiInfo = s.ai; aiProviders = s.aiProviders; watchlist = s.watchlist; online = s.online;
   document.body.classList.toggle('mac', platform === 'darwin');
+  favicons = s.favicons || {};
   renderStart(); renderBookmarkBar(); renderAll(); renderUpdate();
   if (!settings.downloadDir) showOnboarding(true);
   setInterval(renderStart, 60000);

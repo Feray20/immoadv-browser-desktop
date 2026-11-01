@@ -41,7 +41,7 @@ contextBridge.exposeInMainWorld('immo', {
   checkUpdate: inv('update:check'), updateNow: inv('update:now'), setAutoUpdate: inv('update:auto'), showUpdateLog: inv('update:log'),
   // Ereignisse
   onTabs: on('tabs'), onUpdate: on('update'), onVpn: on('vpn'), onBlocker: on('blocker'), onDownloads: on('downloads'), onOnline: on('online'),
-  onToast: on('toast'), onFindOpen: on('find-open'), onFindResult: on('find-result'), onFocusAddress: on('focus-address'),
+  onToast: on('toast'), onFavicons: on('favicons'), onFindOpen: on('find-open'), onFindResult: on('find-result'), onFocusAddress: on('focus-address'),
   onOpenPanel: on('open-panel'), onPaletteOpen: on('palette-open'), onToggleBookmarkBar: on('toggle-bookmarkbar'), onBookmarkCurrent: on('bookmark-current'),
   onScreenshot: on('screenshot'), onTts: on('tts'), onAiPrompt: on('ai-prompt'),
   onAiChunk: on('ai:chunk'), onAiDone: on('ai:done'), onAiError: on('ai:error')

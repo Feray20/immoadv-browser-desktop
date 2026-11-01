@@ -40,7 +40,7 @@ electronFuses:
 
 # ---------- Windows ----------
 win:
-  icon: build/icon.png
+  icon: build/icon-win.png
   target:
     - target: nsis            # Installer zum Herunterladen (z. B. über „ImmoAdv Programme“)
       arch: [x64]

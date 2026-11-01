@@ -1,4 +1,8 @@
-ImmoAdv Browser 3.0.4
+ImmoAdv Browser 3.0.5
+- Echte Seitensymbole überall (Tabs, Lesezeichenleiste, Startseite, Verlauf) – auch für Seiten ohne gemeldetes Symbol
+- Neues Programm-Symbol für Windows: randlos wie die anderen Programme in der Taskleiste
+- Knöpfe oben links entfernt; Arbeitsbereich wechseln über ⋯ → Arbeitsbereich
+- NordVPN: Verbindung wird jetzt wirklich geprüft – „Aktiv“ erst, wenn NordVPN sie bestätigt; abgelehnte Zugangsdaten werden klar angezeigt
 - NordVPN: Verbindung wird jetzt wirklich geprüft – „Aktiv“ erscheint erst, wenn NordVPN die Verbindung bestätigt; abgelehnte Zugangsdaten werden klar angezeigt
 - „Verbindung neu prüfen“, „Andere Zugangsdaten eingeben“ und VPN-Protokoll in den NordVPN-Einstellungen
 - Lange Listen in den Einstellungen (Angemeldet bleiben, Ausnahmen, Sperrliste) lassen sich ein- und ausklappen

@@ -64,11 +64,20 @@ if __name__ == "__main__" and len(sys.argv) == 3:
     make(False).save(sys.argv[2])
 
 
+def make_square():
+    # randlos wie die anderen Windows-Programm-Symbole (z. B. Claude, ImmoAdv Admin): abgerundetes Quadrat, füllt die Fläche
+    img = make(True)
+    m = Image.new('L', (1024*S, 1024*S), 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, 1024*S, 1024*S], radius=225*S, fill=255)
+    img.putalpha(m.resize((1024, 1024), Image.LANCZOS))
+    return img
+
 def write_all(root):
     """Programm-Symbol (Windows/Mac) und Zeichen in der Oberfläche."""
     import os
     desk = make(False)
-    desk.save(os.path.join(root, 'build', 'icon.png'))
+    desk.save(os.path.join(root, 'build', 'icon.png'))              # Mac (Apple-Raster mit Rand)
+    make_square().save(os.path.join(root, 'build', 'icon-win.png'))  # Windows: randlos
     inner = desk.crop((96, 96, 928, 928))          # Symbol ohne Rand/Schatten für kleine Größen
     inner.resize((256, 256), Image.LANCZOS).save(os.path.join(root, 'src', 'renderer', 'emblem.png'))
     return make(True), inner

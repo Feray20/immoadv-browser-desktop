@@ -209,9 +209,9 @@ function wireView(tab) {
     pushTabs();
   };
   wc.on('page-title-updated', update);
-  wc.on('page-favicon-updated', async (_e, icons) => { tab.favicon = await favicon((icons || []).find((u) => /^https:/.test(u))); pushTabs(); });
+  wc.on('page-favicon-updated', async (_e, icons) => { tab.gotIcon = true; const d = await siteIcon(wc.getURL(), icons); if (d) { tab.favicon = d; pushTabs(); } });
   wc.on('did-navigate', (_e, url) => {
-    tab.listing = null; tab.login = null; tab.blocked = null; tab.favicon = null;
+    tab.listing = null; tab.login = null; tab.blocked = null; tab.favicon = null; tab.gotIcon = false;
     // Spurlos: Seite im selben Tab verlassen → ihre Daten werden gelöscht, wenn kein Tab sie mehr offen hat
     const site = siteOf(hostOf(url));
     if (tab.site && tab.site !== site) siteLeft(browsingSession, tab.site, siteOpen);
@@ -248,6 +248,8 @@ function wireView(tab) {
   // Ungültige Zertifikate werden nie still akzeptiert (Chromium-Standard: abbrechen)
   wc.on('did-finish-load', async () => {
     if (tab.kind !== 'web') return;
+    // Seite ohne gemeldetes Symbol → /favicon.ico versuchen
+    setTimeout(async () => { if (!tab.gotIcon && !tab.favicon && /^https:/.test(tab.url)) { const d = await siteIcon(tab.url, []); if (d) { tab.favicon = d; pushTabs(); } } }, 1500);
     tab.vpnRetry = false;
     const saved = vault.forUrl(wc.getURL());
     tab.login = saved.length ? saved : null;
@@ -262,23 +264,61 @@ function wireView(tab) {
   wc.on('context-menu', (_e, p) => pageMenu(tab, p));
 }
 
-// Seitensymbole: über die Browser-Sitzung geladen (also auch über NordVPN), klein als data:-Bild an die Oberfläche
-const favCache = new Map();
+// Seitensymbole: über die Browser-Sitzung geladen (also auch über NordVPN), klein als data:-Bild an die Oberfläche.
+// Werden je Seite gemerkt (favicons.json), damit Lesezeichen, Verlauf und Startseite überall das echte Symbol zeigen.
+const favFile = () => path.join(app.getPath('userData'), 'favicons.json');
+let favMap = null, favSaveTimer = null;
+const favLoad = () => { if (favMap) return favMap; try { favMap = JSON.parse(fs.readFileSync(favFile(), 'utf8')); } catch { favMap = {}; } return favMap; };
+function favRemember(host, data) {
+  if (!host || !data) return;
+  const m = favLoad();
+  if (m[host] === data) return;
+  m[host] = data;
+  const keys = Object.keys(m); if (keys.length > 400) delete m[keys[0]];
+  clearTimeout(favSaveTimer);
+  favSaveTimer = setTimeout(() => { try { fs.writeFileSync(favFile(), JSON.stringify(m)); } catch {} send('favicons', m); }, 400);
+}
+const IMG = /^image\/(png|x-icon|vnd\.microsoft\.icon|svg\+xml|jpeg|gif|webp|avif|ico)$/;
+function sniff(buf) {
+  if (buf[0] === 0x89 && buf[1] === 0x50) return 'image/png';
+  if (buf[0] === 0 && buf[1] === 0 && buf[2] === 1) return 'image/x-icon';
+  if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg';
+  if (buf.slice(0, 4).toString() === 'GIF8') return 'image/gif';
+  if (buf.slice(8, 12).toString() === 'WEBP') return 'image/webp';
+  if (/<svg[\s>]/i.test(buf.slice(0, 400).toString())) return 'image/svg+xml';
+  return null;
+}
 async function favicon(url) {
-  if (!url) return null;
-  if (favCache.has(url)) return favCache.get(url);
-  let data = null;
+  if (!url || !/^https:/.test(url)) return null;
   try {
     const r = await browsingSession.fetch(url, { credentials: 'omit' });
-    const type = (r.headers.get('content-type') || '').split(';')[0];
-    if (r.ok && /^image\/(png|x-icon|vnd\.microsoft\.icon|svg\+xml|jpeg|gif|webp)$/.test(type)) {
-      const buf = Buffer.from(await r.arrayBuffer());
-      if (buf.length < 60000) data = `data:${type};base64,${buf.toString('base64')}`;
-    }
-  } catch { /* ohne Symbol */ }
-  if (favCache.size > 300) favCache.clear();
-  favCache.set(url, data);
-  return data;
+    if (!r.ok) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!buf.length || buf.length > 250000) return null;
+    let type = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!IMG.test(type)) type = sniff(buf);
+    if (!type) return null;
+    if (type === 'image/svg+xml' && /<script|on\w+=/i.test(buf.toString())) return null;   // SVG ohne Skripte
+    return `data:${type};base64,${buf.toString('base64')}`;
+  } catch { return null; }
+}
+// Symbol einer Seite holen: erst das von der Seite gemeldete, sonst /favicon.ico
+async function siteIcon(pageUrl, iconUrls) {
+  let host; try { host = new URL(pageUrl).hostname.replace(/^www\./, ''); } catch { return null; }
+  for (const u of [...(iconUrls || []).filter((x) => /^https:/.test(x)), `https://${new URL(pageUrl).host}/favicon.ico`]) {
+    const d = await favicon(u);
+    if (d) { favRemember(host, d); return d; }
+  }
+  return favLoad()[host] || null;
+}
+// Lesezeichen ohne Symbol: einmal im Hintergrund nachladen
+async function warmBookmarkIcons() {
+  const m = favLoad();
+  for (const b of (store.get('bookmarks') || []).slice(0, 60)) {
+    let h; try { h = new URL(b.url).hostname.replace(/^www\./, ''); } catch { continue; }
+    if (m[h]) continue;
+    await siteIcon(b.url, []);
+  }
 }
 
 function attachView(tab) {
@@ -720,7 +760,7 @@ function registerIPC() {
     settings: publicSettings(), vpn: vpn.state(), countries: vpn.COUNTRIES, blocker: blocker.info(),
     passwords: vault.list(), vaultOk: vault.available(), dns: Object.entries(DNS).map(([id, d]) => ({ id, name: d.name })),
     ai: ai.config(), aiProviders: Object.entries(ai.PROVIDERS).map(([id, p]) => ({ id, name: p.name, model: p.model, needsKey: p.needsKey, keyUrl: p.keyUrl })),
-    watchlist: store.get('watchlist') || [], historyCount: history.count(), online: net.isOnline(),
+    watchlist: store.get('watchlist') || [], historyCount: history.count(), online: net.isOnline(), favicons: favLoad(),
     downloadDirName: path.basename(downloadDir())
   }));
   on('layout', (_e, l) => { layout = { ...layout, ...l }; positionViews(); });
@@ -975,6 +1015,7 @@ function showMenu() {
   const template = [
     { label: 'Neuer Tab', accelerator: 'CmdOrCtrl+T', click: () => newTab() },
     { label: 'Geschlossenen Tab wieder öffnen', accelerator: 'CmdOrCtrl+Shift+T', enabled: closedStack.length > 0, click: () => reopenTab() },
+    { label: 'Arbeitsbereich', submenu: [...ws.map((w) => ({ label: w.name, type: 'radio', checked: w.id === activeWs(), click: () => selectWorkspace(w.id) })), { type: 'separator' }, { label: 'Bereiche verwalten …', click: () => send('open-panel', 'settings') }] },
     { label: 'Geteilte Ansicht', accelerator: 'CmdOrCtrl+Shift+S', enabled: !!t, type: 'checkbox', checked: !!(split && t && (split.a === t.id || split.b === t.id)), click: () => t && toggleSplit(t.id) },
     { label: 'Tab in Bereich verschieben', enabled: !!t && ws.length > 1, submenu: ws.filter((w) => w.id !== t?.ws).map((w) => ({ label: w.name, click: () => moveToWorkspace(t.id, w.id) })) },
     { type: 'separator' },
@@ -1086,6 +1127,7 @@ app.whenReady().then(async () => {
   await createWindow();
 
   updater.init((s) => send('update', s));
+  setTimeout(() => warmBookmarkIcons().catch(() => {}), 8000);
   // Malware-/Phishing-Listen: beim Start (verzögert) und danach täglich frisch
   setTimeout(() => blocker.refresh().then(() => send('blocker', { ...blocker.info(), stats: store.get('stats') })).catch(() => {}), 15000);
   setInterval(() => blocker.refresh().catch(() => {}), 6 * 3600 * 1000);
