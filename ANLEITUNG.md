@@ -29,4 +29,4 @@ npm install
 npm start          # lädt PDF.js + Test-Filterlisten, startet den Browser
 npm test
 ```
-Neue Version: `version` in package.json erhöhen und auf `main` pushen – GitHub Actions (`.github/workflows/build.yml`, kostenlos, weil das Repo öffentlich ist) baut Windows und Mac und veröffentlicht das GitHub-Release; die Programme holen es sich selbst. Ist Azure Artifact Signing hinterlegt, wird der Windows-Installer automatisch signiert (Secrets: siehe Kopf von `build.yml`). Details und Umsetzungsstand: `docs/ARCHITEKTUR.md`.
+Neue Version: `version` in package.json erhöhen und auf `main` pushen – Azure Pipelines (`azure-pipelines.yml`) baut auf Ferays eigenem PC (Windows) und Mac und veröffentlicht die Updates privat auf immoadv.de (`/api/browser/update`); die Programme holen sie sich selbst. Das Store-Paket liegt im Azure-Lauf unter „Artefakte“. GitHub-Workflows laufen nur noch von Hand. Details und Umsetzungsstand: `docs/ARCHITEKTUR.md`.

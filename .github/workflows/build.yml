@@ -21,9 +21,7 @@
 name: Build
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch: {}        # zusätzlich per Knopf „Run workflow“ startbar
+  workflow_dispatch: {}        # nur noch von Hand – gebaut wird über Azure (azure-pipelines.yml), Repo privat
 
 permissions:
   contents: write              # Release anlegen und Dateien hochladen

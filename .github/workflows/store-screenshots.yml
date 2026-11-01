@@ -5,13 +5,7 @@
 name: Store-Screenshots
 
 on:
-  workflow_dispatch: {}
-  push:
-    branches: [main]
-    paths:
-      - src/renderer/**
-      - test/store-screenshots.js
-      - .github/workflows/store-screenshots.yml
+  workflow_dispatch: {}        # nur noch von Hand – gebaut wird über Azure (azure-pipelines.yml), Repo privat
 
 permissions:
   contents: write
