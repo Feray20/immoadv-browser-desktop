@@ -1,0 +1,54 @@
+/* ImmoAdv Premium Design System – gemeinsame Basis für Startseite, Datenschutz-Center und Warnseite */
+:root {
+  --navy: #0B1F3A; --blue: #2A5BD7; --teal: #19C2B0; --petrol: #0E5C66; --petrol-2: #127A86;
+  --fade: linear-gradient(125deg, #0B1F3A 0%, #2A5BD7 55%, #19C2B0 100%);
+  --bg: #F5F7FA; --surface: #FFFFFF; --surface-2: #EEF2F6; --text: #0F1B2D; --muted: #5E6E82;
+  --line: rgba(15, 27, 45, .09); --ok: #0F9D74; --warn: #C27A06; --bad: #D1394A;
+  --shadow: 0 1px 2px rgba(15, 27, 45, .06), 0 8px 24px rgba(15, 27, 45, .07);
+  --radius: 14px;
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px; line-height: 1.45;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0C1320; --surface: #131D2E; --surface-2: #1A2639; --text: #E7EDF5; --muted: #93A3B8;
+    --line: rgba(255, 255, 255, .08); --ok: #3CD39F; --warn: #F2B544; --bad: #FF6B78;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .25);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+body { font-size: 14px; font-family: inherit; }   /* Chrome setzt in Erweiterungsseiten sonst 75 % */
+a { color: var(--petrol-2); text-decoration: none; }
+@media (prefers-color-scheme: dark) { a { color: var(--teal); } }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+
+.btn { height: 34px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); transition: background .15s, border-color .15s; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--petrol); border-color: var(--petrol); color: #fff; }
+.btn.primary:hover { background: var(--petrol-2); }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; background: var(--muted); flex: none; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+
+/* Schalter */
+.switch { position: relative; width: 40px; height: 24px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); transition: background .18s; }
+.switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .18s; }
+.switch input:checked + span { background: var(--petrol); border-color: var(--petrol); }
+.switch input:checked + span::after { transform: translateX(16px); }
+.switch input:focus-visible + span { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+input[type=text], input[type=search], select { height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); padding: 0 11px; outline: none; }
+input[type=text]:focus, input[type=search]:focus, select:focus { border-color: var(--petrol-2); box-shadow: 0 0 0 3px rgba(18, 122, 134, .18); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

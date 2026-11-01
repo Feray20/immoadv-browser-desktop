@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>ImmoAdv Browser</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="top drag">
+    <img src="logo.png" alt="" width="34" height="34">
+    <div>
+      <div class="name">ImmoAdv Browser</div>
+      <div class="sub" id="topSub">Einrichtung</div>
+    </div>
+  </header>
+
+  <!-- Einrichtung -->
+  <main id="setup" class="view hidden">
+    <p class="lead">Dein ImmoAdv Browser basiert auf Google Chrome – mit Google-Konto, Sync auf iPhone, Mac und Windows, Passwörtern und Passkeys. Darüber liegt die ImmoAdv-Schicht mit Datenschutz-Center, Blocker und NordVPN.</p>
+
+    <section class="step" id="stepChrome">
+      <div class="num">1</div>
+      <div class="body">
+        <h2>Google Chrome</h2>
+        <p class="muted" id="chromeText">Wird geprüft …</p>
+        <div class="bar hidden" id="chromeBar"><span></span></div>
+        <button class="btn primary hidden" id="installChrome">Chrome von Google installieren</button>
+      </div>
+      <div class="check" id="chromeCheck"></div>
+    </section>
+
+    <section class="step" id="stepExt">
+      <div class="num">2</div>
+      <div class="body">
+        <h2>ImmoAdv in Chrome aktivieren <span class="muted small">(einmalig)</span></h2>
+        <ol class="howto">
+          <li>Auf <b>„Chrome öffnen“</b> klicken – der Ordner ist schon kopiert.</li>
+          <li>Oben rechts <b>„Entwicklermodus“</b> einschalten.</li>
+          <li><b>„Entpackte Erweiterung laden“</b> → oben in die Adresszeile <b id="pasteKey">Strg + V</b> → Enter → <b>„Ordner auswählen“</b>.</li>
+        </ol>
+        <div class="pathrow"><code id="extPath">–</code><button class="btn ghost small" data-copy="extPath">Kopieren</button></div>
+        <div class="row-actions">
+          <button class="btn primary" id="openExt">Chrome öffnen</button>
+          <span class="muted small" id="extStatus"></span>
+        </div>
+        <details class="theme">
+          <summary>ImmoAdv-Design für den Chrome-Rahmen (empfohlen)</summary>
+          <p class="muted small">Genauso laden, nur mit diesem Ordner:</p>
+          <div class="pathrow"><code id="themePath">–</code><button class="btn ghost small" data-copy="themePath">Kopieren</button></div>
+          <div class="row-actions"><button class="btn" id="openTheme">Chrome öffnen</button><span class="muted small" id="themeStatus"></span></div>
+        </details>
+      </div>
+      <div class="check" id="extCheck"></div>
+    </section>
+
+    <section class="step">
+      <div class="num">3</div>
+      <div class="body">
+        <h2>Mit Google anmelden</h2>
+        <p class="muted">Nach „Fertig“ öffnet Chrome die Anmeldung. Damit synchronisieren Lesezeichen, Passwörter, Passkeys und Tabs mit iPhone und Mac. Passwörter bestätigst du mit <span id="bioName">Windows Hello</span>.</p>
+      </div>
+      <div class="check"></div>
+    </section>
+
+    <footer class="actions">
+      <button class="btn primary big" id="finish" disabled>Fertig – Browser öffnen</button>
+    </footer>
+  </main>
+
+  <!-- Update -->
+  <main id="update" class="view hidden">
+    <section class="card">
+      <div class="kv"><span>Installiert</span><b id="uCurrent">–</b></div>
+      <div class="kv"><span>Status</span><b id="uStatus">–</b></div>
+      <div class="bar hidden" id="uBar"><span></span></div>
+      <pre id="uNotes" class="notes hidden"></pre>
+      <div class="row-actions">
+        <button class="btn primary hidden" id="uInstall">Update jetzt installieren</button>
+        <button class="btn primary hidden" id="uDownload">Update herunterladen</button>
+        <button class="btn" id="uCheck">Nach Updates suchen</button>
+      </div>
+    </section>
+    <section class="card">
+      <label class="toggle"><span><b>Automatische Updates</b><br><span class="muted small">Neue Versionen werden im Hintergrund geladen und still installiert. Chrome selbst aktualisiert Google.</span></span>
+        <span class="switch"><input type="checkbox" id="autoUpdate"><span></span></span></label>
+    </section>
+  </main>
+
+  <!-- Einstellungen -->
+  <main id="settings" class="view hidden">
+    <section class="card">
+      <h2>Verschlüsseltes DNS</h2>
+      <p class="muted small">Gilt, solange NordVPN nicht angemeldet ist – mit NordVPN läuft DNS über den VPN-Server.</p>
+      <div id="dnsList" class="radios"></div>
+      <p class="muted small" id="dnsNote"></p>
+    </section>
+    <section class="card">
+      <div class="kv"><span>Programm</span><b id="sApp">–</b></div>
+      <div class="kv"><span>Google Chrome</span><b id="sChrome">–</b></div>
+      <div class="row-actions"><button class="btn" id="sUpdate">Updates</button><button class="btn" id="sOpen">Browser öffnen</button></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+body { min-height: 100vh; background:
+  radial-gradient(1200px 520px at 50% -180px, rgba(42, 91, 215, .16), transparent 70%),
+  radial-gradient(900px 400px at 85% -120px, rgba(25, 194, 176, .14), transparent 70%), var(--bg); }
+.wrap { max-width: 760px; margin: 0 auto; padding: 12vh 24px 48px; display: flex; flex-direction: column; gap: 30px; }
+.brand { display: flex; align-items: center; gap: 14px; justify-content: center; }
+.brand img { border-radius: 11px; box-shadow: var(--shadow); }
+.brand .name { font-size: 26px; font-weight: 700; letter-spacing: -.02em;
+  background: var(--fade); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@media (prefers-color-scheme: dark) { .brand .name { background: linear-gradient(125deg, #8FB0FF, #19C2B0); -webkit-background-clip: text; background-clip: text; } }
+
+.search { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 20px; border-radius: 28px; }
+.search:focus-within { border-color: var(--petrol-2); box-shadow: 0 0 0 4px rgba(18, 122, 134, .16), var(--shadow); }
+.search svg { width: 20px; height: 20px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; flex: none; }
+.search input[type=search], .search input[type=search]:focus { flex: 1; border: 0; outline: 0; background: transparent; font-size: 16px; height: 100%; padding: 0; box-shadow: none; border-radius: 0; }
+.search input::-webkit-search-cancel-button { display: none; }
+
+.label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px 4px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tile { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 12px; background: var(--surface);
+  border: 1px solid var(--line); color: var(--text); min-width: 0; transition: transform .12s ease, box-shadow .12s ease; }
+.tile:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.tile img { width: 20px; height: 20px; flex: none; border-radius: 4px; }
+.tile span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.empty { color: var(--muted); font-size: 13px; padding: 4px; }
+
+.status { align-self: center; display: inline-flex; align-items: center; gap: 9px; padding: 9px 16px; border-radius: 20px; font-size: 13px; color: var(--muted); }
+.status:hover { color: var(--text); }

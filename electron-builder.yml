@@ -7,12 +7,17 @@ directories:
 files:
   - src/**/*
   - package.json
+# ImmoAdv-Schicht für Chrome (wird beim Start in den App-Ordner kopiert und von Chrome geladen)
 extraResources:
-  - from: vendor/pdfjs
-    to: pdfjs
-  - from: vendor/tor
-    to: tor
+  - from: extension
+    to: extension
+    filter: ["**/*", "!package.json"]
+  - from: theme
+    to: theme
 asar: true
+protocols:
+  - name: ImmoAdv Browser
+    schemes: [immoadv-browser]
 
 # Updates: jede neue Version wird als GitHub-Release veröffentlicht; die Programme holen sie sich von dort.
 publish:
@@ -43,6 +48,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   shortcutName: ImmoAdv Browser
+  createStartMenuShortcut: true
   artifactName: ImmoAdv-Browser-Setup-${version}.${ext}
 appx:
   # Beide Werte EXAKT aus Partner Center → App → Produktidentität kopieren (Publisher sieht aus wie CN=XXXXXXXX-XXXX-…)
@@ -66,7 +72,6 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  x64ArchFiles: "Contents/Resources/tor/**"
 dmg:
   artifactName: ImmoAdv-Browser-${version}.${ext}
   title: ImmoAdv Browser

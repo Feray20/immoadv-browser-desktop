@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Seite blockiert – ImmoAdv</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--fade); }
+    .box { max-width: 520px; width: 100%; padding: 30px; text-align: left; }
+    .icon { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: rgba(209, 57, 74, .12); color: var(--bad); font-size: 28px; font-weight: 700; margin-bottom: 14px; }
+    h1 { font-size: 22px; margin: 0 0 8px; letter-spacing: -.01em; }
+    p { margin: 0 0 12px; color: var(--muted); }
+    code { display: block; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); color: var(--text); word-break: break-all; font-size: 12.5px; margin: 14px 0; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    #proceed { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="box card">
+    <div class="icon">!</div>
+    <h1 id="h">Gefährliche Seite blockiert</h1>
+    <p id="why">ImmoAdv hat diese Seite gestoppt, bevor sie geladen wurde.</p>
+    <code id="url">–</code>
+    <div class="actions">
+      <button class="btn primary" id="back">Zurück in Sicherheit</button>
+      <button class="btn ghost" id="proceed">Trotzdem öffnen (nicht empfohlen)</button>
+    </div>
+  </div>
+  <script src="blocked.js"></script>
+</body>
+</html>

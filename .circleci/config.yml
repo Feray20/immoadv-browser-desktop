@@ -22,7 +22,7 @@ jobs:
           shell: bash.exe
           command: set -o pipefail; npm test 2>&1 | tee -a build.log
       - run:
-          name: Windows-Installer und Store-Paket bauen
+          name: Windows-Installer bauen (inkl. Filterlisten)
           shell: bash.exe
           command: set -o pipefail; npm run dist:win 2>&1 | tee -a build.log
           environment:
@@ -51,7 +51,7 @@ jobs:
     resource_class: m4pro.medium
     steps:
       - checkout
-      - run: brew install gnupg node@22 && echo 'export PATH="$(brew --prefix node@22)/bin:$PATH"' >> "$BASH_ENV"
+      - run: brew install node@22 && echo 'export PATH="$(brew --prefix node@22)/bin:$PATH"' >> "$BASH_ENV"
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run:

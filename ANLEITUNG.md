@@ -1,57 +1,41 @@
-# ImmoAdv Browser für Windows und Mac – Anleitung
+# ImmoAdv Browser 2.0 – Windows und Mac
 
-Ein gemeinsames Programm für beide Systeme. Jedes Update wird automatisch für Windows **und** Mac gebaut.
+## Aufbau
 
-## Was drin ist
+| Teil | Was es macht | Wer aktualisiert |
+|---|---|---|
+| **Google Chrome** (offiziell von Google) | Browser-Engine, Google-Konto, Sync, Passwörter, Passkeys, Übersetzen, Downloads mit Virenprüfung, Erweiterungen | Google, automatisch |
+| **ImmoAdv-Programm** (dieses Repo, `src/`) | Richtet Chrome mit eigenem Profil „ImmoAdv“ ein, installiert Chrome bei Bedarf, setzt verschlüsseltes DNS, „Immer sichere Verbindungen“ und Windows Hello / Touch ID für Passwörter, Update-Knopf | GitHub-Releases, automatisch |
+| **ImmoAdv-Schicht** (`extension/`) | Startseite, Datenschutz-Center, Blocker (Werbung/Tracker/Malware/Phishing), NordVPN, spurloses Surfen, Lesezeichen-Übernahme | kommt mit jedem Programm-Update und übernimmt sich selbst ohne Neustart |
+| **ImmoAdv-Design** (`theme/`) | Farben des Chrome-Rahmens | wie oben |
 
-- Tor fest eingebaut (offizielles Tor-Paket des Tor-Projekts, beim Bauen per Prüfsumme kontrolliert)
-- Snowflake-Brücken: Internetanbieter sieht nicht leicht, dass du Tor nutzt
-- Keine einzige DNS-Anfrage am Tor vorbei, WebRTC-Leck gesperrt, kein Verlauf, keine Cookies nach dem Schließen
-- Tabs, Lesezeichen, Startseite im ImmoAdv-Fade
-- **Immobilien-Check** als Seitenleiste auf Inseraten (gleiche Rechnung wie in der iPhone-App), Bericht als PDF
-- **PDF-Werkzeug**: ausfüllen, markieren, zeichnen, Text, Bild, Unterschrift; „PDF speichern“ (Strg/⌘+S) schreibt direkt in die Datei
-- Beim ersten Start: **Download-Ordner wählen** – danach landet jeder Download automatisch dort
-- Mac: optional Touch-ID-Sperre
+Das ImmoAdv-Profil ist komplett getrennt von einem normal installierten Chrome (eigener Profilordner).
 
-## Automatisch bauen mit CircleCI (Gratis-Plan)
+## Datenschutz – was passiert wirklich
 
-1. Den Ordner als neues GitHub-Repository hochladen (z. B. `immoadv-browser-desktop`).
-2. In CircleCI: „Projects“ → Repository → „Set Up Project“ → vorhandene `.circleci/config.yml` verwenden.
-3. Für den **Mac** in CircleCI → Project Settings → Environment Variables eintragen:
-   - `CSC_LINK` – dein „Developer ID Application“-Zertifikat (aus dem Apple-Konto, als .p12 exportiert, Base64)
-   - `CSC_KEY_PASSWORD` – Passwort der .p12
-   - `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` – für Apples Beglaubigung (Notarisierung)
-4. Bei jedem Push auf `main` entstehen unter „Artifacts“:
-   - Windows: `ImmoAdv-Browser-Setup-x.y.z.exe` (Installer) und ein `.appx` für den Microsoft Store
-   - Mac: `ImmoAdv-Browser-x.y.z.dmg` (läuft auf Apple-Chip und Intel)
+- **Blocker:** gepflegte Listen (HaGeZi Multi PRO, URLhaus, Phishing-Filter) → Chrome-Regeln. Malware/Phishing werden zusätzlich täglich frisch geladen. Herkunft und Stand stehen im Datenschutz-Center.
+- **Spurlos:** Verlauf wird sofort wieder gelöscht; Cookies und Website-Daten einer Seite werden 8 Sekunden nach dem Schließen ihres letzten Tabs gelöscht – außer bei „Angemeldet bleiben bei“ (Google, iCloud, immoadv.de …). Beim Start: Cache und Download-Liste leer.
+- **NordVPN:** verschlüsselter NordVPN-Proxy (TLS, Port 89) für den gesamten Browser-Verkehr, schnellster Server laut NordVPN, Serverwechsel bei Ausfall, kein Rückfall auf eine ungeschützte Verbindung. Zugangsdaten AES-verschlüsselt nur auf dem Gerät. Gilt für den Browser, nicht für andere Programme.
+- **WebRTC:** ohne VPN keine lokalen IPs, mit VPN nur über das VPN.
+- **Keine Behauptung vollständiger Anonymität:** Wer sich bei einer Seite anmeldet, ist dort bekannt. Ohne NordVPN sieht der Internetanbieter, welche Seiten aufgerufen werden.
 
-## Microsoft Store
+## NordVPN einrichten (einmalig)
 
-Im Partner Center eine neue App „ImmoAdv Browser“ anlegen. Die dort angezeigten Werte für **Package/Identity/Name** und **Publisher** in `electron-builder.yml` bei `appx` eintragen, dann das `.appx` hochladen. Microsoft signiert es kostenlos.
+1. my.nordaccount.com → NordVPN → **Manuelle Einrichtung** → „Dienst-Zugangsdaten“ (Benutzername + Passwort, nicht E-Mail).
+2. Im Browser oben rechts auf das ImmoAdv-Symbol → Datenschutz-Center → „NordVPN einmalig anmelden“ → einfügen → Speichern.
 
-## Lokal testen (optional)
+## Ersteinrichtung
+
+Das Programm führt durch drei Schritte: Chrome (wird bei Bedarf direkt von Google geladen und auf Googles Signatur geprüft), ImmoAdv in Chrome aktivieren (einmal „Entpackte Erweiterung laden“ – Ordner wird automatisch kopiert), mit Google anmelden.
+
+## Neue Version veröffentlichen
+
+`package.json` → `version` erhöhen, `NEUERUNGEN.md` anpassen, auf `main` pushen. CircleCI baut Windows und Mac, lädt die aktuellen Filterlisten und veröffentlicht das Release. Programme installieren es still beim nächsten Öffnen; die ImmoAdv-Schicht in Chrome übernimmt es innerhalb von 10 Minuten.
+
+## Lokal testen
 
 ```
 npm install
-npm run vendor
-npm start
+npm test
+npm start          # erzeugt kleine Test-Filterlisten und startet das Programm
 ```
-
-## Ehrliche Grenzen
-
-Auf dem Computer ist der offizielle **Tor Browser** beim Schutz vor Fingerabdrücken noch etwas stärker, weil er viele Browser-Merkmale vereinheitlicht. Der ImmoAdv Browser schützt IP-Adresse, DNS und Verlauf zuverlässig und bringt die ImmoAdv-Werkzeuge mit. Sobald du dich irgendwo einloggst, kennt dich diese Seite.
-
-## Automatische Updates
-
-- Das Programm sucht beim Start und alle 4 Stunden nach einer neuen Version (auch das über Tor), lädt sie im Hintergrund und zeigt dann ein Pop-up mit den **Neuerungen**: „Jetzt neu starten und installieren“ oder „Später“ (dann beim Beenden).
-- In den Einstellungen: Schalter **„Automatische Updates“**, Knopf **„Jetzt nach Updates suchen“ / „Update jetzt starten“**, aktuelle Version.
-- Die Microsoft-Store-Version wird vom Store aktualisiert.
-
-**Einmalig einrichten:**
-1. Auf GitHub ein **öffentliches** Repository `immoadv-browser-desktop` anlegen (Konto Feray20 ist schon eingetragen).
-2. GitHub → Settings → Developer settings → Fine-grained tokens → neues Token nur für dieses Repository mit „Contents: Read and write“ → in CircleCI unter Project Settings → Environment Variables als `GH_TOKEN` eintragen.
-3. Fertige Installer liegen danach unter github.com/Feray20/immoadv-browser-desktop/releases.
-
-**Neues Update veröffentlichen:** In `package.json` die `"version"` erhöhen (z. B. `1.0.0` → `1.0.1`) und in `NEUERUNGEN.md` kurz aufschreiben, was neu ist – genau dieser Text erscheint im Update-Pop-up. Nach dem Push baut CircleCI Windows und Mac und veröffentlicht – alle installierten Programme aktualisieren sich dann selbst.
-
-**Mac:** Updates funktionieren nur mit signierter App (Developer-ID-Zertifikat, siehe oben).

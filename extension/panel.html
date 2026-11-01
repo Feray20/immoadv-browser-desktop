@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>ImmoAdv Datenschutz-Center</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="ui.css">
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-row">
+      <img src="icons/icon48.png" width="32" height="32" alt="">
+      <div>
+        <div class="title">Datenschutz-Center</div>
+        <div id="heroStatus" class="sub">Wird geprüft …</div>
+      </div>
+    </div>
+    <div class="kpis">
+      <div><b id="kWerbung">–</b><span>Werbung &amp; Tracker</span></div>
+      <div><b id="kMalware">–</b><span>Malware</span></div>
+      <div><b id="kPhishing">–</b><span>Phishing</span></div>
+    </div>
+    <div id="since" class="since"></div>
+  </header>
+
+  <main class="grid">
+    <section class="card sec" id="secSite">
+      <h2>Diese Seite</h2>
+      <div class="row"><div><div id="siteName" class="strong">–</div><div id="siteBlocked" class="muted small"></div></div>
+        <label class="switch" title="Schutz auf dieser Seite"><input type="checkbox" id="siteProtect"><span></span></label></div>
+      <div id="sitePerms" class="perms"></div>
+    </section>
+
+    <section class="card sec">
+      <h2>Verbindung</h2>
+      <div id="vpnLogin" class="hidden">
+        <div class="strong">NordVPN einmalig anmelden</div>
+        <p class="note" style="margin:4px 0 8px">Danach läuft alles automatisch über den schnellsten NordVPN-Server – ohne NordVPN-App. Benötigt werden die <b>Dienst-Zugangsdaten</b> (nicht E-Mail/Passwort): <a href="https://my.nordaccount.com/dashboard/nordvpn/manual-configuration/" target="_blank">im Nord-Konto unter „Manuelle Einrichtung“</a>.</p>
+        <form id="vpnForm" class="vpnform">
+          <input type="text" id="vpnUser" placeholder="Benutzername (Dienst)" autocomplete="off" spellcheck="false">
+          <input type="password" id="vpnPass" placeholder="Passwort (Dienst)" autocomplete="off">
+          <button class="btn primary">Speichern &amp; verbinden</button>
+        </form>
+      </div>
+      <div class="kv"><span class="dot" id="dnsDot"></span><div><div class="strong">DNS</div><div id="dnsText" class="muted small">–</div></div></div>
+      <div class="kv"><span class="dot" id="vpnDot"></span><div><div class="strong">VPN</div><div id="vpnText" class="muted small">–</div></div></div>
+      <div class="kv"><span class="dot" id="rtcDot"></span><div><div class="strong">WebRTC</div><div id="rtcText" class="muted small">–</div></div></div>
+      <div class="kv"><span class="dot" id="ipDot"></span><div><div class="strong">Öffentliche IP &amp; Leck-Prüfung</div><div id="ipText" class="muted small">Noch nicht geprüft</div></div></div>
+      <div class="actions"><button class="btn" id="ipCheck">Jetzt prüfen</button><button class="btn ghost hidden" id="vpnLogout">NordVPN abmelden</button></div>
+      <p class="note">„Jetzt prüfen“ fragt einmalig <b>api.ipify.org</b> nach deiner öffentlichen IP-Adresse. Sonst baut das Datenschutz-Center keine Verbindungen auf.</p>
+    </section>
+
+    <section class="card sec">
+      <h2>Schutz</h2>
+      <div class="row"><div><div class="strong">Werbung &amp; Tracker</div><div class="muted small">Inkl. Tracking-Pixel und bekannter Fingerprinting-Skripte</div></div><label class="switch"><input type="checkbox" data-prot="werbung"><span></span></label></div>
+      <div class="row"><div><div class="strong">Malware-Seiten</div><div class="muted small">Warnseite statt gefährlicher Inhalte</div></div><label class="switch"><input type="checkbox" data-prot="malware"><span></span></label></div>
+      <div class="row"><div><div class="strong">Phishing-Seiten</div><div class="muted small">Gefälschte Login- und Bezahlseiten</div></div><label class="switch"><input type="checkbox" data-prot="phishing"><span></span></label></div>
+      <div class="row"><div><div class="strong">Listen täglich aktualisieren</div><div class="muted small">Malware/Phishing ändern sich stündlich</div></div><label class="switch"><input type="checkbox" id="freshLists"><span></span></label></div>
+      <details><summary>Herkunft der Filterlisten</summary><div id="sources" class="small muted"></div></details>
+    </section>
+
+    <section class="card sec">
+      <h2>Privatsphäre</h2>
+      <div id="privacyRows"></div>
+    </section>
+
+    <section class="card sec">
+      <h2>Berechtigungen (Standard für alle Seiten)</h2>
+      <div id="defaultPerms" class="perms"></div>
+      <div class="actions"><button class="btn ghost" data-open="chrome://settings/content">USB, Bluetooth, Bildschirmfreigabe …</button></div>
+    </section>
+
+    <section class="card sec">
+      <h2>Ausnahmen &amp; Sperrliste</h2>
+      <div class="strong small">Vertrauenswürdige Seiten (kein Blocker)</div>
+      <form class="add" data-list="allowlist"><input type="text" placeholder="z. B. immoadv.de"><button class="btn">Hinzufügen</button></form>
+      <ul class="list" id="allowlist"></ul>
+      <div class="strong small" style="margin-top:14px">Eigene Sperrliste</div>
+      <form class="add" data-list="blocklist"><input type="text" placeholder="z. B. beispiel.com"><button class="btn">Sperren</button></form>
+      <ul class="list" id="blocklist"></ul>
+    </section>
+
+    <section class="card sec">
+      <h2>Angemeldet bleiben bei</h2>
+      <p class="note" style="margin:0 0 6px">Alle anderen Seiten hinterlassen keine Spuren: kein Verlauf, und ihre Cookies und Daten werden gelöscht, sobald du den letzten Tab der Seite schließt.</p>
+      <form class="add" data-list="keep"><input type="text" placeholder="z. B. gmail.com"><button class="btn">Hinzufügen</button></form>
+      <ul class="list" id="keep"></ul>
+    </section>
+
+    <section class="card sec">
+      <h2>Erweiterungen</h2>
+      <div id="extSummary" class="muted small"></div>
+      <ul class="list" id="extList"></ul>
+      <div class="actions"><button class="btn ghost" data-open="chrome://extensions">Erweiterungen verwalten</button><button class="btn ghost" data-open="https://chromewebstore.google.com/detail/icloud-passwords/pejdijmoenmkgeppbflobdenhhabjlaj">iCloud-Passwörter</button></div>
+    </section>
+
+    <section class="card sec">
+      <h2>Übersetzung &amp; Konto</h2>
+      <div class="row"><div><div class="strong">Zielsprache</div><div class="muted small">Für „Markierten Text übersetzen“ (Rechtsklick). Ganze Seiten übersetzt Chrome selbst.</div></div>
+        <select id="lang"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="tr">Türkisch</option><option value="fr">Französisch</option><option value="es">Spanisch</option><option value="it">Italienisch</option><option value="pl">Polnisch</option><option value="ar">Arabisch</option></select></div>
+      <p class="note">Beim Markieren wird nur der markierte Text an Google Übersetzer gesendet. Lesezeichen, Passwörter, Passkeys und Verlauf synchronisiert Chrome über dein Google-Konto mit Windows, Mac und iPhone.</p>
+      <div class="actions"><button class="btn ghost" data-open="chrome://settings/syncSetup">Sync &amp; Google-Konto</button><button class="btn ghost" data-open="chrome://password-manager/passwords">Passwörter &amp; Passkeys</button></div>
+    </section>
+
+    <section class="card sec">
+      <h2>Updates</h2>
+      <div class="kv"><span class="dot ok"></span><div><div class="strong">Chrome</div><div id="vChrome" class="muted small">–</div></div></div>
+      <div class="kv"><span class="dot" id="updDot"></span><div><div class="strong">ImmoAdv</div><div id="vImmo" class="muted small">–</div></div></div>
+      <div class="actions"><a class="btn primary" href="immoadv-browser://update">Nach Updates suchen</a><button class="btn ghost" data-open="chrome://settings/help">Chrome-Update</button></div>
+    </section>
+  </main>
+  <script type="module" src="panel.js"></script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+{
+  "manifest_version": 3,
+  "name": "ImmoAdv Design",
+  "version": "2.0.0",
+  "description": "ImmoAdv-Design für den Chrome-Rahmen (Deep Petrol).",
+  "icons": {
+    "128": "icon128.png"
+  },
+  "theme": {
+    "colors": {
+      "frame": [
+        11,
+        31,
+        58
+      ],
+      "frame_inactive": [
+        20,
+        38,
+        64
+      ],
+      "frame_incognito": [
+        24,
+        24,
+        30
+      ],
+      "frame_incognito_inactive": [
+        34,
+        34,
+        40
+      ],
+      "toolbar": [
+        14,
+        52,
+        72
+      ],
+      "tab_text": [
+        255,
+        255,
+        255
+      ],
+      "tab_background_text": [
+        196,
+        214,
+        230
+      ],
+      "tab_background_text_inactive": [
+        160,
+        178,
+        196
+      ],
+      "bookmark_text": [
+        232,
+        240,
+        247
+      ],
+      "toolbar_text": [
+        255,
+        255,
+        255
+      ],
+      "toolbar_button_icon": [
+        214,
+        236,
+        240
+      ],
+      "omnibox_background": [
+        9,
+        36,
+        52
+      ],
+      "omnibox_text": [
+        240,
+        246,
+        250
+      ],
+      "ntp_background": [
+        245,
+        247,
+        250
+      ],
+      "ntp_text": [
+        15,
+        27,
+        45
+      ],
+      "button_background": [
+        25,
+        194,
+        176,
+        0.18
+      ]
+    },
+    "tints": {
+      "buttons": [
+        0.5,
+        0,
+        0.95
+      ]
+    },
+    "properties": {
+      "ntp_background_alignment": "bottom"
+    }
+  }
+}
