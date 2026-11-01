@@ -94,9 +94,11 @@ function save() {
   fs.renameSync(tmp, file());
 }
 
+const listeners = [];
 module.exports = {
   get: (k) => load()[k],
   all: () => ({ ...load() }),
-  set(k, v) { load()[k] = v; save(); },
+  set(k, v) { load()[k] = v; save(); for (const l of listeners) try { l(k); } catch {} },
+  onChange: (fn) => listeners.push(fn),
   setMany(obj) { Object.assign(load(), obj); save(); }
 };

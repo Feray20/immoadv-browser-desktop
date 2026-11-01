@@ -518,7 +518,7 @@ async function renderPasswords() {
       <button class="secondary" id="pwImport">Passwörter importieren (CSV) …</button>
       <p class="hint"><b>iPhone/Mac:</b> App „Passwörter“ → Ablage → „Alle Passwörter exportieren“.<br><b>Google/Chrome:</b> passwords.google.com → Einstellungen → Exportieren.<br>Danach die CSV-Datei hier wählen und anschließend <b>löschen</b> (sie ist unverschlüsselt).</p></div>
     <div class="group"><h3>Sicherheit</h3><p class="small">Jedes Passwort ist einzeln mit der Verschlüsselung deines Systems gesichert (${platform === 'darwin' ? 'Mac-Schlüsselbund' : 'Windows DPAPI'}). Anzeigen und Ausfüllen nur nach ${lockName}. Passwörter verlassen diesen Computer nicht.</p>
-    <p class="hint">Geräte-Abgleich mit iPhone/Mac ist in Arbeit; bis dahin per Export/Import übertragen.</p></div>`;
+    <p class="hint">Abgleich mit Mac und iPhone: Einstellungen → Geräte-Sync (Ende-zu-Ende verschlüsselt).</p></div>`;
   $('pwSearch').oninput = () => { pwQuery = $('pwSearch').value; const pos = $('pwSearch').selectionStart; renderPasswords().then(() => { $('pwSearch').focus(); $('pwSearch').setSelectionRange(pos, pos); }); };
   $('panelBody').querySelectorAll('[data-reveal]').forEach((b) => { b.onclick = async () => { const r = await api.pwReveal(b.dataset.reveal); const el = $('pv-' + b.dataset.reveal); if (r && el) { el.textContent = r.pass; setTimeout(() => { el.textContent = ''; }, 20000); } }; });
   $('panelBody').querySelectorAll('[data-copy]').forEach((b) => { b.onclick = async () => { const r = await api.pwReveal(b.dataset.copy); if (r) { await navigator.clipboard.writeText(r.pass); toast('Passwort kopiert – wird in 30 Sekunden aus der Zwischenablage entfernt'); setTimeout(() => navigator.clipboard.writeText(''), 30000); } }; });
@@ -567,6 +567,9 @@ async function renderTabsPanel() {
   const list = state.tabs.filter((t) => !q || (t.title + ' ' + t.url).toLowerCase().includes(q));
   $('panelBody').innerHTML = `<input type="search" id="tsSearch" placeholder="Tabs durchsuchen" value="${esc(tabsQuery)}">` +
     state.workspaces.map((w) => { const l = list.filter((t) => t.ws === w.id); return l.length ? `<p class="day">${esc(w.name)}</p>` + l.map((t) => `<div class="tab-card" data-id="${t.id}"><div class="thumb" id="th-${t.id}">${t.suspended ? 'schläft' : ''}</div><div class="grow" style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.title)}</b><small class="hint">${esc(hostOf(t.url))}</small></div></div>`).join('') : ''; }).join('');
+  const rt = (syncState.remoteTabs || []);
+  if (rt.length) $('panelBody').insertAdjacentHTML('beforeend', rt.map((d) => `<p class="day">📱 ${esc(d.name || 'Anderes Gerät')}</p>` + d.tabs.filter((t) => !q || (t.title + ' ' + t.url).toLowerCase().includes(q)).map((t) => `<div class="list-item" data-rurl="${esc(t.url)}">${favHTML({ url: t.url })}<div class="grow"><b>${esc(t.title || t.url)}</b><small>${esc(hostOf(t.url))}</small></div></div>`).join('')).join(''));
+  $('panelBody').querySelectorAll('[data-rurl]').forEach((el) => { el.onclick = () => api.newTab(el.dataset.rurl); });
   $('tsSearch').oninput = () => { tabsQuery = $('tsSearch').value; const pos = $('tsSearch').selectionStart; renderTabsPanel().then(() => { $('tsSearch').focus(); $('tsSearch').setSelectionRange(pos, pos); }); };
   $('panelBody').querySelectorAll('.tab-card').forEach((el) => { el.onclick = () => api.selectTab(el.dataset.id); });
   for (const t of list.filter((x) => !x.suspended && x.id !== state.activeId).slice(0, 16)) {
@@ -579,8 +582,8 @@ let setTab = 'allgemein';
 function renderSettings() {
   if (panelSub) { setTab = panelSub; panelSub = null; }
   $('panelTitle').textContent = 'Einstellungen';
-  const body = { allgemein: setGeneral, datenschutz: setPrivacy, sicherheit: setSecurity, vpn: setVPN, ki: setAI, bereiche: setWorkspaces, updates: setUpdates }[setTab] || setGeneral;
-  $('panelBody').innerHTML = seg([['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['bereiche', 'Bereiche'], ['updates', 'Updates']], setTab) + '<div id="setBody"></div>';
+  const body = { sync: setSync, allgemein: setGeneral, datenschutz: setPrivacy, sicherheit: setSecurity, vpn: setVPN, ki: setAI, bereiche: setWorkspaces, updates: setUpdates }[setTab] || setGeneral;
+  $('panelBody').innerHTML = seg([['allgemein', 'Allgemein'], ['sync', 'Geräte-Sync'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['bereiche', 'Bereiche'], ['updates', 'Updates']], setTab) + '<div id="setBody"></div>';
   wireSeg((k) => { setTab = k; renderSettings(); });
   body();
 }
@@ -629,6 +632,56 @@ function curKeepable() {
   const site = h.split('.').slice(-2).join('.');
   return (settings.keepSignedIn || []).some((d) => h === d || h.endsWith('.' + d)) ? '' : site;
 }
+
+// ---------- Geräte-Sync (Windows, Mac, iPhone) ----------
+let syncState = { status: 'off' };
+async function setSync() {
+  syncState = await api.syncState();
+  const st = syncState, msg = st.message ? `<p class="small" style="color:var(--amber)">${esc(st.message)}</p>` : '';
+  if (st.status === 'off' || st.status === 'needLogin') {
+    setBody(`<div class="group"><h3>Mit ImmoAdv-Konto anmelden</h3>
+      <p class="small">Passwörter, Lesezeichen, Einstellungen und offene Tabs gleichen sich zwischen Windows, Mac und iPhone ab. Alles wird auf dem Gerät verschlüsselt, bevor es hochgeht – auf dem Server liegt nur Unlesbares.</p>
+      <p><input type="text" id="syE" placeholder="E-Mail deines ImmoAdv-Kontos" value="${esc(st.email || '')}" autocomplete="off"></p>
+      <p><input type="password" id="syP" placeholder="ImmoAdv-Passwort" autocomplete="off"></p>
+      <button class="primary" id="syGo">Anmelden</button>${msg}</div>`);
+    $('syGo').onclick = async () => { $('syGo').disabled = true; $('syGo').textContent = 'Meldet an …'; await api.syncLogin($('syE').value, $('syP').value); setSync(); };
+    $('syP').onkeydown = (e) => { if (e.key === 'Enter') $('syGo').click(); };
+    return;
+  }
+  if (st.status === 'needMfa') {
+    setBody(`<div class="group"><h3>Bestätigungscode</h3><p class="small">Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>
+      <p><input type="text" id="syC" inputmode="numeric" maxlength="8" placeholder="123456" autocomplete="one-time-code"></p><button class="primary" id="syGo">Bestätigen</button>${msg}</div>`);
+    $('syC').focus();
+    $('syGo').onclick = async () => { await api.syncMfa($('syC').value); setSync(); };
+    $('syC').onkeydown = (e) => { if (e.key === 'Enter') $('syGo').click(); };
+    return;
+  }
+  if (st.status === 'needPassphrase') {
+    setBody(`<div class="group"><h3>${st.hasKey ? 'Sync-Passwort eingeben' : 'Sync-Passwort festlegen'}</h3>
+      <p class="small">${st.hasKey ? 'Das Sync-Passwort, das du auf deinem ersten Gerät festgelegt hast.' : 'Einmal festlegen, danach auf jedem neuen Gerät einmal eingeben. Damit werden deine Daten verschlüsselt – <b>ImmoAdv kann es nicht zurücksetzen</b>. Gut merken bzw. sicher notieren.'}</p>
+      <p><input type="password" id="syK" placeholder="Sync-Passwort (mind. 8 Zeichen)" autocomplete="new-password"></p>
+      ${st.hasKey ? '' : '<p><input type="password" id="syK2" placeholder="Wiederholen" autocomplete="new-password"></p>'}
+      <button class="primary" id="syGo">${st.hasKey ? 'Entsperren' : 'Festlegen & abgleichen'}</button>${msg}</div>`);
+    $('syK').focus();
+    $('syGo').onclick = async () => {
+      if ($('syK2') && $('syK').value !== $('syK2').value) return toast('Die beiden Eingaben stimmen nicht überein');
+      $('syGo').disabled = true; $('syGo').textContent = 'Verschlüsselt …'; await api.syncPassphrase($('syK').value); setSync();
+    };
+    return;
+  }
+  setBody(`<div class="group"><h3>Geräte-Sync aktiv</h3>
+      <div class="row"><span>Konto</span><b>${esc(st.email)}</b></div>
+      <div class="row"><span>Zuletzt abgeglichen</span><b>${st.lastSync ? new Date(st.lastSync).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '…'}</b></div>
+      <div class="row"><span>Passwörter / Lesezeichen</span><b>${st.counts ? `${num(st.counts.passwords)} / ${num(st.counts.bookmarks)}` : '…'}</b></div>
+      <div class="row"><span>Andere Geräte mit offenen Tabs</span><b>${(st.remoteTabs || []).length}</b></div>
+      <button class="secondary" id="syNow">Jetzt abgleichen</button>${msg}</div>
+    <p class="small">Abgeglichen werden Passwörter, Lesezeichen, „Angemeldet bleiben“, Ausnahmen, Sperrliste, Suchmaschine, Arbeitsbereiche und offene Tabs. Ende-zu-Ende verschlüsselt (AES-256), Schlüssel nur auf deinen Geräten.</p>
+    <button class="link" id="syOut">Auf diesem Gerät abmelden</button>`);
+  $('syNow').onclick = async () => { $('syNow').textContent = 'Gleicht ab …'; await api.syncNow(); setSync(); };
+  $('syOut').onclick = async () => { if (confirm('Sync auf diesem Gerät beenden? Deine Daten hier bleiben erhalten.')) { await api.syncLogout(); setSync(); } };
+}
+api.onSync((st) => { syncState = st; if (panel === 'settings' && setTab === 'sync' && document.activeElement?.tagName !== 'INPUT') setSync(); if (panel === 'tabs') renderTabsPanel(); });
+api.onSettings((s) => { const dl = settings._dlName; settings = { ...s, _dlName: dl }; renderBookmarkBar(); renderStart(); renderToolbar(); if (panel === 'bookmarks') renderBookmarks(); });
 
 function setPrivacy() {
   setBody(`<div class="group"><h3>Angemeldet bleiben</h3><p class="small">Überall sonst werden Cookies gelöscht, sobald du eine Seite verlässt.</p>
@@ -807,7 +860,7 @@ function palCommands() {
     ['Downloads', () => openPanel('downloads')], ['Passwörter', () => openPanel('passwords')], ['Datenschutz-Center', () => openPanel('privacy')], ['Einstellungen', () => openPanel('settings')],
     ['Merkliste & Vergleich', () => openPanel('watch')], ['PDF öffnen & unterschreiben', () => api.openPDF()], ['Bildschirmfoto der Seite', () => takeShot()],
     ['Link ohne Tracking kopieren', async () => toast((await api.copyCleanLink()) ? 'Link kopiert' : 'Kein Link')], ['Geschlossenen Tab wieder öffnen', () => api.reopenTab()],
-    ['Tabs links/oben umschalten', async () => { await setS({ tabLayout: vertical() ? 'horizontal' : 'vertical' }); renderAll(); }],
+    ['Geräte-Sync', () => openPanel('settings', 'sync')], ['Tabs links/oben umschalten', async () => { await setS({ tabLayout: vertical() ? 'horizontal' : 'vertical' }); renderAll(); }],
     ['Als Standardbrowser festlegen', () => api.makeDefaultBrowser()], ['Entwicklertools', () => api.devtools()], ['Drucken', () => api.print()], ['Nach Updates suchen', () => { openPanel('settings', 'updates'); api.checkUpdate(); }],
     ...(t && t.listing ? [['Immobilien-Check', () => openPanel('immo')]] : [])
   ].map(([label, run]) => ({ label, run, k: '›' }));
@@ -949,6 +1002,7 @@ api.onTts(() => tts());
   vpnState = s.vpn; blockerInfo = s.blocker; countries = s.countries; dnsList = s.dns;
   aiInfo = s.ai; aiProviders = s.aiProviders; watchlist = s.watchlist; online = s.online;
   document.body.classList.toggle('mac', platform === 'darwin');
+  api.syncState().then((st) => { syncState = st; });
   renderStart(); renderBookmarkBar(); renderAll(); renderUpdate();
   if (!settings.downloadDir) showOnboarding(true);
   setInterval(renderStart, 60000);

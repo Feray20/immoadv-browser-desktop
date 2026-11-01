@@ -30,7 +30,7 @@ function add({ url, user, pass }) {
   const list = all();
   const same = list.find((p) => p.site === site && p.user === (user || ''));
   if (same) { same.pass = enc(pass); same.changed = Date.now(); }
-  else list.push({ id: crypto.randomUUID(), site, host, user: user || '', pass: enc(pass), added: Date.now() });
+  else list.push({ id: crypto.randomUUID(), site, host, user: user || '', pass: enc(pass), added: Date.now(), changed: Date.now() });
   save(list);
   return true;
 }
@@ -117,7 +117,23 @@ function importCSV(text) {
   return { added, skipped };
 }
 
+// ---------- Für den Geräte-Abgleich (nur intern im Hauptprozess, nie an Oberfläche oder Webseiten) ----------
+function plainEntries() {
+  return all().map((p) => ({ site: p.site, host: p.host, user: p.user || '', pass: dec(p.pass), changed: p.changed || p.added || 0 })).filter((p) => p.pass != null);
+}
+/** Eintrag aus dem Abgleich übernehmen (neuer gewinnt) bzw. löschen */
+function applySync({ site, host, user, pass, changed }, deleted) {
+  const list = all();
+  const i = list.findIndex((p) => p.site === site && (p.user || '') === (user || ''));
+  if (deleted) { if (i >= 0) { list.splice(i, 1); save(list); } return; }
+  if (!safeStorage.isEncryptionAvailable() || !pass) return;
+  if (i >= 0) { list[i].pass = enc(pass); list[i].changed = changed || Date.now(); if (host) list[i].host = host; }
+  else list.push({ id: crypto.randomUUID(), site, host: host || site, user: user || '', pass: enc(pass), added: changed || Date.now(), changed: changed || Date.now() });
+  save(list);
+}
+
 module.exports = {
+  plainEntries, applySync,
   forUrl, add, known, remove, unlock, reveal, importCSV,
   list: () => all().map(({ id, site, host, user, added }) => ({ id, site, host, user, added })),
   /** Für das Ausfüllen: Passwort erst nach Freigabe */

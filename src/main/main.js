@@ -12,6 +12,7 @@ const vpn = require('./vpn');
 const vault = require('./vault');
 const history = require('./history');
 const ai = require('./ai');
+const sync = require('./sync');
 const { cleanURL, createBrowsingSession, tabPreferences, hostOf, startupCleanup, siteLeft } = require('./privacy');
 const { cleanDomain, siteOf } = require('../shared/lists');
 const { LISTING_SCRIPT } = require('../shared/listing');
@@ -428,6 +429,7 @@ function saveSession(now = false) {
     if (store.get('restoreSession') === false) return store.get('lastSession') && store.set('lastSession', null);
     const list = tabs.filter((t) => t.kind === 'web' && /^https?:/.test(t.url)).map((t) => ({ url: t.url, title: t.title, ws: t.ws, pinned: !!t.pinned, active: t.id === activeId }));
     store.set('lastSession', { tabs: list.slice(0, 80), activeWs: activeWs() });
+    sync.tabsChanged();
   };
   if (now) doSave(); else sessionTimer = setTimeout(doSave, 1500);
 }
@@ -695,7 +697,7 @@ function translate(t) {
 const SETTINGS_KEYS = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'allowlist', 'blocklist', 'httpsOnly', 'cleanLinks', 'javaScript',
   'dnsProvider', 'keepSignedIn', 'appLock', 'bookmarks', 'rememberFrequent', 'bookmarkBar', 'searchEngine', 'neverSave', 'restoreSession',
   'tabLayout', 'sidebarCollapsed', 'googleExternal', 'suspendMinutes', 'historyDays', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'workspaces', 'autoUpdate'];
-const PRIVATE_KEYS = ['vpnCreds', 'passwords', 'aiKeys', 'lastSession', 'vpnServers', 'permissions'];
+const PRIVATE_KEYS = ['vpnCreds', 'passwords', 'aiKeys', 'lastSession', 'vpnServers', 'permissions', 'syncAuth', 'syncKey', 'syncSeen', 'syncCursor'];
 
 function publicSettings() {
   const s = store.all();
@@ -932,6 +934,12 @@ function registerIPC() {
   });
   on('menu', () => showMenu());
   handle('default:status', () => isDefaultBrowser());
+  handle('sync:state', () => sync.state());
+  handle('sync:login', (_e, email, pass) => sync.login(email, pass));
+  handle('sync:mfa', (_e, code) => sync.mfa(code));
+  handle('sync:passphrase', (_e, p) => sync.setPassphrase(p));
+  handle('sync:logout', () => { sync.logout(); return sync.state(); });
+  handle('sync:now', async () => { await sync.runNow(); return sync.state(); });
   handle('default:set', () => makeDefaultBrowser());
 }
 
@@ -1082,6 +1090,12 @@ app.whenReady().then(async () => {
   });
   await vpn.init(browsingSession);
   await createWindow();
+  // Geräte-Abgleich (läuft über die Browser-Sitzung, also auch über NordVPN)
+  let lastSyncSeen = 0;
+  sync.init(browsingSession.fetch.bind(browsingSession), () => tabs.map((t) => ({ url: t.url, title: t.title })), (st) => {
+    send('sync', st);
+    if (st.lastSync && st.lastSync !== lastSyncSeen) { lastSyncSeen = st.lastSync; send('settings', publicSettings()); for (const t of tabs) if (t.url && t.kind === 'web') t.login = vault.forUrl(t.url); pushTabs(); }
+  });
 
   updater.init((s) => send('update', s));
   // Malware-/Phishing-Listen: beim Start (verzögert) und danach täglich frisch

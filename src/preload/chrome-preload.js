@@ -37,7 +37,8 @@ contextBridge.exposeInMainWorld('immo', {
   chooseDownloadDir: inv('downloadDir:choose'), useDefaultDownloadDir: inv('downloadDir:default'), openDownloadDir: inv('downloadDir:open'),
   openPDF: snd('pdf:open'), savePDF: snd('pdf:save'),
   // Einstellungen & Updates
-  setSettings: inv('settings:set'), isDefaultBrowser: inv('default:status'), makeDefaultBrowser: inv('default:set'),
+  setSettings: inv('settings:set'),
+  syncState: inv('sync:state'), syncLogin: inv('sync:login'), syncMfa: inv('sync:mfa'), syncPassphrase: inv('sync:passphrase'), syncLogout: inv('sync:logout'), syncNow: inv('sync:now'), onSync: on('sync'), onSettings: on('settings'), isDefaultBrowser: inv('default:status'), makeDefaultBrowser: inv('default:set'),
   checkUpdate: inv('update:check'), updateNow: inv('update:now'), setAutoUpdate: inv('update:auto'), showUpdateLog: inv('update:log'),
   // Ereignisse
   onTabs: on('tabs'), onUpdate: on('update'), onVpn: on('vpn'), onBlocker: on('blocker'), onDownloads: on('downloads'), onOnline: on('online'),
