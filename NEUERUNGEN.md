@@ -1,3 +1,9 @@
+ImmoAdv Browser 3.0.13 – PDF-Studio
+- Neu: PDF-Studio (Knopf „PDF-Studio“ bei PDFs und Bildern bzw. ⋯ → PDF-Studio)
+- Texterkennung (OCR, Deutsch + Englisch): eingescannte PDFs und Fotos werden durchsuchbar, Text lässt sich markieren und kopieren – komplett offline
+- Schief eingescannte Seiten automatisch gerade ausrichten
+- Seiten drehen, löschen, per Ziehen sortieren, weitere PDFs oder Bilder anhängen; Ergebnis wird neben dem Original gespeichert und gleich geöffnet
+
 ImmoAdv Browser 3.0.12
 - Bilder vom Schreibtisch öffnen in der gewohnten ImmoAdv-Vorschau: Name mit Größe (px · KB), Verkleinern/Vergrößern, An Fenster anpassen, Drehen, Drucken, Kopie speichern
 - Neu: „Bearbeiten“ direkt im Browser – Drehen, Spiegeln, Zuschneiden, Helligkeit, Kontrast, Sättigung, Wärme; Speichern in die Originaldatei oder als Kopie

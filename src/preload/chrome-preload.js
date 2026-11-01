@@ -35,7 +35,7 @@ contextBridge.exposeInMainWorld('immo', {
   // Downloads & PDF
   downloads: inv('downloads:list'), showDownload: snd('downloads:show'), openDownload: snd('downloads:open'), cancelDownload: snd('downloads:cancel'), clearDownloads: snd('downloads:clear'),
   chooseDownloadDir: inv('downloadDir:choose'), useDefaultDownloadDir: inv('downloadDir:default'), openDownloadDir: inv('downloadDir:open'),
-  openPDF: snd('pdf:open'), savePDF: snd('pdf:save'),
+  openPDF: snd('pdf:open'), openStudio: snd('studio:open'), savePDF: snd('pdf:save'),
   // Einstellungen & Updates
   setSettings: inv('settings:set'), isDefaultBrowser: inv('default:status'), makeDefaultBrowser: inv('default:set'),
   checkUpdate: inv('update:check'), updateNow: inv('update:now'), setAutoUpdate: inv('update:auto'), showUpdateLog: inv('update:log'),

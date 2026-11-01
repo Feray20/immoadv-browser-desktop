@@ -1,7 +1,7 @@
 {
   "name": "immoadv-browser",
   "productName": "ImmoAdv Browser",
-  "version": "3.0.12",
+  "version": "3.0.13",
   "description": "ImmoAdv Browser – eigener Browser auf Chromium-Basis mit NordVPN, Blocker, Passwörtern, KI-Assistent und Arbeitsbereichen",
   "author": "Feray Korkmaz",
   "license": "UNLICENSED",
@@ -17,7 +17,9 @@
     "dist:mac": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/ensure-release.mjs && electron-builder --mac --universal --publish always && node scripts/finalize-release.mjs"
   },
   "dependencies": {
-    "electron-updater": ">=6.3.0"
+    "electron-updater": ">=6.3.0",
+    "tesseract.js": "5.1.1",
+    "pdf-lib": "1.17.1"
   },
   "devDependencies": {
     "electron": ">=38.0.0",

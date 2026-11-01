@@ -125,7 +125,8 @@ function renderToolbar() {
   $('lock').className = 'lock' + (https ? ' ok' : '');
   $('lock').title = https ? 'Verschlüsselte Verbindung (HTTPS), Zertifikat geprüft' : '';
   $('immoBtn').classList.toggle('hidden', !(t && t.listing));
-  $('pdfSave').classList.toggle('hidden', !(t && t.kind === 'pdf'));
+  $('pdfSave').classList.toggle('hidden', !(t && t.kind === 'pdf' && !t.studio && !(t.fileName && !/\.pdf$/i.test(t.fileName))));
+  $('studioBtn').classList.toggle('hidden', !(t && t.studioable));
   $('keyBtn').classList.toggle('hidden', !(t && t.login && t.login.length));
   $('bookmarkBtn').classList.toggle('on', !!(t && t.url && isBookmarked(t.url)));
   $('reload').innerHTML = t && t.loading
@@ -828,7 +829,7 @@ function palCommands() {
     ['Kurzfassung (ohne KI)', () => openPanel('summary')], ['Seite übersetzen', () => api.translate()], ['Seite vorlesen', () => tts()],
     ['Geteilte Ansicht', () => api.split()], ['Alle Tabs', () => openPanel('tabs')], ['Verlauf', () => openPanel('history')], ['Lesezeichen', () => openPanel('bookmarks')],
     ['Downloads', () => openPanel('downloads')], ['Passwörter', () => openPanel('passwords')], ['Datenschutz-Center', () => openPanel('privacy')], ['Einstellungen', () => openPanel('settings')],
-    ['Merkliste & Vergleich', () => openPanel('watch')], ['PDF öffnen & unterschreiben', () => api.openPDF()], ['Bildschirmfoto der Seite', () => takeShot()],
+    ['Merkliste & Vergleich', () => openPanel('watch')], ['PDF öffnen & unterschreiben', () => api.openPDF()], ['PDF-Studio: Text erkennen (OCR) & gerade ausrichten', () => api.openStudio()], ['Bildschirmfoto der Seite', () => takeShot()],
     ['Link ohne Tracking kopieren', async () => toast((await api.copyCleanLink()) ? 'Link kopiert' : 'Kein Link')], ['Geschlossenen Tab wieder öffnen', () => api.reopenTab()],
     ['Tabs links/oben umschalten', async () => { await setS({ tabLayout: vertical() ? 'horizontal' : 'vertical' }); renderAll(); }],
     ['Als Standardbrowser festlegen', () => api.makeDefaultBrowser()], ['Entwicklertools', () => api.devtools()], ['Drucken', () => api.print()], ['Nach Updates suchen', () => { openPanel('settings', 'updates'); api.checkUpdate(); }],
@@ -889,6 +890,7 @@ $('shield').onclick = () => togglePanel('privacy');
 $('bookmarkBtn').onclick = () => bookmarkCurrent();
 $('immoBtn').onclick = () => togglePanel('immo');
 $('pdfSave').onclick = () => api.savePDF();
+$('studioBtn').onclick = () => api.openStudio();
 $('panelClose').onclick = closePanel;
 $('keyBtn').onclick = async () => {
   const t = activeTab(); if (!t || !t.login) return;

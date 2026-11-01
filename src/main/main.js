@@ -408,6 +408,7 @@ function newTab(url, opts = {}) {
     url: url || '', title: opts.title || (url ? hostOf(url) : 'Startseite'), filePath: opts.filePath || null, lastActive: Date.now()
   };
   if (opts.localFile && url) tab.localFile = url;
+  if (opts.studio) tab.studio = true;
   if (opts.viewOnly) tab.viewOnly = true;
   if (opts.suspended) tab.suspended = true; else attachView(tab);
   const at = opts.index != null ? opts.index : tabs.length;
@@ -525,7 +526,7 @@ function pushNow() {
       const pw = pwPending.get(t.id);
       return {
         id: t.id, ws: t.ws, pinned: !!t.pinned, kind: t.kind, title: t.title, url: t.kind === 'pdf' ? '' : t.url, favicon: t.favicon || null,
-        fileName: t.filePath ? path.basename(t.filePath) : null, suspended: !!t.suspended, audible: !!t.audible,
+        fileName: t.filePath ? path.basename(t.filePath) : null, studioable: !!(t.filePath && STUDIO_RE.test(t.filePath) && !t.studio), studio: !!t.studio, suspended: !!t.suspended, audible: !!t.audible,
         loading: !!t.loading, zoom: t.zoom || 0, error: t.error || null, listing: t.listing || null,
         blocked: t.blocked || null, login: t.login ? t.login.map(({ id, user }) => ({ id, user })) : null,
         pwOffer: pw ? { user: pw.user, site: siteOf(hostOf(pw.url)), update: pw.update } : null,
@@ -656,6 +657,32 @@ async function openPDFDialog() {
 }
 function openPDF(filePath) { newTab(pdf.viewerURL(filePath), { kind: 'pdf', title: path.basename(filePath), filePath }); }
 // Word/Excel/PowerPoint/Bilder: gleiche abgeschottete Sitzung wie PDF, nur Anzeige (Speichern gibt es hier nicht).
+// PDF-Studio: Texterkennung, Geradeziehen, Seiten drehen/löschen/sortieren/anhängen
+const STUDIO_RE = /\.(pdf|png|jpe?g|gif|webp|bmp)$/i;
+function openStudio(filePath) {
+  if (!filePath || !STUDIO_RE.test(filePath)) return send('toast', 'PDF-Studio öffnet PDFs und Bilder');
+  newTab(pdf.studioURL(filePath), { kind: 'pdf', title: `PDF-Studio – ${path.basename(filePath)}`, filePath, viewOnly: true, studio: true });
+}
+async function openStudioDialog() {
+  const r = await dialog.showOpenDialog(win, { title: 'PDF oder Bild für das PDF-Studio wählen', properties: ['openFile'], filters: [{ name: 'PDF und Bilder', extensions: ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }], defaultPath: downloadDir() });
+  if (!r.canceled && r.filePaths[0]) openStudio(r.filePaths[0]);
+}
+// Ergebnis des PDF-Studios: neben der Originaldatei speichern und gleich im PDF-Betrachter öffnen
+function wireStudioDownloads() {
+  pdf.getSession().on('will-download', (_e, item, wc) => {
+    const tab = tabs.find((t) => t.view && t.view.webContents === wc);
+    let dir = tab && tab.filePath ? path.dirname(tab.filePath) : downloadDir();
+    try { fs.accessSync(dir, fs.constants.W_OK); } catch { dir = downloadDir(); }
+    const target = uniquePath(dir, item.getFilename());
+    item.setSavePath(target);
+    item.once('done', (_ev, st) => {
+      if (st !== 'completed') return send('toast', 'Speichern abgebrochen');
+      send('toast', `Gespeichert: ${path.basename(target)}`);
+      if (/\.pdf$/i.test(target)) openPDF(target);
+    });
+  });
+}
+
 function openOffice(filePath) { newTab(pdf.officeURL(filePath), { kind: 'pdf', title: path.basename(filePath), filePath, viewOnly: true }); }
 
 // ---------- Tastenkürzel (auch wenn der Fokus in einer Webseite liegt) ----------
@@ -1056,6 +1083,7 @@ function registerIPC() {
   handle('downloadDir:default', () => { store.set('downloadDir', app.getPath('downloads')); return path.basename(app.getPath('downloads')); });
   handle('downloadDir:open', () => shell.openPath(downloadDir()));
   on('pdf:open', () => openPDFDialog());
+  on('studio:open', () => { const t = active(); if (t && t.filePath && STUDIO_RE.test(t.filePath) && !t.studio) openStudio(t.filePath); else openStudioDialog(); });
   on('pdf:save', () => { const t = active(); if (t?.kind === 'pdf') savePDF(t); });
 
   // Einstellungen
@@ -1209,6 +1237,7 @@ function showMenu(pos) {
     { label: 'Merkliste & Vergleich', enabled: (store.get('watchlist') || []).length > 0 || !!t?.listing, click: () => send('open-panel', 'watch') },
     { type: 'separator' },
     { label: 'PDF öffnen & unterschreiben …', click: () => openPDFDialog() },
+    { label: t?.filePath && STUDIO_RE.test(t.filePath) && !t.studio ? 'Im PDF-Studio bearbeiten (Text erkennen, gerade ausrichten)' : 'PDF-Studio (Text erkennen, gerade ausrichten) …', click: () => (t?.filePath && STUDIO_RE.test(t.filePath) && !t.studio ? openStudio(t.filePath) : openStudioDialog()) },
     ...(t?.kind === 'pdf' ? [{ label: 'PDF speichern', accelerator: 'CmdOrCtrl+S', click: () => savePDF(t) }] : []),
     { label: 'Bildschirmfoto der Seite', enabled: !!t?.url, click: () => send('screenshot') },
     { label: 'Entwicklertools', accelerator: 'F12', enabled: !!wc, click: () => devTools(t) },
@@ -1290,6 +1319,7 @@ app.whenReady().then(async () => {
   blocker.load();
   browsingSession = createBrowsingSession();
   wireDownloads(browsingSession);
+  try { wireStudioDownloads(); } catch (e) { console.error('PDF-Studio', e); }
   await startupCleanup(browsingSession);
   vpn.onState((s) => {
     send('vpn', s);

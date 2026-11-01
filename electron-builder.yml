@@ -11,6 +11,8 @@ files:
 extraResources:
   - from: vendor/pdfjs
     to: pdfjs
+  - from: vendor/studio
+    to: studio
   - from: vendor/lists
     to: lists
   # Symbole je Dateityp (PDF, Word, Excel …) – Dokumente zeigen ihr Format, nicht das Browser-Logo (01.11.2026)

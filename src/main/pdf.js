@@ -22,6 +22,9 @@ const MIME = { '.html': 'text/html', '.mjs': 'text/javascript', '.js': 'text/jav
   '.bcmap': 'application/octet-stream', '.pfb': 'application/octet-stream', '.ttf': 'font/ttf', '.wasm': 'application/wasm' };
 
 const officeRoot = path.join(__dirname, '..', 'office');
+// PDF-Studio (Texterkennung, Geradeziehen, Seiten bearbeiten): Oberfläche im Programm, Bausteine aus resources/studio
+const studioRoot = path.join(__dirname, '..', 'studio');
+const studioVendor = () => (app.isPackaged ? path.join(process.resourcesPath, 'studio') : path.join(__dirname, '..', '..', 'vendor', 'studio'));
 const FILE_MIME = { '.pdf': 'application/pdf', '.docx': 'application/octet-stream', '.xlsx': 'application/octet-stream', '.pptx': 'application/octet-stream',
   '.csv': 'text/plain; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp' };
 
@@ -77,6 +80,15 @@ function getSession() {
       try { return new Response(await fs.promises.readFile(full), { headers: { 'content-type': MIME[path.extname(full)] || 'application/octet-stream' } }); }
       catch { return new Response('', { status: 404 }); }
     }
+    if (u.pathname.startsWith('/studio/')) {
+      const rel = decodeURIComponent(u.pathname.slice('/studio/'.length)).replace(/^\/+/, '');
+      const base = rel.startsWith('vendor/') ? studioVendor() : studioRoot;
+      const full = path.join(base, rel.startsWith('vendor/') ? rel.slice(7) : rel);
+      if (!full.startsWith(base + path.sep)) return new Response('', { status: 403 });
+      const type = /\.traineddata$/.test(full) ? 'application/octet-stream' : /\.wasm$/.test(full) ? 'application/wasm' : MIME[path.extname(full)] || 'application/octet-stream';
+      try { return new Response(await fs.promises.readFile(full), { headers: { 'content-type': type } }); }
+      catch { return new Response('', { status: 404 }); }
+    }
     if (u.pathname === '/__setup.js') return new Response(SETUP, { headers: { 'content-type': 'text/javascript' } });
     // Viewer-Dateien
     const rel = decodeURIComponent(u.pathname).replace(/^\/+/, '');
@@ -108,6 +120,13 @@ function officeURL(filePath) {
   return `${SCHEME}://viewer/office/index.html?file=${encodeURIComponent(token)}&name=${encodeURIComponent(path.basename(filePath))}`;
 }
 
+/** PDF-Studio für eine Datei (PDF oder Bild) */
+function studioURL(filePath) {
+  const token = crypto.randomUUID();
+  files.set(token, filePath);
+  return `${SCHEME}://viewer/studio/index.html?file=${encodeURIComponent(token)}&name=${encodeURIComponent(path.basename(filePath))}`;
+}
+
 /** Speichert alle Änderungen (Formulare, Markierungen, Unterschrift) zurück in die Datei */
 async function save(webContents, filePath) {
   const b64 = await webContents.executeJavaScript(`(async () => {
@@ -120,4 +139,4 @@ async function save(webContents, filePath) {
   await fs.promises.rename(tmp, filePath);
 }
 
-module.exports = { registerScheme, getSession, viewerURL, officeURL, save };
+module.exports = { registerScheme, getSession, viewerURL, officeURL, studioURL, save };
