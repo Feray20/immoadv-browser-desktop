@@ -68,18 +68,28 @@ module.exports = async function storeScreenshots(api) {
   const pdfFile = path.join(out, '..', 'Expose-Musterwohnung.pdf');
   fs.writeFileSync(pdfFile, await doc.save());
 
+  // Cookie-Hinweis von immoadv.de ablehnen (datensparsam), damit er nicht über der Seite liegt
+  const declineCookies = (tab) => tab.view.webContents.executeJavaScript(
+    `[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Ablehnen')?.click(); true`).catch(() => {});
+  const linkHref = (tab, text) => tab.view.webContents.executeJavaScript(
+    `([...document.querySelectorAll('a')].find((a) => a.textContent.trim() === ${JSON.stringify(text)}) || {}).href || ''`).catch(() => '');
+
   try {
     await shot('1-startseite');
 
     const site = api.newTab('https://immoadv.de');
-    await wait(4000);
+    await wait(5000);
+    await declineCookies(site);
     await shot('2-webseite');
 
-    api.newTab('https://leaserun.com');
-    await wait(4000);
-    api.toggleSplit(api.active().id);
+    const wissen = (await linkHref(site, 'Wissen')) || 'https://immoadv.de/#funktionen';
+    log(`zweite Seite: ${wissen}`);
+    const second = api.newTab(wissen);
+    await wait(5000);
+    await declineCookies(second);
+    api.toggleSplit(second.id);
     await shot('3-geteilte-ansicht');
-    api.toggleSplit(api.active().id);      // geteilte Ansicht wieder aus
+    api.toggleSplit(second.id);            // geteilte Ansicht wieder aus
 
     api.selectTab(site.id);
     await ui(`openPanel('settings', 'vpn')`);

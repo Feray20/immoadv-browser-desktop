@@ -1416,7 +1416,10 @@ app.whenReady().then(async () => {
   });
   await vpn.init(browsingSession);
   await listsReady;
-  if (SCREENSHOTS && !store.get('downloadDir')) store.set('downloadDir', app.getPath('downloads'));   // keine Willkommensfrage im Bild
+  if (SCREENSHOTS) {   // Store-Bilder: keine Willkommensfrage, nur eigene Lesezeichen (keine fremden Marken)
+    if (!store.get('downloadDir')) store.set('downloadDir', app.getPath('downloads'));
+    store.set('bookmarks', [{ title: 'ImmoAdv', url: 'https://immoadv.de' }]);
+  }
   await createWindow();
   if (SCREENSHOTS) {
     require(path.join(__dirname, '..', '..', 'test', 'store-screenshots.js'))({
