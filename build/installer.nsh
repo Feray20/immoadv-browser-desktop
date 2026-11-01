@@ -31,6 +31,8 @@
   WriteRegStr SHCTX "Software\Classes\.pdf\OpenWithProgids" "ImmoAdvBrowserPDF" ""
   ; Windows über die neue Browser-Anmeldung informieren
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+  ; Symbol-Zwischenspeicher von Windows auffrischen – sonst zeigt die Taskleiste noch das alte Programm-Symbol
+  ExecWait '"$SYSDIR\ie4uinit.exe" -show'
   ; Word, Excel, PowerPoint und Bilder (01.11.2026): eigene Klasse je Endung mit dem Symbol des Dateityps –
   ; erscheint unter „Öffnen mit“; der Standard wird nie ungefragt umgestellt.
   WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.docx" "" "Word-Dokument"

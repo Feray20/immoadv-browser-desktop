@@ -1,3 +1,6 @@
+ImmoAdv Browser 3.0.11
+- Taskleiste: neues, randloses Programm-Symbol wird nach dem Update sofort angezeigt (Windows-Symbolspeicher wird aufgefrischt)
+
 ImmoAdv Browser 3.0.10
 - Fehlerbehebung: Fehlermeldung „store.setQuiet is not a function“ beim Surfen – Seiten laden wieder normal
 
