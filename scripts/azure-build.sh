@@ -10,6 +10,7 @@ npm install --no-audit --no-fund
 npm test
 node scripts/fetch-vendor.mjs
 node scripts/build-rules.mjs
+node scripts/build-extension.mjs              # Version 4: ImmoAdv-Erweiterung für den Firefox-Motor
 rm -rf dist
 if [ "$P" = "windows" ]; then
   npx electron-builder --win --x64 --publish never

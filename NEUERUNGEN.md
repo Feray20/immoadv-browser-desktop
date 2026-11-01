@@ -6,6 +6,7 @@ ImmoAdv Browser 4.0 – neuer Motor: Google-Anmeldung direkt im Browser
 - KI-Assistent in der Seitenleiste, Immobilien-Check mit Merkliste, PDF-Texterkennung, Word/Excel/PowerPoint-Ansicht
 - Deine Lesezeichen, Passwörter, NordVPN-Zugang und Einstellungen werden übernommen
 - Anders als bisher: Statt Bereichen gibt es Tab-Gruppen; eingescannte PDFs per Rechtsklick „Text erkennen & gerade ausrichten“
+
 ImmoAdv Browser 3.0.21
 - Updates kommen jetzt direkt von immoadv.de – privat, ohne Umweg über GitHub
 - Store-Version: Hinweis, dass Updates automatisch über den Microsoft Store kommen
