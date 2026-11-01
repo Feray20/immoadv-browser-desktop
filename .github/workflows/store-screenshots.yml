@@ -1,5 +1,5 @@
 # Store-Screenshots (1920×1080) vom echten ImmoAdv Browser unter Windows – mit frischem, leerem Profil.
-# Start: Actions → „Store-Screenshots“ → „Run workflow“ (oder automatisch, wenn sich test/store-screenshots.js ändert).
+# Start: Actions → „Store-Screenshots“ → „Run workflow“ (oder automatisch, wenn sich die Oberfläche oder test/store-screenshots.js ändert).
 # Ergebnis: Branch „store-screenshots“ (Ordner bilder/) und unter „Artifacts“ → store-screenshots.
 
 name: Store-Screenshots
@@ -9,6 +9,7 @@ on:
   push:
     branches: [main]
     paths:
+      - src/renderer/**
       - test/store-screenshots.js
       - .github/workflows/store-screenshots.yml
 
