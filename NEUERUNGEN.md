@@ -1,4 +1,6 @@
-ImmoAdv Browser 3.0.3
+ImmoAdv Browser 3.0.4
+- NordVPN: Verbindung wird jetzt wirklich geprüft – „Aktiv“ erscheint erst, wenn NordVPN die Verbindung bestätigt; abgelehnte Zugangsdaten werden klar angezeigt
+- „Verbindung neu prüfen“, „Andere Zugangsdaten eingeben“ und VPN-Protokoll in den NordVPN-Einstellungen
 - Lange Listen in den Einstellungen (Angemeldet bleiben, Ausnahmen, Sperrliste) lassen sich ein- und ausklappen
 - Google-Konto: Gmail, Drive, Kalender und die Google-Anmeldung öffnen automatisch in Chrome (Google erlaubt die Anmeldung nur dort). Suche und YouTube bleiben im ImmoAdv Browser. Abschaltbar unter Einstellungen → Allgemein.
 - Als Standardbrowser festlegbar: Einstellungen → Allgemein → „Festlegen“ (Windows: erscheint unter Standard-Apps, Mac: unter Standard-Webbrowser)

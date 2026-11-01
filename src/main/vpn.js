@@ -45,6 +45,47 @@ async function servers() {
   return store.get('vpnServers') || [];
 }
 
+// Protokoll für die Fehlersuche (ohne Zugangsdaten)
+const fs = require('node:fs');
+const path = require('node:path');
+function log(msg) {
+  try {
+    const f = path.join(app.getPath('userData'), 'vpn.log');
+    if (fs.existsSync(f) && fs.statSync(f).size > 200 * 1024) fs.renameSync(f, f + '.old');
+    fs.appendFileSync(f, `${new Date().toISOString()} ${msg}\n`);
+  } catch { /* egal */ }
+}
+
+// Prüfen, ob die Verbindung über NordVPN wirklich steht (NordVPN meldet „protected“)
+let authTries = 0;
+function verify() {
+  return new Promise((resolve) => {
+    const c = creds();
+    let done = false, logins = 0;
+    const finish = (r) => { if (!done) { done = true; clearTimeout(t); resolve(r); } };
+    const t = setTimeout(() => finish({ ok: false, error: 'Zeitüberschreitung' }), 15000);
+    try {
+      const req = net.request({ url: 'https://api.nordvpn.com/v1/helpers/ips/insights', session: ses, useSessionCookies: false });
+      req.on('login', (authInfo, cb) => {
+        logins++;
+        if (!c || logins > 1) { finish({ ok: false, error: 'auth' }); return cb(); }
+        cb(c.user, c.pass);
+      });
+      req.on('response', (res) => {
+        let body = '';
+        res.on('data', (d) => { body += d; });
+        res.on('end', () => {
+          let j = null; try { j = JSON.parse(body); } catch {}
+          if (res.statusCode === 407) return finish({ ok: false, error: 'auth' });
+          finish({ ok: res.statusCode === 200, protected: !!(j && j.protected), status: res.statusCode, country: j && j.country });
+        });
+      });
+      req.on('error', (e) => finish({ ok: false, error: String(e && e.message || e) }));
+      req.end();
+    } catch (e) { finish({ ok: false, error: String(e.message || e) }); }
+  });
+}
+
 async function apply() {
   if (!ses) return;
   if (!creds()) {
@@ -63,7 +104,15 @@ async function apply() {
   }
   await ses.setProxy({ proxyRules: `https://${current}:${PORT}`, proxyBypassRules: '<local>' });
   try { await ses.closeAllConnections(); } catch {}
-  emit({ status: 'on', server: current, message: '' });
+  emit({ status: 'connecting', server: current, message: 'Verbindung wird geprüft' });
+  const v = await verify();
+  log(`Prüfung ${current}: ${JSON.stringify(v)}`);
+  if (v.ok) { authTries = 0; return emit({ status: 'on', server: current, message: v.protected ? '' : 'Verbunden' }); }
+  if (v.error === 'auth') {
+    authTries++;
+    return emit({ status: 'authfail', server: current, message: 'NordVPN lehnt die Zugangsdaten ab – bitte die Dienst-Zugangsdaten (Manuelle Einrichtung) eintragen' });
+  }
+  emit({ status: 'error', server: current, message: `Server ${current} antwortet nicht (${v.error || v.status})` });
 }
 
 /** Server antwortet nicht → still den nächsten nehmen */
@@ -79,11 +128,13 @@ async function failover() {
 }
 
 // Anmeldung am VPN-Server – nur für NordVPN, nie für Webseiten
+let loginCount = 0; setInterval(() => { loginCount = 0; }, 20000);
 app.on('login', (event, _wc, _details, authInfo, callback) => {
   if (!authInfo.isProxy || !/\.nordvpn\.com$/i.test(authInfo.host || '')) return;
   const c = creds();
   if (!c) return;
   event.preventDefault();
+  if (++loginCount > 6) { log(`Anmeldung am Proxy ${authInfo.host} wiederholt abgelehnt`); if (state.status !== 'authfail') emit({ status: 'authfail', message: 'NordVPN lehnt die Zugangsdaten ab – bitte die Dienst-Zugangsdaten (Manuelle Einrichtung) eintragen' }); return callback(); }
   callback(c.user, c.pass);
 });
 
@@ -103,7 +154,7 @@ module.exports = {
   async setSession(browsingSession) { ses = browsingSession; await apply(); },
   async login(user, pass) {
     if (!user || !pass || !safeStorage.isEncryptionAvailable()) return false;
-    store.set('vpnCreds', safeStorage.encryptString(JSON.stringify({ user: String(user).trim(), pass: String(pass) })).toString('base64'));
+    store.set('vpnCreds', safeStorage.encryptString(JSON.stringify({ user: String(user).trim(), pass: String(pass).trim() })).toString('base64'));
     current = null; emit({ status: 'connecting' });
     await apply();
     return true;
@@ -111,5 +162,6 @@ module.exports = {
   async logout() { store.set('vpnCreds', null); current = null; await apply(); },
   async setCountry(code) { if (!COUNTRIES.some((c) => c.code === code)) return; store.set('vpnCountry', code); store.set('vpnServers', []); current = null; await apply(); },
   failover,
+  async recheck() { current = null; await apply(); return { ...state, loggedIn: !!creds(), country: store.get('vpnCountry') }; },
   active: () => state.status === 'on'
 };

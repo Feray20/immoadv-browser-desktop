@@ -142,6 +142,7 @@ function renderShield() {
   else if (vpnState.status === 'on') { text = 'VPN'; title = `NordVPN aktiv · ${vpnState.server || ''}`; }
   else if (vpnState.status === 'connecting') { cls = 'warn'; text = 'VPN …'; title = 'NordVPN verbindet'; }
   else if (vpnState.status === 'waiting') { cls = 'warn'; text = 'VPN wartet'; title = 'Wartet auf Internet – ohne VPN wird nichts geladen'; }
+  else if (vpnState.status === 'authfail' || vpnState.status === 'error') { cls = 'off'; text = 'VPN-Fehler'; title = vpnState.message || 'NordVPN-Verbindung gestört'; }
   s.className = 'shield ' + cls; $('shieldText').textContent = text; s.title = title;
 }
 
@@ -160,6 +161,13 @@ function renderContent() {
       <p class="hint">„Trotzdem öffnen“ gilt nur bis zum Beenden des Browsers.</p></div>`;
     $('blkBack').onclick = () => (t.canGoBack ? api.nav('back') : api.closeTab(t.id));
     $('blkGo').onclick = () => api.allowBlocked(t.id);
+  } else if (t && t.error && (vpnState.status === 'authfail' || vpnState.status === 'error')) {
+    box.className = 'notice';
+    box.innerHTML = `<div class="card fade"><div class="big">🔐</div><h1>${vpnState.status === 'authfail' ? 'NordVPN-Zugangsdaten abgelehnt' : 'NordVPN-Server antwortet nicht'}</h1>
+      <p>${esc(vpnState.message || '')}</p><p class="hint">Zu deinem Schutz wird ohne funktionierendes VPN nichts geladen.</p>
+      <div class="row-btns"><button class="primary" id="vpnFix">NordVPN-Einstellungen</button><button class="secondary" id="vpnRetry">Erneut verbinden</button></div></div>`;
+    $('vpnFix').onclick = () => openPanel('settings', 'vpn');
+    $('vpnRetry').onclick = async () => { $('vpnRetry').textContent = 'Prüft …'; vpnState = await api.vpnRecheck(); renderShield(); renderContent(); };
   } else if (t && t.error) {
     const off = /Internetverbindung/.test(t.error);
     box.className = 'notice';
@@ -704,11 +712,17 @@ function setVPN() {
     return;
   }
   setBody(`<div class="group"><h3>Status</h3>
-      <div class="row"><span>Verbindung</span><b class="${vpnState.status === 'on' ? 'pos' : ''}">${vpnState.status === 'on' ? 'Aktiv' : esc(vpnState.message || 'verbindet …')}</b></div>
+      <div class="row"><span>Verbindung</span><b class="${vpnState.status === 'on' ? 'pos' : vpnState.status === 'authfail' || vpnState.status === 'error' ? 'neg' : ''}">${vpnState.status === 'on' ? 'Aktiv · geprüft' : vpnState.status === 'authfail' ? 'Zugangsdaten abgelehnt' : vpnState.status === 'error' ? 'Gestört' : esc(vpnState.message || 'verbindet …')}</b></div>
+      ${vpnState.status !== 'on' && vpnState.message ? `<p class="small">${esc(vpnState.message)}</p>` : ''}
       <div class="row"><span>Server</span><b>${esc(vpnState.server || '–')}</b></div>
       <div class="row"><span>Land</span><select id="vCountry">${countries.map((c) => `<option value="${c.code}" ${vpnState.country === c.code ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div></div>
     <p class="small">Läuft über NordVPNs verschlüsselten Proxy (TLS) für alle Tabs inkl. DNS. Andere Programme auf dem Computer sind davon nicht betroffen.</p>
-    <button class="danger" id="vOut">Abmelden</button>`);
+    <button class="secondary" id="vRe">Verbindung neu prüfen</button>
+    <button class="secondary" id="vEdit">Andere Zugangsdaten eingeben</button>
+    <button class="danger" id="vOut">Abmelden</button><button class="link" id="vLog">VPN-Protokoll anzeigen</button>`);
+  $('vRe').onclick = async () => { $('vRe').textContent = 'Prüft …'; vpnState = await api.vpnRecheck(); setVPN(); renderShield(); renderContent(); };
+  $('vEdit').onclick = async () => { vpnState = await api.vpnLogout(); setVPN(); renderShield(); };
+  $('vLog').onclick = async () => { if (!(await api.vpnLog())) toast('Noch kein Protokoll'); };
   $('vCountry').onchange = async () => { vpnState = await api.vpnCountry($('vCountry').value); toast('Land gewechselt'); setVPN(); };
   $('vOut').onclick = async () => { if (confirm('NordVPN abmelden? Danach läuft alles ohne VPN.')) { vpnState = await api.vpnLogout(); setVPN(); renderShield(); } };
 }
@@ -926,7 +940,7 @@ api.onTabs((s) => {
   if (panel === 'tabs') renderTabsPanel();
 });
 api.onUpdate((s) => { upd = s; renderUpdate(); });
-api.onVpn((s) => { vpnState = { ...vpnState, ...s }; renderShield(); renderStart(); if (panel === 'settings' && setTab === 'vpn') setVPN(); });
+api.onVpn((s) => { vpnState = { ...vpnState, ...s }; renderShield(); renderStart(); renderContent(); if (panel === 'settings' && setTab === 'vpn') setVPN(); });
 api.onBlocker((b) => { blockerInfo = b; if (b.stats) { settings.stats = b.stats; renderStart(); if (panel === 'privacy') renderPrivacy(); } });
 api.onDownloads((d) => { downloads = d; $('dlBtn').classList.toggle('on', d.some((x) => x.state === 'progress' || x.state === 'scanning')); if (panel === 'downloads') renderDownloads(); });
 api.onOnline((o) => { if (o !== online) { online = o; renderShield(); } });

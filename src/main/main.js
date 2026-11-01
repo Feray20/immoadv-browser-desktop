@@ -242,7 +242,7 @@ function wireView(tab) {
     }
     tab.vpnRetry = false;
     if (code === -200 || (code <= -201 && code >= -219)) tab.error = 'Das Sicherheitszertifikat dieser Seite ist ungültig – die Verbindung wurde zu deinem Schutz nicht aufgebaut.';
-    else tab.error = 'Seite konnte nicht geladen werden – „Neu laden“ hilft oft.';
+    else tab.error = `Seite konnte nicht geladen werden – „Neu laden“ hilft oft. (Fehler ${code}${vpn.state().loggedIn ? ', über NordVPN' : ''})`;
     pushTabs();
   });
   // Ungültige Zertifikate werden nie still akzeptiert (Chromium-Standard: abbrechen)
@@ -846,6 +846,8 @@ function registerIPC() {
   handle('vpn:login', async (_e, user, pass) => vpn.login(user, pass));
   handle('vpn:logout', async () => { await vpn.logout(); return vpn.state(); });
   handle('vpn:country', async (_e, code) => { await vpn.setCountry(code); return vpn.state(); });
+  handle('vpn:recheck', async () => { const st = await vpn.recheck(); for (const t of tabs) if (t.error && t.url && t.kind === 'web') load(t, t.url); return st; });
+  handle('vpn:log', () => { const f = path.join(app.getPath('userData'), 'vpn.log'); if (fs.existsSync(f)) shell.showItemInFolder(f); return fs.existsSync(f); });
 
   // Schutz
   on('blocked:allow', (_e, id) => { const t = tabs.find((x) => x.id === id); if (t && t.blocked) { blocker.allowOnce(t.blocked.url); load(t, t.blocked.url); } });

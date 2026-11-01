@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('immo', {
   pwSave: inv('pw:save'), pwDismiss: inv('pw:dismiss'), pwFill: inv('pw:fill'), pwList: inv('pw:list'), pwReveal: inv('pw:reveal'),
   pwDelete: inv('pw:delete'), pwImport: inv('pw:import'), pwTestUnlock: inv('pw:test-unlock'),
   // NordVPN & Schutz
-  vpnLogin: inv('vpn:login'), vpnLogout: inv('vpn:logout'), vpnCountry: inv('vpn:country'),
+  vpnLogin: inv('vpn:login'), vpnLogout: inv('vpn:logout'), vpnCountry: inv('vpn:country'), vpnRecheck: inv('vpn:recheck'), vpnLog: inv('vpn:log'),
   allowBlocked: snd('blocked:allow'), refreshLists: inv('lists:refresh'), clearSiteData: inv('site-data:clear'),
   permissions: inv('permissions:list'), resetPermissions: inv('permissions:reset'),
   // KI
