@@ -1,0 +1,87 @@
+// PDF-Werkzeug: Mozillas PDF.js mit Bearbeitungsleiste (ausfüllen, markieren, zeichnen, Text, Bild, Unterschrift).
+// Läuft in einer abgeschotteten Sitzung ohne Internetzugang. Speichern schreibt in die Originaldatei.
+const { session, protocol, app } = require('electron');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+
+const SCHEME = 'immoadv-pdf';
+const files = new Map();   // token → Dateipfad
+let pdfSession = null;
+
+function registerScheme() {
+  protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
+}
+
+const viewerRoot = () => app.isPackaged
+  ? path.join(process.resourcesPath, 'pdfjs')
+  : path.join(__dirname, '..', '..', 'vendor', 'pdfjs');
+
+const MIME = { '.html': 'text/html', '.mjs': 'text/javascript', '.js': 'text/javascript', '.css': 'text/css',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.gif': 'image/gif', '.ftl': 'text/plain', '.json': 'application/json',
+  '.bcmap': 'application/octet-stream', '.pfb': 'application/octet-stream', '.ttf': 'font/ttf', '.wasm': 'application/wasm' };
+
+// Läuft im Viewer vor dem Start: Unterschrift-Werkzeug an, deutsche Oberfläche, keine Netzwerk-Funktionen
+const SETUP = `document.addEventListener('webviewerloaded', () => {
+  const o = window.PDFViewerApplicationOptions;
+  const set = (k, v) => { try { o.set(k, v); } catch (e) {} };
+  set('enableScripting', false);          // kein JavaScript aus PDFs
+  set('enableSignatureEditor', true);
+  set('enableHighlightEditor', true);
+  set('enableAltText', false);
+  set('disablePreferences', true);
+  set('localeProperties', { lang: 'de' });
+  set('isEvalSupported', false);
+  set('defaultUrl', '');
+});`;
+
+function getSession() {
+  if (pdfSession) return pdfSession;
+  pdfSession = session.fromPartition('immoadv-pdf', { cache: false });
+  // kein Internet für den PDF-Betrachter – Dokumente bleiben lokal
+  pdfSession.webRequest.onBeforeRequest((d, cb) => cb({ cancel: /^(https?|wss?|ftp):/i.test(d.url) }));
+  pdfSession.setPermissionRequestHandler((_w, _p, cb) => cb(false));
+  pdfSession.protocol.handle(SCHEME, async (req) => {
+    const u = new URL(req.url);
+    if (u.pathname.startsWith('/__file/')) {
+      const p = files.get(u.pathname.slice('/__file/'.length));
+      if (!p) return new Response('Nicht gefunden', { status: 404 });
+      return new Response(await fs.promises.readFile(p), { headers: { 'content-type': 'application/pdf' } });
+    }
+    if (u.pathname === '/__setup.js') return new Response(SETUP, { headers: { 'content-type': 'text/javascript' } });
+    // Viewer-Dateien
+    const rel = decodeURIComponent(u.pathname).replace(/^\/+/, '');
+    const full = path.join(viewerRoot(), rel);
+    if (!full.startsWith(viewerRoot() + path.sep)) return new Response('', { status: 403 });
+    try {
+      let body = await fs.promises.readFile(full);
+      if (rel === 'web/viewer.html') {
+        body = Buffer.from(body.toString('utf8').replace('<head>', `<head><script src="/__setup.js"></script>`));
+      }
+      return new Response(body, { headers: { 'content-type': MIME[path.extname(full)] || 'application/octet-stream' } });
+    } catch { return new Response('', { status: 404 }); }
+  });
+  return pdfSession;
+}
+
+/** Adresse, unter der eine lokale PDF im Viewer geöffnet wird */
+function viewerURL(filePath) {
+  const token = crypto.randomUUID();
+  files.set(token, filePath);
+  const file = encodeURIComponent(`/__file/${token}`);   // gleiche Herkunft wie der Viewer
+  return `${SCHEME}://viewer/web/viewer.html?file=${file}#locale=de`;
+}
+
+/** Speichert alle Änderungen (Formulare, Markierungen, Unterschrift) zurück in die Datei */
+async function save(webContents, filePath) {
+  const b64 = await webContents.executeJavaScript(`(async () => {
+    const d = await PDFViewerApplication.pdfDocument.saveDocument();
+    let s = ''; for (let i = 0; i < d.length; i += 0x8000) s += String.fromCharCode.apply(null, d.subarray(i, i + 0x8000));
+    return btoa(s);
+  })()`, true);
+  const tmp = filePath + '.immoadv-tmp';
+  await fs.promises.writeFile(tmp, Buffer.from(b64, 'base64'));
+  await fs.promises.rename(tmp, filePath);
+}
+
+module.exports = { registerScheme, getSession, viewerURL, save };

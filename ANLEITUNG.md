@@ -1,41 +1,32 @@
-# ImmoAdv Browser 2.0 – Windows und Mac
+# ImmoAdv Browser 3 – Anleitung
 
-## Aufbau
+## Installieren
+- **Windows:** ImmoAdv Programme → ImmoAdv Browser → „Für Windows“ → Setup öffnen.
+- **Mac:** ImmoAdv Programme → „Für Mac“ → .dmg öffnen → in „Programme“ ziehen. Beim ersten Start Rechtsklick → „Öffnen“ (die App ist noch nicht von Apple beglaubigt).
+- Wer schon 2.x hat: im Browser „Update jetzt installieren“ drücken – Lesezeichen und Download-Ordner bleiben.
 
-| Teil | Was es macht | Wer aktualisiert |
-|---|---|---|
-| **Google Chrome** (offiziell von Google) | Browser-Engine, Google-Konto, Sync, Passwörter, Passkeys, Übersetzen, Downloads mit Virenprüfung, Erweiterungen | Google, automatisch |
-| **ImmoAdv-Programm** (dieses Repo, `src/`) | Richtet Chrome mit eigenem Profil „ImmoAdv“ ein, installiert Chrome bei Bedarf, setzt verschlüsseltes DNS, „Immer sichere Verbindungen“ und Windows Hello / Touch ID für Passwörter, Update-Knopf | GitHub-Releases, automatisch |
-| **ImmoAdv-Schicht** (`extension/`) | Startseite, Datenschutz-Center, Blocker (Werbung/Tracker/Malware/Phishing), NordVPN, spurloses Surfen, Lesezeichen-Übernahme | kommt mit jedem Programm-Update und übernimmt sich selbst ohne Neustart |
-| **ImmoAdv-Design** (`theme/`) | Farben des Chrome-Rahmens | wie oben |
+## Updates
+„Update jetzt installieren“ lädt die neue Version, installiert sie still und startet den Browser neu. Automatisch geladene Updates werden beim Beenden installiert. Protokoll: Einstellungen → Updates → „Update-Protokoll anzeigen“.
 
-Das ImmoAdv-Profil ist komplett getrennt von einem normal installierten Chrome (eigener Profilordner).
+## Bedienung
+| Was | Wo |
+|---|---|
+| Arbeitsbereiche | Punkte links oben (bzw. oben in der Seitenleiste), verwalten unter Einstellungen → Bereiche |
+| Tabs links statt oben | Einstellungen → Allgemein → „Tabs anzeigen“ |
+| Geteilte Ansicht | Rechtsklick auf Tab bzw. Strg/⌘+Umschalt+S |
+| KI-Assistent | ✦ oben rechts bzw. Strg/⌘+Umschalt+A; einrichten unter Einstellungen → KI |
+| NordVPN | Einstellungen → NordVPN (Dienst-Zugangsdaten aus nordaccount.com) |
+| Passwörter | ⋯ → Passwörter; Import als CSV aus „Passwörter“ (Mac/iPhone) oder Google |
+| Verlauf / Lesezeichen / Downloads | Strg/⌘+H / ⋯ → Lesezeichen / Strg/⌘+E |
+| Schnellbefehle | Strg/⌘+K |
 
-## Datenschutz – was passiert wirklich
+## Daten
+Alles liegt nur auf diesem Computer: `einstellungen.json` (Passwörter und Schlüssel einzeln verschlüsselt mit DPAPI/Schlüsselbund), `verlauf.json`, `ki-gespraeche.json` im App-Ordner (Windows `%APPDATA%\ImmoAdv Browser`, Mac `~/Library/Application Support/ImmoAdv Browser`).
 
-- **Blocker:** gepflegte Listen (HaGeZi Multi PRO, URLhaus, Phishing-Filter) → Chrome-Regeln. Malware/Phishing werden zusätzlich täglich frisch geladen. Herkunft und Stand stehen im Datenschutz-Center.
-- **Spurlos:** Verlauf wird sofort wieder gelöscht; Cookies und Website-Daten einer Seite werden 8 Sekunden nach dem Schließen ihres letzten Tabs gelöscht – außer bei „Angemeldet bleiben bei“ (Google, iCloud, immoadv.de …). Beim Start: Cache und Download-Liste leer.
-- **NordVPN:** verschlüsselter NordVPN-Proxy (TLS, Port 89) für den gesamten Browser-Verkehr, schnellster Server laut NordVPN, Serverwechsel bei Ausfall, kein Rückfall auf eine ungeschützte Verbindung. Zugangsdaten AES-verschlüsselt nur auf dem Gerät. Gilt für den Browser, nicht für andere Programme.
-- **WebRTC:** ohne VPN keine lokalen IPs, mit VPN nur über das VPN.
-- **Keine Behauptung vollständiger Anonymität:** Wer sich bei einer Seite anmeldet, ist dort bekannt. Ohne NordVPN sieht der Internetanbieter, welche Seiten aufgerufen werden.
-
-## NordVPN einrichten (einmalig)
-
-1. my.nordaccount.com → NordVPN → **Manuelle Einrichtung** → „Dienst-Zugangsdaten“ (Benutzername + Passwort, nicht E-Mail).
-2. Im Browser oben rechts auf das ImmoAdv-Symbol → Datenschutz-Center → „NordVPN einmalig anmelden“ → einfügen → Speichern.
-
-## Ersteinrichtung
-
-Das Programm führt durch drei Schritte: Chrome (wird bei Bedarf direkt von Google geladen und auf Googles Signatur geprüft), ImmoAdv in Chrome aktivieren (einmal „Entpackte Erweiterung laden“ – Ordner wird automatisch kopiert), mit Google anmelden.
-
-## Neue Version veröffentlichen
-
-`package.json` → `version` erhöhen, `NEUERUNGEN.md` anpassen, auf `main` pushen. CircleCI baut Windows und Mac, lädt die aktuellen Filterlisten und veröffentlicht das Release. Programme installieren es still beim nächsten Öffnen; die ImmoAdv-Schicht in Chrome übernimmt es innerhalb von 10 Minuten.
-
-## Lokal testen
-
+## Entwicklung
 ```
 npm install
+npm start          # lädt PDF.js + Test-Filterlisten, startet den Browser
 npm test
-npm start          # erzeugt kleine Test-Filterlisten und startet das Programm
 ```
+Neue Version: `version` in package.json erhöhen und auf `main` pushen – CircleCI baut Windows und Mac und veröffentlicht das GitHub-Release; die Programme holen es sich selbst. Details und Umsetzungsstand: `docs/ARCHITEKTUR.md`.

@@ -65,15 +65,12 @@ if __name__ == "__main__" and len(sys.argv) == 3:
 
 
 def write_all(root):
-    """Alle Größen für Windows/Mac-Programm, Chrome-Erweiterung und Design."""
+    """Programm-Symbol (Windows/Mac) und Zeichen in der Oberfläche."""
     import os
     desk = make(False)
     desk.save(os.path.join(root, 'build', 'icon.png'))
     inner = desk.crop((96, 96, 928, 928))          # Symbol ohne Rand/Schatten für kleine Größen
-    for p in (16, 32, 48, 128):
-        inner.resize((p, p), Image.LANCZOS).save(os.path.join(root, 'extension', 'icons', f'icon{p}.png'))
-    inner.resize((256, 256), Image.LANCZOS).save(os.path.join(root, 'src', 'ui', 'logo.png'))
-    inner.resize((128, 128), Image.LANCZOS).save(os.path.join(root, 'theme', 'icon128.png'))
+    inner.resize((256, 256), Image.LANCZOS).save(os.path.join(root, 'src', 'renderer', 'emblem.png'))
     return make(True), inner
 
 if __name__ == '__main__' and len(sys.argv) == 1:

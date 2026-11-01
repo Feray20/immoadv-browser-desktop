@@ -1,20 +1,20 @@
 {
   "name": "immoadv-browser",
   "productName": "ImmoAdv Browser",
-  "version": "2.0.3",
-  "description": "ImmoAdv Browser – Google Chrome mit ImmoAdv-Profil, Datenschutz-Center, Blocker und NordVPN",
+  "version": "3.0.0",
+  "description": "ImmoAdv Browser – eigener Browser auf Chromium-Basis mit NordVPN, Blocker, Passwörtern, KI-Assistent und Arbeitsbereichen",
   "author": "Feray Korkmaz",
   "license": "UNLICENSED",
   "private": true,
   "main": "src/main/main.js",
   "scripts": {
+    "vendor": "node scripts/fetch-vendor.mjs",
     "rules": "node scripts/build-rules.mjs",
-    "rules:offline": "node scripts/build-rules.mjs --offline",
     "logo": "python3 scripts/make-logo.py",
-    "start": "node scripts/build-rules.mjs --offline && electron .",
-    "test": "node --test test/*.test.mjs",
-    "dist:win": "node scripts/build-rules.mjs && node scripts/ensure-release.mjs && electron-builder --win --x64 --publish always && node scripts/finalize-release.mjs",
-    "dist:mac": "node scripts/build-rules.mjs && node scripts/ensure-release.mjs && electron-builder --mac --universal --publish always && node scripts/finalize-release.mjs"
+    "start": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs --offline && electron .",
+    "test": "node --test test/*.test.mjs test/*.test.js",
+    "dist:win": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/ensure-release.mjs && electron-builder --win --x64 --publish always && node scripts/finalize-release.mjs",
+    "dist:mac": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/ensure-release.mjs && electron-builder --mac --universal --publish always && node scripts/finalize-release.mjs"
   },
   "dependencies": {
     "electron-updater": ">=6.3.0"

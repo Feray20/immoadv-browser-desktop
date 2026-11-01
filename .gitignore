@@ -2,9 +2,3 @@ node_modules/
 vendor/
 dist/
 .DS_Store
-# beim Build erzeugt
-extension/rules/*.json
-extension/version.json
-extension/launcher.json
-extension/import.json
-extension/_metadata/

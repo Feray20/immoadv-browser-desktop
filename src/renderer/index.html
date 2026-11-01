@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>ImmoAdv Browser</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Tabs senkrecht (wahlweise) -->
+  <nav id="sidebar" aria-label="Tabs">
+    <div class="side-top"><button id="sideCollapse" class="icon" title="Seitenleiste ein-/ausklappen" aria-label="Seitenleiste ein-/ausklappen"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button></div>
+    <div id="sideWs"></div>
+    <div id="sideTabs"></div>
+    <button id="sideNew" class="side-new" title="Neuer Tab (Strg/⌘+T)"><span>＋</span><span class="side-label">Neuer Tab</span></button>
+  </nav>
+
+  <header id="chrome">
+    <div id="tabstrip" class="drag">
+      <div id="wsSwitch" class="ws-switch nodrag"></div>
+      <div id="tabs" role="tablist"></div>
+      <button id="newtab" class="icon nodrag" title="Neuer Tab (Strg/⌘+T)" aria-label="Neuer Tab"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div id="toolbar">
+      <button id="back" class="icon" title="Zurück (Alt+←)" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button id="forward" class="icon" title="Vor (Alt+→)" aria-label="Vor"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button id="reload" class="icon" title="Neu laden (Strg/⌘+R)" aria-label="Neu laden"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>
+      <div id="addressWrap">
+        <form id="addressForm" autocomplete="off">
+          <button type="button" id="shield" class="shield" title="Datenschutz-Center"><i></i><span id="shieldText">Geschützt</span></button>
+          <span id="lock" class="lock" aria-hidden="true"></span>
+          <input id="address" type="text" spellcheck="false" autocomplete="off" placeholder="Suchen oder Adresse eingeben" aria-label="Adresse oder Suche">
+          <button type="button" id="keyBtn" class="pill ghost hidden" title="Gespeichertes Passwort einsetzen">🔑 Anmelden</button>
+          <button type="button" id="bookmarkBtn" class="icon" title="Lesezeichen (Strg/⌘+D)" aria-label="Lesezeichen"><svg viewBox="0 0 24 24"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg></button>
+        </form>
+        <div id="suggest" class="hidden" role="listbox"></div>
+      </div>
+      <button id="immoBtn" class="pill accent hidden">Immobilien-Check</button>
+      <button id="pdfSave" class="pill hidden">PDF speichern</button>
+      <button id="aiBtn" class="icon" title="KI-Assistent (Strg/⌘+Umschalt+A)" aria-label="KI-Assistent"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></button>
+      <button id="dlBtn" class="icon" title="Downloads (Strg/⌘+E)" aria-label="Downloads"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
+      <button id="menuBtn" class="icon" title="Menü" aria-label="Menü"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+    </div>
+    <div id="findbar" class="findbar hidden">
+      <input id="findInput" type="search" spellcheck="false" placeholder="Auf dieser Seite suchen" aria-label="Auf dieser Seite suchen">
+      <span id="findCount"></span>
+      <button id="findPrev" class="icon" title="Vorheriger Treffer" aria-label="Vorheriger Treffer"><svg viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg></button>
+      <button id="findNext" class="icon" title="Nächster Treffer" aria-label="Nächster Treffer"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button id="findClose" class="icon" title="Schließen" aria-label="Schließen">✕</button>
+    </div>
+    <div id="bookmarkbar" class="bookmarkbar"></div>
+    <div id="pwBar" class="infobar hidden">
+      <span>🔑</span><span id="pwText" class="grow"></span>
+      <button id="pwSave" class="pill accent">Speichern</button>
+      <button id="pwNever" class="pill ghost">Nie für diese Seite</button>
+      <button id="pwNo" class="pill ghost">Nein</button>
+    </div>
+    <div id="ttsBar" class="infobar hidden">
+      <span>🔊</span><span class="grow">Seite wird vorgelesen</span>
+      <button id="ttsPause" class="pill">Pause</button>
+      <button id="ttsStop" class="pill ghost">Stopp</button>
+    </div>
+    <div id="toast" class="hidden" role="status" aria-live="polite"></div>
+  </header>
+
+  <main id="content">
+    <section id="start" class="fade">
+      <div class="start-inner">
+        <div class="brand"><img src="emblem.png" alt=""><span>ImmoAdv <b>Browser</b></span></div>
+        <p id="today" class="today"></p>
+        <h1 id="greeting">Willkommen</h1>
+        <form id="startSearch" class="start-search">
+          <span>⌕</span>
+          <input id="startInput" type="text" spellcheck="false" autocomplete="off" placeholder="Suchen oder Adresse eingeben" aria-label="Suchen">
+          <button type="button" id="startAI" class="ai-go" title="Die Frage an den KI-Assistenten stellen">✦ KI fragen</button>
+        </form>
+        <h2>Favoriten</h2>
+        <div id="favorites"></div>
+        <div id="statusRow" class="status-row"></div>
+      </div>
+    </section>
+    <div id="errorBox" class="notice hidden"></div>
+  </main>
+  <div id="loadbar"></div>
+
+  <aside id="panel" class="hidden" aria-label="Seitenleiste">
+    <div class="panel-head"><h2 id="panelTitle"></h2><button id="panelClose" class="icon" title="Schließen (Esc)" aria-label="Schließen">✕</button></div>
+    <div id="panelBody"></div>
+  </aside>
+
+  <div id="onboarding" class="overlay hidden">
+    <div class="card">
+      <img src="emblem.png" alt="" width="56" height="56">
+      <h1>Willkommen im neuen ImmoAdv Browser</h1>
+      <p>Alles ist schon eingerichtet: Werbe- und Tracker-Blocker, Schutz vor Malware und Phishing, verschlüsseltes DNS, spurloses Surfen. Eine Frage noch: Wohin sollen Downloads?</p>
+      <button id="obChoose" class="primary">Ordner auswählen</button>
+      <button id="obDefault" class="link">Normalen Download-Ordner verwenden</button>
+    </div>
+  </div>
+
+  <div id="palette" class="palette-wrap hidden">
+    <div class="palette" role="dialog" aria-label="Schnellbefehle">
+      <input id="paletteInput" type="text" spellcheck="false" autocomplete="off" placeholder="Befehl, Tab, Lesezeichen oder Verlauf …">
+      <div id="paletteList"></div>
+      <p class="palette-foot">↑ ↓ wählen · Enter ausführen · Esc schließen</p>
+    </div>
+  </div>
+
+  <div id="updatePop" class="overlay hidden">
+    <div class="card">
+      <img src="emblem.png" alt="" width="52" height="52">
+      <h1 id="upTitle">Neue Version verfügbar</h1>
+      <div id="upNotes" class="notes"></div>
+      <div id="upProgress" class="upprogress hidden"><div id="upBar"></div></div>
+      <p id="upHint" class="hint"></p>
+      <button id="upInstall" class="primary">Update jetzt installieren</button>
+      <button id="upLater" class="link">Später</button>
+    </div>
+  </div>
+
+  <script src="../shared/calculator.js"></script>
+  <script src="immo.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

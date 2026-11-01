@@ -7,13 +7,12 @@ directories:
 files:
   - src/**/*
   - package.json
-# ImmoAdv-Schicht für Chrome (wird beim Start in den App-Ordner kopiert und von Chrome geladen)
+# PDF-Betrachter und Filterlisten (Werbung/Tracker, Malware, Phishing) – beim Build geladen
 extraResources:
-  - from: extension
-    to: extension
-    filter: ["**/*", "!package.json"]
-  - from: theme
-    to: theme
+  - from: vendor/pdfjs
+    to: pdfjs
+  - from: vendor/lists
+    to: lists
 asar: true
 protocols:
   - name: ImmoAdv Browser
@@ -72,6 +71,8 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # feste Namen, damit sich das Programm Updates selbst holen kann
+  artifactName: ImmoAdv-Browser-${version}-${arch}-mac.${ext}
 dmg:
   artifactName: ImmoAdv-Browser-${version}.${ext}
   title: ImmoAdv Browser

@@ -1,11 +1,10 @@
-Der komplett neue ImmoAdv Browser 2.0
-- Basis ist jetzt Google Chrome: Google-Konto, Sync mit iPhone und Mac, Passwörter, Passkeys, Erweiterungen und iCloud-Passwörter
-- Chrome-Updates kommen direkt von Google, die ImmoAdv-Teile aktualisieren sich selbst
-- Neues Logo: dein ImmoAdv-Zeichen als Browser (mit Kompass-Ring), ImmoAdv-Design und eigene Startseite
-- Datenschutz-Center: Werbung, Tracker, Malware und Phishing blockiert – mit echten Zählern
-- NordVPN direkt eingebaut (ohne NordVPN-App): einmal anmelden, danach automatisch
-- Spurlos surfen: kein Verlauf, Website-Daten werden nach dem Schließen gelöscht
-- Passwörter speichern, ausfüllen und synchronisieren auf allen Geräten – bestätigt mit Windows Hello / Touch ID
-- Tor ist entfernt; deine Lesezeichen werden übernommen
-- Passwörter von iCloud übernehmen: danach ohne 6-stelligen Code, mit Windows Hello, Touch ID und Face ID
-- Chrome bleibt nach dem Schließen im Hintergrund bereit – startet sofort
+Der neue ImmoAdv Browser 3.0 – eigener Browser, fertig eingerichtet
+- Eigener Browser auf Chromium-Basis im ImmoAdv-Fade-Design – kein separates Chrome mehr nötig
+- KI-Assistent: Seiten zusammenfassen, erklären, übersetzen, Fragen zur Seite (Claude, ChatGPT oder lokal mit Ollama)
+- Arbeitsbereiche (z. B. Privat / Immobilien) mit eigenen Tabs, Tabs oben oder links, geteilte Ansicht, Tab-Suche
+- Offene Tabs kommen beim nächsten Start wieder, Hintergrund-Tabs schlafen und sparen Speicher
+- Verlauf (nur lokal, durchsuchbar, Frist einstellbar), Lesezeichen mit Ordnern, Tags, Import/Export
+- Passwort-Tresor: speichern, mit Windows Hello / Touch ID ausfüllen, Import aus iCloud/Google (CSV)
+- NordVPN eingebaut, Werbe-/Tracker-/Malware-/Phishing-Blocker mit echten Zählern, verschlüsseltes DNS
+- Downloads mit Virenprüfung (Microsoft Defender), Seite vorlesen, Übersetzen, Entwicklertools
+- „Update jetzt installieren“ lädt, installiert und startet neu – ohne weitere Fragen

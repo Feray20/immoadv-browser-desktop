@@ -1,5 +1,6 @@
-// Updates des ImmoAdv-Programms (inkl. ImmoAdv-Schicht für Chrome) – Chrome selbst aktualisiert Google.
-// Sucht bei jedem Start, lädt im Hintergrund und installiert still (Windows) bzw. per Knopf.
+// Updates des ImmoAdv Browsers (Windows & Mac) aus den GitHub-Releases.
+// „Update jetzt installieren“: lädt herunter und installiert sofort ohne weitere Fragen, danach startet der Browser neu.
+// Windows: stiller Installer. Mac ohne Apple-Signatur: neue App-Version wird selbst entpackt und ersetzt (Einstellungen bleiben).
 const { app, session, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -12,8 +13,9 @@ try { ({ autoUpdater } = require('electron-updater')); } catch { /* Entwicklungs
 const REPO = 'Feray20/immoadv-browser-desktop';
 const state = { status: 'idle', version: null, notes: '', progress: 0, message: '' };
 let listeners = [];
-let macManual = false;     // Mac ohne Apple-Signatur: .dmg laden und öffnen (Squirrel braucht eine Signatur)
-let macDmg = null;
+let macManual = false;     // Mac ohne Apple-Signatur: Squirrel geht nicht → eigenes Ersetzen der App
+let macZip = null;
+let installWhenReady = false;   // Knopf gedrückt → nach dem Download sofort installieren
 let failures = 0;
 let retryTimer = null;
 
@@ -50,10 +52,13 @@ async function init(onState) {
   autoUpdater.on('update-available', (i) => {
     failures = 0;
     emit({ status: autoUpdater.autoDownload ? 'downloading' : 'available', version: i.version, notes: notesText(i.releaseNotes), progress: 0, message: `Version ${i.version} verfügbar` });
-    if (macManual && store.get('autoUpdate') !== false) downloadMac();
+    if (macManual && (store.get('autoUpdate') !== false || installWhenReady)) downloadMac();
   });
   autoUpdater.on('download-progress', (p) => emit({ status: 'downloading', progress: Math.round(p.percent || 0), message: `Lädt Version ${state.version} …` }));
-  autoUpdater.on('update-downloaded', (i) => emit({ status: 'ready', version: i.version, notes: notesText(i.releaseNotes) || state.notes, message: `Version ${i.version} ist bereit` }));
+  autoUpdater.on('update-downloaded', (i) => {
+    emit({ status: 'ready', version: i.version, notes: notesText(i.releaseNotes) || state.notes, message: `Version ${i.version} ist bereit` });
+    if (installWhenReady) install();
+  });
   autoUpdater.on('error', (e) => {
     log(`Fehler: ${e && (e.stack || e.message)}`);
     failures++;
@@ -72,7 +77,7 @@ function check() {
 
 function download() {
   if (!supported()) return;
-  if (macManual) return downloadMac();
+  if (macManual) return state.version ? downloadMac() : check();
   if (!state.version || ['retry', 'error', 'idle', 'current'].includes(state.status)) { autoUpdater.autoDownload = true; return check(); }
   emit({ status: 'downloading' });
   autoUpdater.downloadUpdate().catch(() => {});
@@ -81,27 +86,86 @@ function download() {
 function downloadMac() {
   if (!state.version || state.status === 'downloading') return;
   const v = state.version;
-  const target = path.join(app.getPath('downloads'), `ImmoAdv-Browser-${v}.dmg`);
-  if (fs.existsSync(target) && fs.statSync(target).size > 5 * 1024 * 1024) { macDmg = target; return emit({ status: 'ready', message: `Version ${v} ist bereit` }); }
+  const dir = path.join(app.getPath('userData'), 'update');
+  const target = path.join(dir, `ImmoAdv-Browser-${v}-universal-mac.zip`);
+  fs.mkdirSync(dir, { recursive: true });
+  if (fs.existsSync(target) && fs.statSync(target).size > 5 * 1024 * 1024) {
+    macZip = target; emit({ status: 'ready', message: `Version ${v} ist bereit` });
+    if (installWhenReady) install();
+    return;
+  }
   const ses = session.fromPartition('immoadv-update', { cache: false });
-  emit({ status: 'downloading', progress: 0 });
+  emit({ status: 'downloading', progress: 0, message: `Lädt Version ${v} …` });
   ses.once('will-download', (_e, item) => {
     item.setSavePath(target + '.part');
     item.on('updated', () => { const t = item.getTotalBytes(); if (t) emit({ status: 'downloading', progress: Math.round(item.getReceivedBytes() / t * 100) }); });
     item.once('done', (_e2, st) => {
-      if (st === 'completed') { try { fs.renameSync(target + '.part', target); macDmg = target; return emit({ status: 'ready', message: `Version ${v} ist bereit` }); } catch {} }
+      if (st === 'completed') {
+        try {
+          fs.renameSync(target + '.part', target); macZip = target;
+          emit({ status: 'ready', message: `Version ${v} ist bereit` });
+          if (installWhenReady) install();
+          return;
+        } catch (e) { log('Mac-Download: ' + e.message); }
+      }
       try { fs.unlinkSync(target + '.part'); } catch {}
       emit({ status: 'available', message: 'Download unterbrochen – bitte noch einmal tippen' });
     });
   });
-  ses.downloadURL(`https://github.com/${REPO}/releases/download/v${v}/ImmoAdv-Browser-${v}.dmg`);
+  ses.downloadURL(`https://github.com/${REPO}/releases/download/v${v}/ImmoAdv-Browser-${v}-universal-mac.zip`);
 }
 
-/** Jetzt installieren. silent=true: ohne Fenster installieren (Windows) – Chrome bleibt dabei offen. */
-function install({ silent = false } = {}) {
+// Mac: nach dem Beenden neue Version entpacken, alte App ersetzen, neu starten (nur das Programm – Einstellungen bleiben)
+function installMac() {
+  const bundle = path.resolve(app.getPath('exe'), '..', '..', '..');
+  if (!macZip || !bundle.endsWith('.app')) return false;
+  try { fs.accessSync(path.dirname(bundle), fs.constants.W_OK); } catch {
+    // Programme-Ordner nicht beschreibbar → Mac fragt einmal nach dem Passwort
+    log('Programme-Ordner schreibgeschützt – Installation mit Admin-Freigabe');
+  }
+  const script = path.join(path.dirname(macZip), 'install.sh');
+  const q = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
+  fs.writeFileSync(script, `#!/bin/bash
+PID=${process.pid}; APP=${q(bundle)}; ZIP=${q(macZip)}; TMP="$(mktemp -d)"
+LOG=${q(path.join(app.getPath('userData'), 'update.log'))}
+for i in $(seq 1 60); do kill -0 $PID 2>/dev/null || break; sleep 0.5; done
+if ditto -x -k "$ZIP" "$TMP" && [ -d "$TMP/ImmoAdv Browser.app" ]; then
+  xattr -cr "$TMP/ImmoAdv Browser.app" 2>/dev/null
+  if [ -w "$(dirname "$APP")" ]; then
+    rm -rf "$APP.alt" && mv "$APP" "$APP.alt" && mv "$TMP/ImmoAdv Browser.app" "$APP" && rm -rf "$APP.alt"
+  else
+    osascript -e "do shell script \\"rm -rf '$APP.alt' && mv '$APP' '$APP.alt' && mv '$TMP/ImmoAdv Browser.app' '$APP' && rm -rf '$APP.alt'\\" with administrator privileges"
+  fi
+  [ -d "$APP" ] || mv "$APP.alt" "$APP"
+  echo "$(date -u +%FT%TZ) Mac-Update installiert" >> "$LOG"
+  rm -f "$ZIP"
+else
+  echo "$(date -u +%FT%TZ) Mac-Update: Entpacken fehlgeschlagen" >> "$LOG"
+fi
+rm -rf "$TMP"
+open "$APP"
+`, { mode: 0o755 });
+  require('node:child_process').spawn('/bin/bash', [script], { detached: true, stdio: 'ignore' }).unref();
+  setImmediate(() => app.quit());
+  return true;
+}
+
+/** Jetzt installieren – still, ohne Rückfragen; der Browser startet danach selbst neu. */
+function install() {
   if (!supported() || state.status !== 'ready') return false;
-  if (macManual) { if (macDmg) shell.openPath(macDmg).then(() => setTimeout(() => app.quit(), 1200)); return true; }
-  setImmediate(() => autoUpdater.quitAndInstall(true, !silent));
+  installWhenReady = false;
+  emit({ status: 'installing', message: 'Wird installiert – der Browser startet gleich neu' });
+  if (macManual) return installMac();
+  setImmediate(() => autoUpdater.quitAndInstall(true, true));
+  return true;
+}
+
+/** Ein Knopf für alles: suchen → laden → sofort installieren */
+function updateNow() {
+  if (!supported()) return false;
+  if (state.status === 'ready') return install();
+  installWhenReady = true;
+  if (state.status !== 'downloading') download();
   return true;
 }
 
@@ -110,4 +174,4 @@ function setAuto(on) {
   if (supported() && !macManual) { autoUpdater.autoDownload = !!on; autoUpdater.autoInstallOnAppQuit = !!on; }
 }
 
-module.exports = { init, check, download, install, setAuto, state: snapshot, onChange: (l) => listeners.push(l) };
+module.exports = { init, check, download, install, updateNow, setAuto, logPath: () => path.join(app.getPath('userData'), 'update.log'), state: snapshot, onChange: (l) => listeners.push(l) };
