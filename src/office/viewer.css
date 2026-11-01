@@ -1,0 +1,18 @@
+:root{--ink:#0F172A;--mute:#64748B;--line:#E2E8F0;--soft:#F1F5F9;--fade:linear-gradient(135deg,#0F2C59,#1E6FD9)}
+*{box-sizing:border-box}html,body{margin:0;background:#EEF2F7;color:var(--ink);font:15px/1.55 -apple-system,"Segoe UI",Inter,Helvetica,Arial,sans-serif}
+.bar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 16px;background:#fff;border-bottom:1px solid var(--line)}
+.bar strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}.sub{color:var(--mute);font-size:12.5px}.sp{flex:1}
+.ic{width:26px;height:26px;border-radius:7px;background:var(--fade);flex:none}
+.bar button,.tabs button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;font:inherit;font-size:13px;color:var(--ink);cursor:pointer}
+.tabs{display:flex;gap:4px;overflow:auto;max-width:50vw}.tabs button[aria-pressed=true]{background:var(--fade);color:#fff;border-color:transparent}
+main{padding:24px 16px 48px}.wait,.err{max-width:760px;margin:12vh auto;text-align:center;color:var(--mute)}.err b{display:block;color:var(--ink);font-size:16px;margin-bottom:6px}
+.page{max-width:820px;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 10px 30px -18px rgba(15,23,42,.35);padding:56px 64px;overflow-wrap:anywhere}
+.page img{max-width:100%;height:auto}.page table{border-collapse:collapse;max-width:100%}.page td,.page th{border:1px solid #CBD5E1;padding:4px 8px;vertical-align:top}
+.sheet{overflow:auto;background:#fff;border-radius:10px;box-shadow:0 10px 30px -18px rgba(15,23,42,.35);max-height:calc(100vh - 110px)}
+.sheet table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}.sheet th{position:sticky;top:0;background:var(--soft);color:var(--mute);font-weight:600;z-index:1}
+.sheet th.rn{left:0;z-index:2}.sheet td.rn{position:sticky;left:0;background:var(--soft);color:var(--mute);text-align:center}
+.sheet td,.sheet th{border:1px solid var(--line);padding:4px 8px;white-space:nowrap;min-width:48px}.sheet td.num{text-align:right}
+.slides{display:grid;gap:22px;justify-items:center}.slide{position:relative;background:#fff;box-shadow:0 10px 30px -18px rgba(15,23,42,.35);border-radius:6px;overflow:hidden;transform-origin:top left}
+.slide>*{position:absolute;overflow:hidden}.slide .tx{line-height:1.25}.slide img{object-fit:contain}
+.photo{display:grid;place-items:center;min-height:calc(100vh - 110px)}.photo img{max-width:100%;max-height:calc(100vh - 120px);border-radius:8px;box-shadow:0 10px 30px -18px rgba(15,23,42,.35)}
+@media print{.bar{display:none}html,body{background:#fff}main{padding:0}.page,.sheet,.slide{box-shadow:none}.slides{gap:0}.slide{break-after:page}}

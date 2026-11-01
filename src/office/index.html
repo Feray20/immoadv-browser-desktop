@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dokument</title>
+<link rel="stylesheet" href="./viewer.css">
+</head>
+<body>
+<header class="bar"><span class="ic" id="ic"></span><strong id="name">Dokument</strong><span class="sub" id="sub"></span><span class="sp"></span><nav id="tabs" class="tabs"></nav><button type="button" id="print" title="Drucken (Strg+P)">Drucken</button></header>
+<main id="out" aria-live="polite"><p class="wait">Wird geöffnet …</p></main>
+<script type="module" src="./viewer.mjs"></script>
+</body>
+</html>

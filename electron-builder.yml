@@ -13,6 +13,9 @@ extraResources:
     to: pdfjs
   - from: vendor/lists
     to: lists
+  # Symbole je Dateityp (PDF, Word, Excel …) – Dokumente zeigen ihr Format, nicht das Browser-Logo (01.11.2026)
+  - from: build/dateisymbole
+    to: dateisymbole
 asar: true
 # Als Webbrowser wählbar (Mac: „Standard-Webbrowser“, Windows: über build/installer.nsh)
 protocols:
@@ -73,6 +76,15 @@ mac:
       role: Viewer
     - ext: pdf
       name: PDF-Dokument
+      role: Viewer
+    - ext: [docx, doc]
+      name: Word-Dokument
+      role: Viewer
+    - ext: [xlsx, xls, csv]
+      name: Excel-Tabelle
+      role: Viewer
+    - ext: [pptx, ppt]
+      name: PowerPoint-Präsentation
       role: Viewer
   category: public.app-category.productivity
   target:

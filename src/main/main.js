@@ -26,20 +26,23 @@ pdf.registerScheme();
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
 // ---------- Als Standardbrowser: Links und Dateien von Windows/Mac öffnen ----------
+// Dokumente vom Schreibtisch (01.11.2026): PDF, HTML, Word, Excel, PowerPoint, CSV und Bilder öffnen hier.
+const DOC_RE = /\.(pdf|html?|docx?|xlsx?|csv|pptx?|png|jpe?g|gif|webp|bmp)$/i;
 const pendingOpen = [];      // vor dem Start übergebene Adressen/Dateien
 function openTargets(list) {
   const items = (list || []).map((a) => String(a || '').trim()).filter(Boolean);
   for (const a of items) {
     if (/^https?:\/\//i.test(a)) { if (needsChrome(a)) { openInChrome(a); continue; } if (win) newTab(a); else pendingOpen.push(a); continue; }
     const file = a.replace(/^file:\/\//i, '');
-    if (!/\.(pdf|html?)$/i.test(file) || !fs.existsSync(file)) continue;
+    if (!DOC_RE.test(file) || !fs.existsSync(file)) continue;
     if (!win) { pendingOpen.push(file); continue; }
     if (/\.pdf$/i.test(file)) openPDF(file);
+    else if (!/\.html?$/i.test(file)) openOffice(file);
     else newTab(require('node:url').pathToFileURL(file).href, { localFile: true });
   }
   if (win && items.length) showWindow();
 }
-const argvTargets = (argv) => (argv || []).slice(1).filter((a) => /^https?:\/\//i.test(a) || /\.(pdf|html?)$/i.test(a));
+const argvTargets = (argv) => (argv || []).slice(1).filter((a) => /^https?:\/\//i.test(a) || DOC_RE.test(a));
 pendingOpen.push(...argvTargets(process.argv));
 app.on('open-url', (e, url) => { e.preventDefault(); openTargets([url]); });      // Mac: Link aus anderer App
 app.on('open-file', (e, file) => { e.preventDefault(); openTargets([file]); });  // Mac: HTML/PDF-Datei
@@ -339,6 +342,7 @@ function newTab(url, opts = {}) {
     url: url || '', title: opts.title || (url ? hostOf(url) : 'Startseite'), filePath: opts.filePath || null, lastActive: Date.now()
   };
   if (opts.localFile && url) tab.localFile = url;
+  if (opts.viewOnly) tab.viewOnly = true;
   if (opts.suspended) tab.suspended = true; else attachView(tab);
   const at = opts.index != null ? opts.index : tabs.length;
   tabs.splice(at, 0, tab);
@@ -579,6 +583,8 @@ async function openPDFDialog() {
   if (!r.canceled && r.filePaths[0]) openPDF(r.filePaths[0]);
 }
 function openPDF(filePath) { newTab(pdf.viewerURL(filePath), { kind: 'pdf', title: path.basename(filePath), filePath }); }
+// Word/Excel/PowerPoint/Bilder: gleiche abgeschottete Sitzung wie PDF, nur Anzeige (Speichern gibt es hier nicht).
+function openOffice(filePath) { newTab(pdf.officeURL(filePath), { kind: 'pdf', title: path.basename(filePath), filePath, viewOnly: true }); }
 
 // ---------- Tastenkürzel (auch wenn der Fokus in einer Webseite liegt) ----------
 function handleShortcut(e, input) {
@@ -661,6 +667,7 @@ function devTools(t) {
 }
 
 async function savePDF(t) {
+  if (t.viewOnly || !/\.pdf$/i.test(t.filePath || '')) return;
   try { await pdf.save(t.view.webContents, t.filePath); send('toast', 'PDF gespeichert'); }
   catch { send('toast', 'Speichern fehlgeschlagen'); }
 }

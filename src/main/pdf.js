@@ -21,6 +21,10 @@ const MIME = { '.html': 'text/html', '.mjs': 'text/javascript', '.js': 'text/jav
   '.svg': 'image/svg+xml', '.png': 'image/png', '.gif': 'image/gif', '.ftl': 'text/plain', '.json': 'application/json',
   '.bcmap': 'application/octet-stream', '.pfb': 'application/octet-stream', '.ttf': 'font/ttf', '.wasm': 'application/wasm' };
 
+const officeRoot = path.join(__dirname, '..', 'office');
+const FILE_MIME = { '.pdf': 'application/pdf', '.docx': 'application/octet-stream', '.xlsx': 'application/octet-stream', '.pptx': 'application/octet-stream',
+  '.csv': 'text/plain; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp' };
+
 // Läuft im Viewer vor dem Start: Unterschrift-Werkzeug an, deutsche Oberfläche, keine Netzwerk-Funktionen
 const SETUP = `document.addEventListener('webviewerloaded', () => {
   const o = window.PDFViewerApplicationOptions;
@@ -46,7 +50,15 @@ function getSession() {
     if (u.pathname.startsWith('/__file/')) {
       const p = files.get(u.pathname.slice('/__file/'.length));
       if (!p) return new Response('Nicht gefunden', { status: 404 });
-      return new Response(await fs.promises.readFile(p), { headers: { 'content-type': 'application/pdf' } });
+      return new Response(await fs.promises.readFile(p), { headers: { 'content-type': FILE_MIME[path.extname(p).toLowerCase()] || 'application/octet-stream' } });
+    }
+    // Office-/Bild-Anzeige (01.11.2026): eigene Seite im Programm, gleiche abgeschottete Sitzung wie der PDF-Betrachter.
+    if (u.pathname.startsWith('/office/')) {
+      const rel = decodeURIComponent(u.pathname.slice('/office/'.length)).replace(/^\/+/, '');
+      const full = path.join(officeRoot, rel);
+      if (!full.startsWith(officeRoot + path.sep)) return new Response('', { status: 403 });
+      try { return new Response(await fs.promises.readFile(full), { headers: { 'content-type': MIME[path.extname(full)] || 'application/octet-stream' } }); }
+      catch { return new Response('', { status: 404 }); }
     }
     if (u.pathname === '/__setup.js') return new Response(SETUP, { headers: { 'content-type': 'text/javascript' } });
     // Viewer-Dateien
@@ -72,6 +84,13 @@ function viewerURL(filePath) {
   return `${SCHEME}://viewer/web/viewer.html?file=${file}#locale=de`;
 }
 
+/** Adresse für Word/Excel/PowerPoint/Bilder (nur Anzeige) */
+function officeURL(filePath) {
+  const token = crypto.randomUUID();
+  files.set(token, filePath);
+  return `${SCHEME}://viewer/office/index.html?file=${encodeURIComponent(token)}&name=${encodeURIComponent(path.basename(filePath))}`;
+}
+
 /** Speichert alle Änderungen (Formulare, Markierungen, Unterschrift) zurück in die Datei */
 async function save(webContents, filePath) {
   const b64 = await webContents.executeJavaScript(`(async () => {
@@ -84,4 +103,4 @@ async function save(webContents, filePath) {
   await fs.promises.rename(tmp, filePath);
 }
 
-module.exports = { registerScheme, getSession, viewerURL, save };
+module.exports = { registerScheme, getSession, viewerURL, officeURL, save };

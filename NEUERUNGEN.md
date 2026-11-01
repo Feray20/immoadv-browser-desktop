@@ -1,3 +1,7 @@
+ImmoAdv Browser 3.0.8
+- Word, Excel, PowerPoint, CSV und Bilder öffnen direkt im Browser (nur Anzeige und Drucken, ohne Internet)
+- Dateien auf dem Schreibtisch zeigen ihr eigenes Symbol (PDF, Word, Excel …) statt des Browser-Logos
+
 ImmoAdv Browser 3.0.7
 - Menüs (⋯, Rechtsklick auf Tab und Seite) im ImmoAdv-Fade-Design – zeigen nur, was gerade wirklich geht
 - Google-Konto: Chrome bzw. Edge wird jetzt zuverlässig gefunden
