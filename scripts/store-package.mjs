@@ -15,9 +15,9 @@ if (!identityName || !/^CN=[0-9A-F-]{36}$/i.test(publisher)) {
   console.log('Keine gültige Store-Produktidentität hinterlegt – Store-Paket wird übersprungen.');
   process.exit(0);
 }
-// Store-Pakete dürfen http/https nicht selbst als Protokoll anmelden (reservierte Namen) –
-// als Standardbrowser wird die App unter Windows über die Einstellungen gewählt.
-config.protocols = (config.protocols || []).filter((p) => !p.schemes.some((s) => s === 'http' || s === 'https'));
+// Store-Paket: keine eigenen Protokolle im Manifest (http/https sind reserviert, sonst doppelte Einträge → MakeAppx-Fehler).
+// Als Standardbrowser wird die App unter Windows über die Einstellungen gewählt.
+config.protocols = [];
 delete config.publish;                       // Store-Version holt Updates nur aus dem Store
 config.appx = { ...config.appx, identityName, publisher };
 

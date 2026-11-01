@@ -1416,6 +1416,7 @@ app.whenReady().then(async () => {
   });
   await vpn.init(browsingSession);
   await listsReady;
+  if (SCREENSHOTS && !store.get('downloadDir')) store.set('downloadDir', app.getPath('downloads'));   // keine Willkommensfrage im Bild
   await createWindow();
   if (SCREENSHOTS) {
     require(path.join(__dirname, '..', '..', 'test', 'store-screenshots.js'))({
