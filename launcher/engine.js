@@ -136,19 +136,69 @@ async function install(onProgress = () => {}) {
 async function brandIcon() {
   if (isMac) return brandMac();
   if (!isWin) return false;
+  try { await brandStrings(); } catch (e) { log('Name: ' + (e.message || e)); }
   const file = exe(), ico = path.join(paths.engineFiles(), 'icons', 'main-window.ico');
-  const mark = path.join(paths.engine(), '.immoadv-logo');
+  // Merker v2 (02.11.2026): zusätzlich Programmname „ImmoAdv Browser“ (Task-Manager, Taskleiste, Windows-Meldungen).
+  const mark = path.join(paths.engine(), '.immoadv-logo2');
   let st; try { st = fs.statSync(file); } catch { return false; }
   const key = `${st.size}:${st.mtimeMs}`;
   try { if (fs.readFileSync(mark, 'utf8') === key) return false; } catch { /* noch nie */ }
   try {
     const bin = require.resolve('rcedit/bin/rcedit-x64.exe').replace('app.asar', 'app.asar.unpacked');
-    await run(bin, [file, '--set-icon', ico], { timeout: 60000 });
+    await run(bin, [file, '--set-icon', ico, '--set-version-string', 'FileDescription', 'ImmoAdv Browser', '--set-version-string', 'ProductName', 'ImmoAdv Browser', '--set-version-string', 'CompanyName', 'ImmoAdv'], { timeout: 60000 });
     const st2 = fs.statSync(file);
     fs.writeFileSync(mark, `${st2.size}:${st2.mtimeMs}`);
     log('ImmoAdv-Logo gesetzt');
     return true;
   } catch (e) { log('Logo: ' + (e.message || e)); return false; }
+}
+
+/** Name „ImmoAdv Browser“ überall im Browser (02.11.2026, Feray: „soll überall ImmoAdv Browser heißen“): Fehlerseiten,
+ *  Add-ons, Dialoge und Menüs nehmen den Namen aus den Marken-Texten des Motors (branding/brand.ftl, .properties,
+ *  .dtd in omni.ja). Diese werden in der lokalen Kopie ersetzt – vorher gesichert, danach geprüft; schlägt etwas fehl,
+ *  wird die Sicherung zurückgelegt. Nur bei geschlossenem Motor; nach jedem Mozilla-Update erneut. */
+async function brandStrings() {
+  if (running()) return false;
+  const { path7za } = require('7zip-bin');
+  const seven = path7za.replace('app.asar', 'app.asar.unpacked');
+  const root = isMac ? path.join(paths.engine(), 'Firefox.app', 'Contents', 'Resources') : paths.engine();
+  const NAME = 'ImmoAdv Browser';
+  let done = false;
+  for (const omni of [path.join(root, 'browser', 'omni.ja'), path.join(root, 'omni.ja')]) {
+    let st; try { st = fs.statSync(omni); } catch { continue; }
+    const mark = omni + '.immoadv';
+    try { if (fs.readFileSync(mark, 'utf8') === `${st.size}:${st.mtimeMs}`) continue; } catch { /* noch nie */ }
+    const list = await run(seven, ['l', '-ba', '-slt', omni], { timeout: 60000 });
+    const files = list.split(/\r?\n/).filter((l) => l.startsWith('Path = ')).map((l) => l.slice(7).trim()).filter((f) => /(^|\/)branding\/brand\.(ftl|properties|dtd)$/.test(f));
+    if (!files.length) { fs.writeFileSync(mark, `${st.size}:${st.mtimeMs}`); continue; }
+    const tmp = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'immoadv-brand-'));
+    const backup = omni + '.original';
+    try {
+      await run(seven, ['x', omni, `-o${tmp}`, '-y', ...files], { timeout: 60000 });
+      let changed = 0;
+      for (const f of files) {
+        const fp = path.join(tmp, f);
+        const txt = fs.readFileSync(fp, 'utf8');
+        const out = txt.split(/\n/).map((line) => (/trademark|vendor|Mozilla Foundation|mozilla\.org/i.test(line) ? line : line.replace(/(Mozilla )?Firefox( ESR)?/g, NAME))).join('\n');
+        if (out !== txt) { fs.writeFileSync(fp, out); changed++; }
+      }
+      if (changed) {
+        if (!fs.existsSync(backup)) fs.copyFileSync(omni, backup);
+        await run(seven, ['u', '-tzip', '-mx=0', omni, ...files], { timeout: 120000, cwd: tmp });
+        await run(seven, ['t', omni], { timeout: 120000 });
+        fs.writeFileSync(path.join(paths.engine(), '.purge'), '1');
+        done = true;
+        log(`Name ImmoAdv Browser in ${path.basename(path.dirname(omni))}/omni.ja (${changed} Dateien)`);
+      }
+      const st2 = fs.statSync(omni);
+      fs.writeFileSync(mark, `${st2.size}:${st2.mtimeMs}`);
+    } catch (e) {
+      log('Name (omni.ja): ' + (e.message || e) + ' – Sicherung zurückgelegt');
+      try { if (fs.existsSync(backup)) fs.copyFileSync(backup, omni); } catch { /* egal */ }
+      try { const st3 = fs.statSync(omni); fs.writeFileSync(mark, `${st3.size}:${st3.mtimeMs}`); } catch { /* egal */ }
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  return done;
 }
 
 /** Mac (02.11.2026, Feray: „in der Kopfzeile soll ImmoAdv Browser stehen“): In der Menüleiste, im Dock und bei
@@ -186,6 +236,7 @@ async function brandMac() {
       fs.copyFileSync(icns, path.join(res, iconFile + '.icns'));
       try { await run('plutil', ['-remove', 'CFBundleIconName', plist]); } catch { /* nicht vorhanden */ }
     }
+    try { await brandStrings(); } catch (e) { log('Name: ' + (e.message || e)); }
     await run('codesign', ['--force', '--deep', '--sign', '-', appPath], { timeout: 120000 });
     try { await run('xattr', ['-cr', appPath]); } catch { /* egal */ }
     try { const now = new Date(); fs.utimesSync(appPath, now, now); } catch { /* egal */ }
@@ -334,6 +385,8 @@ function launch(args = []) {
     log(`Wecken ${urls.join(' ')}`.trim());
     return;
   }
+  const purgeFlag = path.join(paths.engine(), '.purge');
+  if (fs.existsSync(purgeFlag)) { args = ['-purgecaches', ...args]; try { fs.unlinkSync(purgeFlag); } catch { /* egal */ } }
   const child = spawn(exe(), ['--profile', paths.profile(), ...args], { detached: true, stdio: 'ignore', windowsHide: false, cwd: path.dirname(exe()) });
   child.on('error', (e) => log('Start fehlgeschlagen: ' + e.message));   // z. B. Virenscanner/Smart App Control – nie abstürzen
   child.unref();

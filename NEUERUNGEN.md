@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.8 – überall „ImmoAdv Browser“
+- Fehlerseiten, Add-ons, Dialoge und Menüs sagen „ImmoAdv Browser“ statt „Firefox“ (Windows und Mac)
+- Windows: Task-Manager und Taskleiste zeigen „ImmoAdv Browser“
+
 ImmoAdv Browser 4.1.7 – Mac startet zuverlässig vom Dock
 - Mac: Ein Klick aufs Dock-Symbol öffnet den Browser immer (vorher passierte beim zweiten/dritten Start nichts)
 
