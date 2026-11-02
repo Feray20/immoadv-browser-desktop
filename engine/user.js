@@ -42,6 +42,9 @@ user_pref("startup.homepage_welcome_url.additional", "");
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.display.use_system_colors", false);
 user_pref("widget.non-native-theme.scrollbar.style", 1);
+// Keine stehenden Scrollleisten (Feray 02.11.2026: „scrollen und links/rechts mit der Maus ohne Scrollleiste“):
+// schmale Leisten erscheinen nur kurz beim Scrollen und liegen über dem Inhalt – wie am Mac/iPhone.
+user_pref("ui.useOverlayScrollbars", 1);
 user_pref("ui.key.menuAccessKeyFocuses", false);
 user_pref("general.smoothScroll", true);
 user_pref("intl.locale.requested", "de");

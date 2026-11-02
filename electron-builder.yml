@@ -104,6 +104,10 @@ mac:
     - ext: [pptx, ppt]
       name: PowerPoint-Präsentation
       role: Viewer
+    # Bilder (02.11.2026): öffnen per Doppelklick mit den Bild-Werkzeugen des Browsers – wie unter Windows
+    - ext: [png, jpg, jpeg, gif, webp, bmp]
+      name: Bild
+      role: Viewer
   category: public.app-category.productivity
   # Nur Apple-Chip (02.11.2026): Die „universal“-Fassung (Apple-Chip + Intel zusammengefügt) zerstörte ohne
   # Neusignierung die Code-Signatur des Electron-Frameworks – macOS beendete den Browser sofort beim Start

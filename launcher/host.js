@@ -9,6 +9,7 @@ const vault = require('./vault');
 const engine = require('./engine');
 const updater = require('./updater');
 const sync = require('./sync');
+const fileassoc = require('./fileassoc');
 
 const SECRET = ['vpnCreds', 'passwords', 'aiKeys', 'neverSave', 'lastSession'];
 const SETTABLE = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'allowlist', 'blocklist', 'httpsOnly', 'cleanLinks', 'dnsProvider',
@@ -145,6 +146,9 @@ const handlers = {
       motor: tail('motor.log', 12), updateErrors: tail('update.log', 8, /error|Fehler|warn/i)
     };
   },
+  // Dateien immer mit ImmoAdv Browser öffnen (02.11.2026): Stand prüfen bzw. als Standard festlegen
+  'files.status': async () => ({ missing: await fileassoc.status() }),
+  'files.default': () => fileassoc.makeDefault(),
   'update.state': () => updater.state(),
   'update.check': () => { updater.check(); return updater.state(); },
   'update.now': () => { updater.updateNow(); return updater.state(); },

@@ -49,6 +49,7 @@ function allgemein() {
   const engines = [['google', 'Google'], ['duckduckgo', 'DuckDuckGo'], ['startpage', 'Startpage'], ['bing', 'Bing'], ['ecosia', 'Ecosia']];
   body(`<div class="group"><h3>Google-Konto</h3><p class="small">Google, YouTube (Premium), Gmail und Passkeys funktionieren direkt hier im ImmoAdv Browser – einfach auf google.com anmelden. Du bleibst angemeldet.</p></div>
     <div class="group"><h3>Standardbrowser</h3><div class="row"><span>ImmoAdv Browser als Standard<span class="desc">Links aus Mails, Programmen und PDFs öffnen hier</span></span><button class="pill accent" id="defBtn">Festlegen</button></div></div>
+    <div class="group"><h3>Dateien immer mit ImmoAdv Browser öffnen</h3><div class="row"><span>PDF, Word, Excel, PowerPoint und Bilder<span class="desc" id="faHint">${isMac ? 'Per Doppelklick im Finder – gilt sofort für alle diese Dateien.' : 'Windows lässt Programme den Standard nicht selbst ändern: Es öffnen sich die Windows-Einstellungen – dort einmal „Als Standard festlegen“ klicken.'}</span><span class="desc" id="faMsg" role="status" aria-live="polite"></span></span><button class="pill accent" id="faBtn">Als Standard festlegen</button></div></div>
     <div class="group"><h3>Start & Tabs</h3>
       ${sw('sRestore', s.restoreSession !== false, 'Offene Tabs beim Start wiederherstellen')}
       <div class="row"><span>Tabs anzeigen</span><select id="sLayout"><option value="horizontal" ${s.tabLayout !== 'vertical' ? 'selected' : ''}>Oben (waagerecht)</option><option value="vertical" ${s.tabLayout === 'vertical' ? 'selected' : ''}>Links (senkrecht)</option></select></div>
@@ -64,7 +65,33 @@ function allgemein() {
   $('sSuspend').onchange = () => setS({ suspendMinutes: Number($('sSuspend').value) });
   $('sEngine').onchange = () => setS({ searchEngine: $('sEngine').value });
   $('defBtn').onclick = async () => { const r = await send({ type: 'engine:set', patch: { makeDefault: true } }); toast(r && r.message ? r.message : 'Windows-Einstellungen geöffnet: bei „ImmoAdv Browser“ auf „Als Standard festlegen“ klicken'); };
+  dateienStandard();
   $('sDl').onclick = async () => { const r = await send({ type: 'engine:set', patch: { chooseDownloadDir: true } }); if (r && r.dir) { $('dlDir').textContent = r.dir; $('restart').classList.remove('hidden'); } };
+}
+
+// „Dateien immer mit ImmoAdv Browser öffnen“ (Wunsch Feray 02.11.2026, aus der ImmoAdv-Software hierher umgezogen):
+// Der Browser prüft selbst, ob er Standard ist – sobald alles stimmt, steht dort „Fertig“ statt des Knopfs.
+function dateienStandard() {
+  const b = $('faBtn'), m = $('faMsg'), h = $('faHint'); if (!b) return;
+  const paint = (r) => {
+    if (!r || !Array.isArray(r.missing) || !$('faBtn')) return null;
+    if (!r.missing.length) { b.textContent = '✓ Fertig – ImmoAdv Browser ist Standard'; b.disabled = true; b.style.cssText = 'background:linear-gradient(135deg,#059669,#10B981);color:#fff;opacity:1;cursor:default'; h.textContent = 'PDF, Word, Excel, PowerPoint und Bilder öffnen sich per Doppelklick im ImmoAdv Browser.'; m.textContent = ''; }
+    else { b.textContent = 'Als Standard festlegen'; b.disabled = false; b.style.cssText = ''; m.textContent = 'Noch nicht mit ImmoAdv Browser: ' + r.missing.map((x) => '.' + x).join(', '); }
+    return r.missing;
+  };
+  const check = () => send({ type: 'files:status' }).then(paint).catch(() => null);
+  let t = 0;
+  const watch = () => { clearInterval(t); let n = 0; t = setInterval(async () => { const r = await check(); if (!$('faBtn') || (Array.isArray(r) && !r.length) || ++n > 60) clearInterval(t); }, 2000); };
+  b.onclick = async () => {
+    b.disabled = true; m.textContent = '';
+    const r = await send({ type: 'files:default' }).catch((e) => ({ error: e.message }));
+    if (r && r.error) { m.textContent = 'Hat nicht geklappt: ' + r.error; b.disabled = false; return; }
+    m.textContent = r && r.result === 'fertig' ? 'Erledigt – die Dateien öffnen sich jetzt im ImmoAdv Browser.' : 'Windows-Einstellungen sind offen – dort „Als Standard festlegen“ klicken. Danach steht hier automatisch „Fertig“.';
+    if (r) paint(r); watch(); if (!b.textContent.startsWith('✓')) b.disabled = false;
+  };
+  window.__faCheck = check;
+  if (!window.__faFocus) { window.__faFocus = true; window.addEventListener('focus', () => { if ($('faBtn') && window.__faCheck) window.__faCheck(); }); }
+  check();
 }
 
 function datenschutz() {

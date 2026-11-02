@@ -247,6 +247,8 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'update:check': return Native.call('update.check').catch((e) => ({ status: 'error', message: e.message }));
     case 'update:now': return Native.call('update.now', {}, 30 * 60000).catch((e) => ({ status: 'error', message: e.message }));
     case 'engine:set': return Native.call('engine.set', { patch: m.patch }).catch((e) => ({ ok: false, error: e.message }));
+    case 'files:status': return Native.call('files.status', {}, 20000).catch((e) => ({ error: e.message }));
+    case 'files:default': return Native.call('files.default', {}, 30000).catch((e) => ({ error: e.message }));
     case 'site:clear': return Traceless.wipeNow(m.site).then(() => true);
     case 'page:text': return pageText(m.tabId);
     case 'page:listing': return listing(m.tabId);

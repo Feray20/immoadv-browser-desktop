@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.24 – Dateien immer im ImmoAdv Browser
+- Neu in Einstellungen → Allgemein: „Dateien immer mit ImmoAdv Browser öffnen“ – PDF, Word, Excel, PowerPoint und Bilder öffnen per Doppelklick im Browser (Mac sofort, Windows mit einem Klick in den Windows-Einstellungen); zeigt „Fertig“, sobald alles stimmt
+- Mac: Bilder (PNG, JPG, GIF, WebP, BMP) lassen sich mit dem ImmoAdv Browser öffnen
+- Keine stehenden Scrollleisten mehr: schmale Leisten erscheinen nur kurz beim Scrollen
+
 ImmoAdv Browser 4.1.23 – Update ohne Windows-Sperre
 - Windows hält die Update-Datei nicht mehr mit „Der Computer wurde durch Windows geschützt“ an – Updates laufen still durch und der Browser öffnet sich danach wieder
 
