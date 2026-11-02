@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.23 – Update ohne Windows-Sperre
+- Windows hält die Update-Datei nicht mehr mit „Der Computer wurde durch Windows geschützt“ an – Updates laufen still durch und der Browser öffnet sich danach wieder
+
 ImmoAdv Browser 4.1.22 – Updates installieren sich wieder richtig
 - „Update jetzt installieren“ funktioniert: der Browser schließt sich, installiert still und öffnet sich danach von selbst wieder – mit allen Tabs
 - Behoben: Das Update brach ab, weil Teile des Browsers noch liefen

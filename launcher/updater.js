@@ -214,6 +214,8 @@ ${relaunch ? '' : `if (Teile $motor) { L 'Browser ist offen – Update kommt bei
 for ($i = 0; $i -lt 40 -and (Teile $motor); $i++) { Start-Sleep -Milliseconds 500 }
 if (Teile $motor) { L 'Browser reagiert nicht – wird beendet'; Teile $motor | Stop-Process -Force; Start-Sleep -Milliseconds 800 }
 for ($i = 0; $i -lt 10; $i++) { $t = Teile $inst; if (-not $t) { break }; $t | Stop-Process -Force; Start-Sleep -Milliseconds 600 }
+# Windows-Schutz (SmartScreen) darf die eigene Update-Datei nie anhalten (Feray 02.11.2026: „Installationsdatei startet manchmal nicht“).
+Unblock-File -LiteralPath $setup
 L ('installiert ' + (Split-Path $setup -Leaf))
 $p = Start-Process -FilePath $setup -ArgumentList '/S', '--updated' -Wait -PassThru
 L ('Installer fertig (Code ' + $p.ExitCode + ')')
