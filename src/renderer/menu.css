@@ -14,4 +14,4 @@ body { font: 13px/1.4 "Segoe UI Variable Text", "Segoe UI", -apple-system, Blink
 .sub { padding-left: 14px; }
 .sep { height: 1px; margin: 5px 8px; background: rgba(255,255,255,.08); }
 .head { padding: 6px 10px 4px; font-size: 10.5px; letter-spacing: .9px; text-transform: uppercase; color: #6f7f97; }
-::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }
+::-webkit-scrollbar { width: 0; height: 0; display: none; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }

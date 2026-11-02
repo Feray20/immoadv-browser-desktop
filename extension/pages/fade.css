@@ -86,7 +86,7 @@ select option { background: #183863; }
 .brand img { width: 30px; height: 30px; border-radius: 8px; }
 .brand b { color: var(--text); }
 ::-moz-selection { background: rgba(75,123,255,.45); }
-* { scrollbar-color: rgba(255,255,255,.18) transparent; scrollbar-width: thin; }
+* { scrollbar-width: none !important; } /* keine Scrollleisten (02.11.2026) – Rad/Ziehen scrollt weiter */
 
 /* Knöpfe passen immer in ihren Rahmen (Feray 02.11.2026) – nie über den Rand, lange deutsche Texte brechen um */
 button, .pill, .primary, .secondary, .danger { box-sizing: border-box; max-width: 100%; }

@@ -310,3 +310,6 @@ menupopup::part(content), #contentAreaContextMenu::part(content), menupopup > ar
 .tabbrowser-tab:not([selected]):not(:hover) + .tabbrowser-tab:not([selected]):not(:hover) > .tab-stack > .tab-background {
   box-shadow: -1px 0 0 -0px rgba(255,255,255,.0), inset 1px 0 0 0 rgba(255,255,255,.10) !important;
 }
+
+/* Auch in der Browser-Oberfläche (Menüs, Seitenleisten, Listen) keine Scrollleisten – Scrollen per Rad bleibt (02.11.2026). */
+* { scrollbar-width: none !important; }

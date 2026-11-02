@@ -22,3 +22,8 @@
   .weather, .weatherCard, .weatherOptIn, .weather-wrapper { display: none !important; }
 }
 
+
+/* Keine Scrollleisten auf allen Seiten (Feray 02.11.2026: „entfern generell die Scrollleisten links rechts hoch runter –
+   muss auch so gehen mit Maus und Rollen“). Scrollen bleibt: Mausrad, Touchpad, Tastatur, Mittelklick-Rollen,
+   seitlich mit Umschalt+Rad oder mit gedrückter Maus ziehen (content/pan.js). */
+*, *::before, *::after, html, body { scrollbar-width: none !important; }

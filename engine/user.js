@@ -45,6 +45,9 @@ user_pref("widget.non-native-theme.scrollbar.style", 1);
 // Keine stehenden Scrollleisten (Feray 02.11.2026: „scrollen und links/rechts mit der Maus ohne Scrollleiste“):
 // schmale Leisten erscheinen nur kurz beim Scrollen und liegen über dem Inhalt – wie am Mac/iPhone.
 user_pref("ui.useOverlayScrollbars", 1);
+// Ganz ohne Scrollleisten (02.11.2026, userContent.css): Rollen mit gedrücktem Mausrad (Mittelklick) bleibt möglich.
+user_pref("general.autoScroll", true);
+user_pref("mousewheel.with_shift.action", 4);
 user_pref("ui.key.menuAccessKeyFocuses", false);
 user_pref("general.smoothScroll", true);
 user_pref("intl.locale.requested", "de");

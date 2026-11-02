@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.26 – ohne Scrollleisten
+- Keine Scrollleisten mehr – weder rechts noch unten, auf allen Seiten und in Menüs
+- Scrollen geht weiter: Mausrad, Touchpad, Tastatur; seitlich mit Umschalt + Mausrad oder mit gedrückter Maus ziehen
+- Mausrad drücken (Mittelklick) und Maus bewegen rollt die Seite in jede Richtung
+
 ImmoAdv Browser 4.1.25 – Upload-Verlauf
 - Neu im ⋯-Menü direkt über „Einstellungen“: Upload-Verlauf – jede Datei, die du auf einer Seite zum Hochladen auswählst (z. B. Lebenslauf bei StepStone, Workday, Personio), steht mit Datum, Uhrzeit, Portal, Seite und Gerät im Verlauf
 - Eindeutiger Fingerabdruck (SHA-256) je Datei: „Datei prüfen“ zeigt sofort, wann und wo genau diese Fassung hochgeladen wurde – auch Monate später; die Datei bleibt auf dem Gerät

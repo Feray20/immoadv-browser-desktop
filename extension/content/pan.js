@@ -9,6 +9,9 @@
     for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
       if (e.scrollWidth > e.clientWidth + 4) { const ox = getComputedStyle(e).overflowX; if (ox === 'auto' || ox === 'scroll') return e; }
     }
+    // Ganze Seite seitlich (ohne Scrollleiste, 02.11.2026): auch die Seite selbst lässt sich mit der Maus ziehen.
+    const root = document.scrollingElement || document.documentElement;
+    if (root && root.scrollWidth > root.clientWidth + 4 && getComputedStyle(root).overflowX !== 'hidden' && getComputedStyle(document.body || root).overflowX !== 'hidden') return root;
     return null;
   };
   let on = false, live = false, x0 = 0, y0 = 0, s0 = 0, sc = null, raf = 0, dx = 0, eatUntil = 0;
