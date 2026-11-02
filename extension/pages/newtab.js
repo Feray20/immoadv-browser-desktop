@@ -38,7 +38,10 @@ async function render() {
   try {
     const bar = await browser.bookmarks.getChildren('toolbar_____');
     const favs = bar.filter((b) => b.url && /^https?:/.test(b.url)).slice(0, 12);
-    $('favorites').replaceChildren(...favs.map(tile));
+    // Favoriten nur neu aufbauen, wenn sie sich geändert haben (02.11.2026: bei jeder VPN-Meldung sprangen alle Kacheln
+    // kurz auf den Buchstaben zurück und luden ihr Symbol neu – sichtbares Blinken).
+    const sig = JSON.stringify(favs.map((b) => [b.url, b.title]));
+    if (sig !== render.favSig) { render.favSig = sig; $('favorites').replaceChildren(...favs.map(tile)); }
     if (!favs.length) $('favorites').innerHTML = '<p class="hint">Mit ☆ in der Adressleiste fügst du Favoriten hinzu.</p>';
   } catch (e) {}
   const st = await browser.runtime.sendMessage({ type: 'state' }).catch(() => null);

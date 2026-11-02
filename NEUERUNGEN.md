@@ -1,3 +1,12 @@
+ImmoAdv Browser 4.1.1 – Sync und Updates zuverlässig
+- Sync: Gelöschte Passwörter und Lesezeichen werden jetzt auch auf dem anderen Gerät gelöscht (vorher kamen sie zurück)
+- Sync: Beim ersten Abgleich großer Bestände geht kein Eintrag mehr verloren; offline geänderte Passwörter werden nicht mehr von älteren überschrieben
+- Sync: Nach Ablauf der Anmeldung fragt der Browser wieder nach – kein endloses „neuer Versuch gleich“; nach erneuter Anmeldung läuft der Abgleich sofort weiter
+- Sync: „Tabs auf deinen anderen Geräten“ sind auch direkt nach dem Start da; Lesezeichen-Ordner entstehen nicht mehr doppelt
+- Mac: Updates laden wieder (vorher Fehler „Download unterbrochen“)
+- „Jetzt neu starten“ und Updates beenden den Browser sauber – alle Fenster kommen zurück, am Mac läuft keine alte Fassung weiter
+- Neuer Tab blinkt nicht mehr, wenn sich NordVPN meldet
+
 ImmoAdv Browser 4.1.0 – Windows und Mac im Gleichklang
 - Neu: Sync zwischen Windows-PC und Mac – Passwörter, Lesezeichen, Einstellungen und offene Tabs, automatisch jede Minute und nach jeder Änderung
 - Ende-zu-Ende-verschlüsselt mit deinem eigenen Sync-Passwort – ImmoAdv speichert nur unlesbare Daten

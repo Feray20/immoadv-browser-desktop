@@ -143,7 +143,7 @@ function starter() {
     try {
       engine.log(`Update ${p.v} wird beim Start installiert`);
       try { fs.writeFileSync(p.mark, new Date().toISOString()); } catch {}
-      require('node:child_process').spawn(p.file, ['/S', '--updated', '--force-run'], { detached: true, stdio: 'ignore' }).unref();
+      { const ch = require('node:child_process').spawn(p.file, ['/S', '--updated', '--force-run'], { detached: true, stdio: 'ignore' }); ch.on('error', () => {}); ch.unref(); }
       setTimeout(() => app.quit(), 300);
       return true;
     } catch (e) { engine.log('Update beim Start: ' + e.message); return false; }

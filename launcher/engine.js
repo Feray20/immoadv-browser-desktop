@@ -277,6 +277,7 @@ function deploy() {
 
 function launch(args = []) {
   const child = spawn(exe(), ['--profile', paths.profile(), ...args], { detached: true, stdio: 'ignore', windowsHide: false, cwd: path.dirname(exe()) });
+  child.on('error', (e) => log('Start fehlgeschlagen: ' + e.message));   // z. B. Virenscanner/Smart App Control – nie abstürzen
   child.unref();
   log(`Start ${args.length ? args.join(' ') : ''}`.trim());
 }

@@ -174,7 +174,7 @@ function restartBrowser() {
   // Starter im Hintergrund: wartet, bis der Motor zu ist, richtet ein und startet neu
   const { spawn } = require('node:child_process');
   const args = app.isPackaged ? ['--restart'] : [path.join(__dirname, '..'), '--restart'];
-  spawn(process.execPath, args, { detached: true, stdio: 'ignore' }).unref();
+  const ch = spawn(process.execPath, args, { detached: true, stdio: 'ignore' }); ch.on('error', () => {}); ch.unref();
   event('restart', {});
 }
 

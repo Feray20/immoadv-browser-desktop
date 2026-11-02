@@ -104,7 +104,7 @@ async function downloadMacRaw() {
   if (!state.version || state.status === 'downloading') return;
   const v = state.version;
   const dir = path.join(app.getPath('userData'), 'update');
-  const target = path.join(dir, `ImmoAdv-Browser-${v}-universal-mac.zip`);
+  const target = path.join(dir, `ImmoAdv-Browser-${v}-arm64-mac.zip`);   // gebaut wird nur noch für Apple-Chip (02.11.2026: „universal“ gab es nicht mehr → Download 404)
   fs.mkdirSync(dir, { recursive: true });
   let cachedOk = false;
   try { cachedOk = Boolean(macSha && fs.existsSync(target) && fs.statSync(target).size > 5 * 1024 * 1024 && (await sha512File(target)) === macSha); } catch { cachedOk = false; }
@@ -134,7 +134,7 @@ async function downloadMacRaw() {
       emit({ status: 'available', message: 'Download unterbrochen – bitte noch einmal tippen' });
     });
   });
-  ses.downloadURL(`${FEED}/ImmoAdv-Browser-${v}-universal-mac.zip`);
+  ses.downloadURL(`${FEED}/ImmoAdv-Browser-${v}-arm64-mac.zip`);
 }
 
 // Mac: nach dem Beenden neue Version entpacken, alte App ersetzen, neu starten (nur das Programm – Einstellungen bleiben)
@@ -167,7 +167,7 @@ fi
 rm -rf "$TMP"
 ${relaunch ? 'open "$APP"' : ''}
 `, { mode: 0o755 });
-  require('node:child_process').spawn('/bin/bash', [script], { detached: true, stdio: 'ignore' }).unref();
+  const ch = require('node:child_process').spawn('/bin/bash', [script], { detached: true, stdio: 'ignore' }); ch.on('error', (e) => log('Installieren nicht gestartet: ' + e.message)); ch.unref();
   if (relaunch) setImmediate(() => app.quit());
   return true;
 }

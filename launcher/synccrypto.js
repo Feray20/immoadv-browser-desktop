@@ -34,6 +34,8 @@ function newWrappedKey(passphrase) {
   return { syncKey, salt, iterations: ITERATIONS, wrapped: seal(deriveKey(passphrase, salt), syncKey) };
 }
 function unwrapKey(passphrase, { salt, iterations, wrapped_key }) {
+  // Unplausible Werte vom Server nie übernehmen (sonst friert die Schlüsselableitung das Programm ein).
+  if (iterations != null && !(Number(iterations) >= 100000 && Number(iterations) <= 5000000)) throw new Error('iterations');
   return open(deriveKey(passphrase, salt, iterations), wrapped_key);   // falsches Passwort → Fehler (GCM-Prüfung)
 }
 

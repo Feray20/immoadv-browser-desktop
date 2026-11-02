@@ -38,9 +38,13 @@ async function start() {
   migrate().catch((e) => console.warn('Übernahme', e));
   try { updateState = await Native.call('update.state'); updateBadge(); setTimeout(offerUpdate, 4000); } catch (e) {}
 }
+let bmChain = Promise.resolve();
 Native.on((ev, d) => {
   if (ev === 'sync') { syncState = d; broadcast('sync', d); }
-  if (ev === 'bm.remote') applyRemoteBookmark(d).catch((e) => console.warn('Lesezeichen vom anderen Gerät', e));
+  // Nacheinander anwenden (02.11.2026): parallel angelegte Ordner entstanden sonst mehrfach („Immobilien“ ×10).
+  if (ev === 'bm.remote') bmChain = bmChain.then(() => applyRemoteBookmark(d)).catch((e) => console.warn('Lesezeichen vom anderen Gerät', e));
+  // „Jetzt neu starten“ (Einstellungen, die einen Neustart brauchen): Browser sauber beenden, das Programm startet ihn neu.
+  if (ev === 'restart') restartForUpdate();
   if (ev === 'update') { updateState = d; broadcast('update', d); updateBadge(); if (d.status === 'restarting') restartForUpdate(); else offerUpdate(); }
 });
 
@@ -69,9 +73,12 @@ function setIcon() {
 }
 
 // Update installiert sich: Fenster schließen (Tabs bleiben gespeichert), das Programm startet den Browser neu
+// Beenden über die Browser-Brücke (02.11.2026): Fenster einzeln schließen beendete Firefox am Mac nicht (alte Fassung lief
+// weiter) und unter Windows stellte die Sitzung nur das letzte Fenster wieder her.
 async function restartForUpdate() {
   await new Promise((r) => setTimeout(r, 1200));
-  for (const w of await browser.windows.getAll()) await browser.windows.remove(w.id).catch(() => {});
+  try { await browser.tabs.create({ url: browser.runtime.getURL('pages/cmd.html?c=quit'), active: false }); }
+  catch { for (const w of await browser.windows.getAll()) await browser.windows.remove(w.id).catch(() => {}); }
 }
 
 // ---------- Geräte-Abgleich (Windows ⇄ Mac): Lesezeichen und offene Tabs an das Programm melden ----------

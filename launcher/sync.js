@@ -56,7 +56,10 @@ async function ensureToken() {
   const saved = !session && store.get('syncAuth') ? JSON.parse(decLocal(store.get('syncAuth')) || 'null') : null;
   const refresh = session ? session.refresh : saved && saved.refresh;
   if (!refresh) throw Object.assign(new Error('Nicht angemeldet'), { status: 401 });
-  const j = await http('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: refresh }, auth: false });
+  let j;
+  // Abgelaufener/ungültiger Anmeldeschlüssel meldet Supabase mit 400 – dann neu anmelden statt endlos „neuer Versuch gleich“.
+  try { j = await http('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: refresh }, auth: false }); }
+  catch (e) { if (e.status === 400) e.status = 401; throw e; }
   takeSession(j);
 }
 
@@ -79,8 +82,10 @@ async function mfa(code) {
   try {
     const ch = await http(`/auth/v1/factors/${pendingMfa.factorId}/challenge`, { method: 'POST', body: {} });
     const j = await http(`/auth/v1/factors/${pendingMfa.factorId}/verify`, { method: 'POST', body: { challenge_id: ch.id, code: String(code).replace(/\s/g, '') } });
-    takeSession(j); pendingMfa = null;
-    return afterLogin();
+    takeSession(j);
+    const r = await afterLogin();
+    pendingMfa = null;
+    return r;
   } catch { emit({ status: 'needMfa', message: 'Code falsch oder abgelaufen' }); return state; }
 }
 async function afterLogin() {
@@ -102,6 +107,8 @@ async function setPassphrase(pass) {
     store.set('syncKey', encLocal(syncKey.toString('base64')));
     store.set('syncSeen', {}); store.set('syncCursor', null);
     emit({ status: 'on', message: '' });
+    // Nach Abmelden/Anmelden lief der Minuten-Takt nicht mehr – jetzt sofort wieder starten.
+    clearInterval(timer); timer = setInterval(runNow, 60000);
     await runNow();
   } catch (e) { emit({ message: 'Fehler: ' + e.message }); }
   return state;
@@ -167,26 +174,54 @@ async function runNow() {
   busy = true;
   try {
     const seen = { ...(store.get('syncSeen') || {}) };
+    const local0 = localRecords();   // für Löschungen (kommen ohne Inhalt) und Konflikte
     // 1) Neues vom Server holen
-    let cursor = store.get('syncCursor');
+    // Cursor aus Zeit + Datensatz-ID (02.11.2026): Viele Einträge eines Hochladens haben dieselbe Zeit – mit „nur Zeit größer“
+    // gingen beim ersten Abgleich großer Bestände Einträge dauerhaft verloren. Dazu 5 Minuten Überlappung je Lauf gegen
+    // abweichende Uhren; doppelt Gelesenes ist harmlos (bekannter Stand wird übersprungen).
+    let saved = store.get('syncCursor');
+    if (typeof saved === 'string') saved = { t: saved, rid: '' };
+    let cursor = saved && saved.t ? { t: new Date(Date.parse(saved.t) - 5 * 60000).toISOString(), rid: '' } : null;
+    let newest = saved && saved.t ? saved : null;
+    // Tabs der anderen Geräte immer vollständig lesen (sonst nach jedem Neustart leer)
+    try {
+      const tabRows = await http('/rest/v1/browser_sync?select=rid,kind,data,deleted,device,changed_at&kind=eq.tabs');
+      const list = [];
+      for (const row of tabRows || []) {
+        if (row.device === deviceId() || row.deleted) continue;
+        try { const b = JSON.parse(C.open(syncKey, row.data).toString('utf8')); if (b.tabs && b.tabs.length) list.push({ device: row.device, name: b.name, platform: b.platform, at: b.at, tabs: b.tabs.slice(0, 60) }); } catch { /* nicht lesbar */ }
+      }
+      remoteTabs = list;
+    } catch { /* nächster Lauf */ }
     for (let page = 0; page < 20; page++) {
-      const q = `/rest/v1/browser_sync?select=rid,kind,data,deleted,device,changed_at,updated_at&order=updated_at.asc&limit=500${cursor ? `&updated_at=gt.${encodeURIComponent(cursor)}` : ''}`;
+      const filt = cursor ? `&or=${encodeURIComponent(`(updated_at.gt."${cursor.t}",and(updated_at.eq."${cursor.t}",rid.gt."${cursor.rid}"))`)}` : '';
+      const q = `/rest/v1/browser_sync?select=rid,kind,data,deleted,device,changed_at,updated_at&kind=neq.tabs&order=updated_at.asc,rid.asc&limit=500${filt}`;
       const rows = await http(q);
       if (!rows || !rows.length) break;
       for (const row of rows) {
-        cursor = row.updated_at;
+        cursor = { t: row.updated_at, rid: row.rid };
+        if (!newest || Date.parse(row.updated_at) > Date.parse(newest.t) || (row.updated_at === newest.t && row.rid > newest.rid)) newest = cursor;
         let body = null;
         try { body = JSON.parse(C.open(syncKey, row.data).toString('utf8')); } catch { continue; }   // nicht entschlüsselbar → überspringen
-        if (row.kind === 'tabs') {
-          if (row.device !== deviceId()) { remoteTabs = remoteTabs.filter((d) => d.device !== row.device); if (!row.deleted && body.tabs && body.tabs.length) remoteTabs.push({ device: row.device, name: body.name, platform: body.platform, at: body.at, tabs: body.tabs.slice(0, 60) }); }
-          continue;
-        }
         const mine = seen[row.rid];
         if (mine && mine.c >= Number(row.changed_at)) continue;    // eigener/neuerer Stand liegt schon vor
+        const loc = local0.get(row.rid);
+        // Löschung (02.11.2026): kommt ohne Inhalt – den Eintrag über seine ID hier auf dem Gerät finden. Vorher wurde
+        // nichts gelöscht und der Eintrag gleich wieder hochgeladen (kam überall zurück).
+        if (row.deleted && (row.kind === 'pw' || row.kind === 'bm')) {
+          if (loc) applyRemote(row, loc.body);
+          seen[row.rid] = { c: Number(row.changed_at), h: 'x', k: row.kind };
+          continue;
+        }
+        // Offline geänderter, neuerer eigener Stand gewinnt gegen einen älteren vom anderen Gerät (wird gleich hochgeladen).
+        if (loc && row.kind === 'pw' && mine && mine.h !== C.mac(syncKey, canon(row.kind, loc.body)) && (Number(loc.changed) || 0) > Number(row.changed_at)) {
+          seen[row.rid] = { ...mine, c: Number(row.changed_at) };
+          continue;
+        }
         applyRemote(row, body);
         seen[row.rid] = { c: Number(row.changed_at), h: row.deleted ? 'x' : C.mac(syncKey, canon(row.kind, body)), k: row.kind };
       }
-      store.set('syncCursor', cursor);
+      if (newest) store.set('syncCursor', newest);
       if (rows.length < 500) break;
     }
     // 2) Eigene Änderungen hochladen (neu, geändert, gelöscht)
@@ -215,6 +250,10 @@ async function runNow() {
       up.push({ user_id: session.userId, rid: tabsRid, kind: 'tabs', data: C.seal(syncKey, JSON.stringify({ name: deviceName(), platform: process.platform, at: now, tabs })), deleted: false, device: deviceId(), changed_at: now });
       seen[tabsRid] = { c: now, h: tabsHash, k: 'tabs' };
     }
+    // updated_at mitschicken: rückt den Lese-Cursor der anderen Geräte auch dann vor, wenn die Datenbank die Zeit beim
+    // Überschreiben nicht selbst setzt (ein Datenbank-Trigger hat Vorrang).
+    const stamp = new Date().toISOString();
+    for (const r of up) r.updated_at = stamp;
     for (let i = 0; i < up.length; i += 200) {
       await http('/rest/v1/browser_sync?on_conflict=user_id,rid', { method: 'POST', body: up.slice(i, i + 200), headers: { prefer: 'resolution=merge-duplicates,return=minimal' } });
     }
