@@ -6,7 +6,7 @@
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);   // userChrome.css / userContent.css
 user_pref("browser.theme.content-theme", 0);                               // dunkel
 user_pref("browser.theme.toolbar-theme", 0);
-user_pref("layout.css.prefers-color-scheme.content-override", 0);
+user_pref("layout.css.prefers-color-scheme.content-override", 2);   // Webseiten wie im Original: hell/dunkel nach Windows-/Mac-Einstellung (Feray 02.11.2026: „nichts customized“)
 user_pref("browser.tabs.inTitlebar", 1);                                   // Tabs in der Titelleiste (kein Extra-Rahmen)
 user_pref("browser.compactmode.show", true);
 user_pref("browser.uidensity", 0);

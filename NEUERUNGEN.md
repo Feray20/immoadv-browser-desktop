@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.10 – Webseiten wie im Original
+- Webseiten erscheinen wieder in ihren echten Farben (hell oder dunkel je nach Windows-/Mac-Einstellung) statt zwangsweise dunkel
+
 ImmoAdv Browser 4.1.9 – aufgeräumt
 - Passwort löschen mit einem Klick auf ✕ – sofort, ohne Rückfrage
 - Mehrere oder alle Passwörter auswählen und auf einmal löschen – verschwindet automatisch auch auf deinen anderen Geräten
