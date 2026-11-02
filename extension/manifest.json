@@ -55,6 +55,8 @@
       "lib/vpn.js",
       "lib/traceless.js",
       "lib/vault.js",
+      "lib/uploads-core.js",
+      "lib/uploadtrack.js",
       "background.js"
     ],
     "persistent": true
@@ -145,6 +147,18 @@
       ],
       "run_at": "document_idle",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "lib/sha256.js",
+        "content/uploads.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [

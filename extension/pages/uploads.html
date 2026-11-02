@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upload-Verlauf – ImmoAdv Browser</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="fade.css">
+  <link rel="stylesheet" href="uploads.css">
+</head>
+<body class="glow">
+  <div class="wrap">
+    <header>
+      <div class="brand"><img src="../icons/icon128.png" alt=""><span>ImmoAdv <b>Browser</b> · Upload-Verlauf</span></div>
+      <span id="syncLine" class="hint" role="status" aria-live="polite"></span>
+    </header>
+
+    <!-- Datei prüfen: lokal, die Datei verlässt das Gerät nicht -->
+    <section class="check" id="drop" tabindex="0" aria-label="Datei prüfen: Datei hier ablegen oder auswählen">
+      <div class="check-top">
+        <div><h3>Datei prüfen</h3><p class="hint">PDF oder andere Datei hierher ziehen – du siehst sofort, wann und wo genau diese Fassung hochgeladen wurde. Die Datei bleibt auf diesem Gerät.</p></div>
+        <label class="pill accent">Datei auswählen …<input type="file" id="pick" multiple hidden></label>
+      </div>
+      <div id="checkOut" class="check-out" aria-live="polite"></div>
+    </section>
+
+    <div class="bar">
+      <nav class="seg" id="views" aria-label="Ansicht">
+        <button data-v="list" class="on">Verlauf</button>
+        <button data-v="akten">Bewerbungsakten</button>
+        <button data-v="versionen">Versionen</button>
+      </nav>
+      <div class="tools">
+        <button class="pill" id="csv">CSV</button>
+        <button class="pill" id="pdf">PDF</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <input id="q" type="search" placeholder="Suchen, z. B. „Lebenslauf Roche“ oder „Oktober“" aria-label="Suchen" autocomplete="off">
+      <select id="fStatus" aria-label="Status"><option value="">Jeder Status</option></select>
+      <select id="fType" aria-label="Dokumenttyp"><option value="">Jeder Typ</option></select>
+      <select id="fDevice" aria-label="Gerät"><option value="">Alle Geräte</option></select>
+    </div>
+
+    <p id="count" class="hint"></p>
+    <main id="out"></main>
+    <div class="more"><button class="pill hidden" id="more">Weitere anzeigen</button></div>
+    <p class="hint foot">Gespeichert werden nur Dateiname, Größe, Typ, SHA-256-Fingerabdruck, Seite, Zeit und Gerät – nie die Datei oder ihr Inhalt. Abgleich zwischen deinen Geräten Ende-zu-Ende verschlüsselt. „Ausgewählt“ heißt: auf der Seite ausgewählt; „Übertragen“: der Browser hat die Datei an die Seite geschickt. Ob eine Bewerbung eingegangen ist, kann nur das Portal bestätigen.</p>
+  </div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script src="../lib/sha256.js"></script>
+  <script src="../lib/uploads-core.js"></script>
+  <script type="module" src="uploads.js"></script>
+</body>
+</html>

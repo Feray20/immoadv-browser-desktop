@@ -23,3 +23,16 @@ Sicherheitsgrenzen: Befehle nur vom eigenen Fenster (`fromUI`), Passwort-Meldung
 **Nicht umgesetzt (bewusst):** privater Modus (Spurlos-Regeln gelten immer), KI-Browser-Agent und Automations-Center (Risiko ungewollter Aktionen; erst mit Freigabe-Workflow), Recherche-Engine mit Mehrquellen-Prüfung, Shopping-Assistent, Notizen, mehrere Fenster, Erweiterungen.
 
 **Plattform-Grenzen:** Mac-App ist ohne Apple-Entwicklerzertifikat nicht beglaubigt (erster Start per Rechtsklick → Öffnen). Kein Schutz ist 100 %.
+
+## Upload-Verlauf (4.1.25, 02.11.2026)
+| Teil | Datei | Aufgabe |
+|---|---|---|
+| Erkennung | `extension/content/uploads.js` (alle Frames, ab Dokumentstart) | Dateiauswahl (`input[type=file]`, Mehrfach, iFrames) und Drag & Drop auf Upload-Flächen (nur wenn die Seite das Ablegen übernimmt); SHA-256 lokal |
+| Fingerabdruck | `extension/lib/sha256.js` | SHA-256 der unveränderten Bytes; bis 256 MB Web-Krypto, darüber in 4-MB-Stücken; Hex klein – gleich wie iOS (CryptoKit) |
+| Regeln | `extension/lib/uploads-core.js` | Adresse bereinigen (keine Tokens/Sitzungen/Tracking/Mailadressen, kein #), Portal + Arbeitgeber (nur eindeutig aus der Adresse), Dokumenttyp (Dateiname, „vermutet“) |
+| Status | `extension/lib/uploadtrack.js` | SELECTED → TRANSFER_STARTED/COMPLETED/FAILED nur bei passender Anfrage desselben Tabs (Dateiname im Formular oder Größe); SERVER_ACKNOWLEDGED wird nie geraten |
+| Speicher | `launcher/uploads.js` | `uploads` in einstellungen.json, Felder fest begrenzt, Status nur vorwärts, seitenweise (< 1 MB je Nachricht) |
+| Abgleich | `launcher/sync.js` | Datensatz-Art `up` (rid = HMAC der Ereignis-ID), Löschungen auf allen Geräten; Sofort-Abgleich über Supabase Realtime (`browser_sync` in `supabase_realtime`), Minuten-Takt bleibt Rückfall |
+| Oberfläche | `extension/pages/uploads.*` | ⋯-Menü über „Einstellungen“; Verlauf, Bewerbungsakten, Versionen, Datei prüfen (inkl. PDF-Prüfung mit PDF.js), CSV/PDF-Export; Schalter unter Einstellungen → Allgemein |
+
+Grenzen: Uploads über Wege, die Firefox der Erweiterung nicht zeigt (z. B. Datei-Inhalte, die eine Seite selbst erzeugt), werden nicht erkannt. Ob ein Upload übertragen wurde, ist eine Schätzung anhand der Anfrage (Dateiname/Größe) – ohne Treffer bleibt „Ausgewählt“.

@@ -1,3 +1,11 @@
+ImmoAdv Browser 4.1.25 – Upload-Verlauf
+- Neu im ⋯-Menü direkt über „Einstellungen“: Upload-Verlauf – jede Datei, die du auf einer Seite zum Hochladen auswählst (z. B. Lebenslauf bei StepStone, Workday, Personio), steht mit Datum, Uhrzeit, Portal, Seite und Gerät im Verlauf
+- Eindeutiger Fingerabdruck (SHA-256) je Datei: „Datei prüfen“ zeigt sofort, wann und wo genau diese Fassung hochgeladen wurde – auch Monate später; die Datei bleibt auf dem Gerät
+- Auf allen Geräten gleich: Windows, Mac und iPhone/iPad gleichen den Verlauf Ende-zu-Ende verschlüsselt ab – jetzt sofort statt minütlich
+- Bewerbungsakten je Arbeitgeber, Versionen je Dateiname, Dokumenttyp (vermutet), PDF-Prüfung (Seiten, beschädigt, Passwortschutz), Export als CSV und PDF
+- Ehrlicher Status: „Ausgewählt“, „Übertragen“ oder „Fehlgeschlagen“ – eine Bewerbung gilt nie automatisch als eingegangen
+- Ein- und ausschalten unter Einstellungen → Allgemein → Upload-Verlauf; die Datei selbst wird nie gespeichert
+
 ImmoAdv Browser 4.1.24 – Dateien immer im ImmoAdv Browser
 - Neu in Einstellungen → Allgemein: „Dateien immer mit ImmoAdv Browser öffnen“ – PDF, Word, Excel, PowerPoint und Bilder öffnen per Doppelklick im Browser (Mac sofort, Windows mit einem Klick in den Windows-Einstellungen); zeigt „Fertig“, sobald alles stimmt
 - Mac: Bilder (PNG, JPG, GIF, WebP, BMP) lassen sich mit dem ImmoAdv Browser öffnen

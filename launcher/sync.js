@@ -6,6 +6,7 @@ const os = require('node:os');
 const { safeStorage } = require('electron');
 const store = require('./store');
 const vault = require('./vault');
+const uploads = require('./uploads');
 const C = require('./synccrypto');
 const { siteOf } = require('../src/shared/lists');
 
@@ -158,6 +159,7 @@ async function setPassphrase(pass) {
     // Nach Abmelden/Anmelden lief der Minuten-Takt nicht mehr – jetzt sofort wieder starten.
     clearInterval(timer); timer = setInterval(runNow, 60000);
     await runNow();
+    realtimeStart();
   } catch (e) { emit({ message: 'Fehler: ' + e.message }); }
   return state;
 }
@@ -165,6 +167,7 @@ function logout() {
   session = null; syncKey = null; pendingMfa = null; remoteTabs = [];
   for (const k of ['syncAuth', 'syncKey', 'syncSeen', 'syncCursor']) store.set(k, null);
   clearInterval(timer); timer = null;
+  realtimeStop();
   emit({ status: 'needLogin', email: '', lastSync: 0, message: 'Abgemeldet – Daten auf diesem Gerät bleiben erhalten' });
 }
 
@@ -173,6 +176,7 @@ function canon(kind, b) {
   if (kind === 'pw') return JSON.stringify([b.site || '', b.user || '', b.pass || '']);
   if (kind === 'bm') return JSON.stringify([b.url || '', b.title || '', b.folder || '', (b.tags || []).join(',')]);
   if (kind === 'settings') return JSON.stringify(SETTINGS_SYNCED.map((k) => (b[k] === undefined ? null : b[k])));
+  if (kind === 'up') return JSON.stringify(uploads.FIELDS.map((k) => (b[k] === undefined ? null : b[k])));
   return JSON.stringify(b);
 }
 
@@ -187,12 +191,16 @@ function localRecords() {
     if (!b || !b.url) return;
     out.set(C.rid(syncKey, 'bm', b.url), { kind: 'bm', body: { title: b.title || '', url: b.url, folder: b.folder || '', tags: b.tags || [], order: i } });
   });
+  // Upload-Verlauf (02.11.2026): je Upload ein Datensatz, Kennung aus der Ereignis-ID
+  for (const u of uploads.all()) out.set(C.rid(syncKey, 'up', u.id), { kind: 'up', body: u });
   const st = {}; for (const k of SETTINGS_SYNCED) st[k] = store.get(k);
   out.set('settings:main', { kind: 'settings', body: st });
   return out;
 }
 
 let applying = false;
+let uploadsChanged = false;   // vom anderen Gerät kam ein Upload-Eintrag → Verlaufsseiten sofort neu zeichnen
+let onUploads = () => {};
 function applyRemote(row, body) {
   applying = true;
   try {
@@ -209,6 +217,9 @@ function applyRemote(row, body) {
       store.set('bookmarks', list);
       if (!row.deleted) recentRemote.set(body.url, Date.now()); else recentRemote.delete(body.url);
       try { onBookmark({ deleted: !!row.deleted, url: body.url, title: body.title || '', folder: body.folder || '' }); } catch { /* nie kritisch */ }
+    } else if (row.kind === 'up') {
+      uploads.applyRemote(body, row.deleted);
+      uploadsChanged = true;
     } else if (row.kind === 'settings' && !row.deleted) {
       for (const k of SETTINGS_SYNCED) if (k in body && body[k] !== undefined) store.set(k, body[k]);
     }
@@ -256,7 +267,7 @@ async function runNow() {
         const loc = local0.get(row.rid);
         // Löschung (02.11.2026): kommt ohne Inhalt – den Eintrag über seine ID hier auf dem Gerät finden. Vorher wurde
         // nichts gelöscht und der Eintrag gleich wieder hochgeladen (kam überall zurück).
-        if (row.deleted && (row.kind === 'pw' || row.kind === 'bm')) {
+        if (row.deleted && (row.kind === 'pw' || row.kind === 'bm' || row.kind === 'up')) {
           if (loc) applyRemote(row, loc.body);
           seen[row.rid] = { c: Number(row.changed_at), h: 'x', k: row.kind };
           continue;
@@ -284,7 +295,7 @@ async function runNow() {
       seen[rid] = { c: changed, h, k: r.kind };
     }
     for (const [rid, s] of Object.entries(seen)) {
-      if ((s.k === 'pw' || s.k === 'bm') && s.h !== 'x' && !local.has(rid)) {
+      if ((s.k === 'pw' || s.k === 'bm' || s.k === 'up') && s.h !== 'x' && !local.has(rid)) {
         const changed = Math.max(now, s.c + 1);
         up.push({ user_id: session.userId, rid, kind: s.k, data: C.seal(syncKey, '{}'), deleted: true, device: deviceId(), changed_at: changed });
         seen[rid] = { c: changed, h: 'x', k: s.k };
@@ -306,10 +317,12 @@ async function runNow() {
       await http('/rest/v1/browser_sync?on_conflict=user_id,rid', { method: 'POST', body: up.slice(i, i + 200), headers: { prefer: 'resolution=merge-duplicates,return=minimal' } });
     }
     store.set('syncSeen', seen);
-    const counts = { passwords: vault.plainEntries().length, bookmarks: (store.get('bookmarks') || []).length };
+    if (uploadsChanged) { uploadsChanged = false; try { onUploads(); } catch { /* nie kritisch */ } }
+    const counts = { passwords: vault.plainEntries().length, bookmarks: (store.get('bookmarks') || []).length, uploads: uploads.all().length };
     emit({ status: 'on', lastSync: Date.now(), message: '', counts });
+    if (!rt) realtimeStart();
   } catch (e) {
-    if (e.status === 401 || e.status === 403) emit({ status: 'needLogin', message: 'Bitte neu anmelden' });
+    if (e.status === 401 || e.status === 403) { realtimeStop(); emit({ status: 'needLogin', message: 'Bitte neu anmelden' }); }
     else emit({ message: 'Abgleich gerade nicht möglich – neuer Versuch gleich' });
   } finally {
     busy = false;
@@ -317,24 +330,71 @@ async function runNow() {
   }
 }
 
-function schedulePush() {
+function schedulePush(fast) {
   if (applying || state.status !== 'on') return;
   clearTimeout(pushTimer);
-  pushTimer = setTimeout(runNow, 2500);
+  pushTimer = setTimeout(runNow, fast ? 300 : 2500);   // neuer Upload: sofort zu den anderen Geräten
 }
 
-function init(fetchFn, openTabsFn, onState, onBm) {
-  fetcher = fetchFn; getOpenTabs = openTabsFn || getOpenTabs; notify = onState || notify; onBookmark = onBm || onBookmark;
-  store.onChange((k) => { if (['passwords', 'bookmarks', ...SETTINGS_SYNCED].includes(k)) schedulePush(); });
+function init(fetchFn, openTabsFn, onState, onBm, onUp) {
+  fetcher = fetchFn; getOpenTabs = openTabsFn || getOpenTabs; notify = onState || notify; onBookmark = onBm || onBookmark; onUploads = onUp || onUploads;
+  store.onChange((k) => { if (k === 'uploads') schedulePush(true); else if (['passwords', 'bookmarks', ...SETTINGS_SYNCED].includes(k)) schedulePush(); });
   const k = store.get('syncKey') && decLocal(store.get('syncKey'));
   const auth = store.get('syncAuth') && JSON.parse(decLocal(store.get('syncAuth')) || 'null');
   if (k && auth) {
     syncKey = Buffer.from(k, 'base64'); state.email = auth.email || '';
     emit({ status: 'on' });
     setTimeout(runNow, 4000);
+    setTimeout(realtimeStart, 5000);
   } else emit({ status: auth ? 'needLogin' : 'off' });
   clearInterval(timer);
   timer = setInterval(runNow, 60000);
+}
+
+// ---------- Sofort-Abgleich (02.11.2026, Feray: Upload auf dem iPhone muss sofort am PC sichtbar sein) ----------
+// Statt nur jede Minute nachzusehen, hört das Programm über Supabase Realtime mit, wenn ein anderes Gerät etwas in den
+// Abgleich schreibt, und gleicht dann sofort ab. Die Nachricht enthält nur Chiffretext; die Datenbank-Regeln (RLS) gelten.
+// Fällt die Verbindung weg, bleibt der Minuten-Takt als Rückfallebene – nie doppelte Abgleiche (runNow bündelt).
+let rt = null, rtRef = 0, rtBeat = null, rtRetry = 0, rtTimer = null, rtPull = null, rtToken = '';
+function realtimeStop() {
+  clearInterval(rtBeat); rtBeat = null; clearTimeout(rtTimer); rtTimer = null;
+  if (rt) { try { rt.onclose = null; rt.close(); } catch { /* zu */ } }
+  rt = null;
+}
+async function realtimeStart() {
+  if (typeof WebSocket !== 'function' || process.env.IMMOADV_NO_REALTIME || state.status !== 'on' || !syncKey) return;
+  if (rt && (rt.readyState === 0 || rt.readyState === 1)) return;
+  try { await ensureToken(); } catch { return; }
+  realtimeStop();
+  const topic = 'realtime:immoadv-sync';
+  const ws = new WebSocket(`${URL_BASE.replace(/^http/, 'ws')}/realtime/v1/websocket?apikey=${encodeURIComponent(APIKEY)}&vsn=1.0.0`);
+  rt = ws;
+  const sendRt = (event, payload, t = topic) => { try { ws.send(JSON.stringify({ topic: t, event, payload, ref: String(++rtRef), join_ref: '1' })); } catch { /* zu */ } };
+  ws.onopen = () => {
+    rtToken = session.access;
+    sendRt('phx_join', { config: { broadcast: { self: false }, presence: { key: '' }, postgres_changes: [{ event: '*', schema: 'public', table: 'browser_sync', filter: `user_id=eq.${session.userId}` }] }, access_token: rtToken });
+    rtBeat = setInterval(async () => {
+      sendRt('heartbeat', {}, 'phoenix');
+      // Anmeldeschlüssel läuft stündlich ab → neuen an den Kanal geben
+      try { await ensureToken(); if (session && session.access !== rtToken) { rtToken = session.access; sendRt('access_token', { access_token: rtToken }); } } catch { /* nächster Takt */ }
+    }, 25000);
+  };
+  ws.onmessage = (ev) => {
+    let m; try { m = JSON.parse(String(ev.data)); } catch { return; }
+    if (m.event === 'phx_reply' && m.payload && m.payload.status === 'ok') rtRetry = 0;
+    if (m.event !== 'postgres_changes') return;
+    const rec = (m.payload && m.payload.data && (m.payload.data.record || m.payload.data.old_record)) || {};
+    if (rec.device && rec.device === deviceId()) return;    // eigene Änderung
+    clearTimeout(rtPull); rtPull = setTimeout(runNow, 400);
+  };
+  ws.onclose = () => {
+    clearInterval(rtBeat); rtBeat = null;
+    if (rt !== ws) return;
+    rt = null;
+    if (state.status !== 'on') return;
+    rtTimer = setTimeout(realtimeStart, Math.min(120000, 2000 * Math.pow(2, rtRetry++)));
+  };
+  ws.onerror = () => { /* onclose folgt */ };
 }
 
 // Lesezeichen, die gerade vom anderen Gerät kamen und in Firefox noch fehlen, nicht als „gelöscht“ werten (2 Minuten Schonfrist)

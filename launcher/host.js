@@ -10,11 +10,16 @@ const engine = require('./engine');
 const updater = require('./updater');
 const sync = require('./sync');
 const fileassoc = require('./fileassoc');
+const uploads = require('./uploads');
+const os = require('node:os');
 
 const SECRET = ['vpnCreds', 'passwords', 'aiKeys', 'neverSave', 'lastSession'];
+// Große interne Listen nie in „Einstellungen“ an die Erweiterung (Nachrichten sind auf 1 MB begrenzt) – der Upload-Verlauf
+// hat eigene Befehle mit Seiten.
+const INTERNAL = ['uploads', 'syncSeen', 'syncCursor', 'syncAuth', 'syncKey'];
 const SETTABLE = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'allowlist', 'blocklist', 'httpsOnly', 'cleanLinks', 'dnsProvider',
   'keepSignedIn', 'traceless', 'vpnCountry', 'vpnServers', 'stats', 'autoUpdate', 'bookmarkBar', 'tabLayout', 'suspendMinutes', 'historyDays',
-  'restoreSession', 'searchEngine', 'watchlist', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'listsInfo'];
+  'restoreSession', 'searchEngine', 'watchlist', 'uploadHistory', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'listsInfo'];
 const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine', 'downloadDir'];
 const PROVIDERS = {
   anthropic: { name: 'Claude (Anthropic)', model: 'claude-sonnet-5-5', needsKey: true },
@@ -37,6 +42,7 @@ const dec = (b) => { try { return safeStorage.decryptString(Buffer.from(b, 'base
 function publicSettings() {
   const all = store.all();
   for (const k of SECRET) delete all[k];
+  for (const k of INTERNAL) delete all[k];
   all.vpnLoggedIn = !!store.get('vpnCreds');
   return all;
 }
@@ -169,6 +175,19 @@ const handlers = {
     if (JSON.stringify(merged) !== before) store.set('bookmarks', merged);
     return { n: merged.length };
   },
+  // Upload-Verlauf (02.11.2026): Einträge dieses Geräts, Übertragungsstand, Liste (seitenweise), Löschen
+  'uploads.add': ({ recs }) => {
+    if (store.get('uploadHistory') === false) return { added: [] };
+    return { added: uploads.add(recs, uploadDevice()) };
+  },
+  'uploads.status': ({ ids, status, transport }) => ({ n: uploads.setStatus(ids, status, transport) }),
+  'uploads.list': async ({ sync: doSync, offset }) => {
+    // Beim Öffnen des Verlaufs bzw. vor „Datei prüfen“ erst kurz abgleichen: immer der Stand aller Geräte
+    if (doSync && !offset) { try { await Promise.race([sync.runNow(), new Promise((r) => setTimeout(r, 15000))]); } catch { /* lokal weiter */ } }
+    const s = sync.state();
+    return { ...uploads.page(offset), device: uploadDevice().id, sync: { status: s.status, lastSync: s.lastSync, message: s.message } };
+  },
+  'uploads.delete': ({ ids }) => ({ n: uploads.remove(Array.isArray(ids) ? ids.slice(0, 50000) : []) }),
   'tabs.local': ({ tabs }) => { openTabs = (Array.isArray(tabs) ? tabs : []).slice(0, 60); sync.tabsChanged(); return true; },
   // Version 3 → 4
   'migrate.v3': () => ({ bookmarks: store.get('bookmarks') || [] }),
@@ -186,6 +205,14 @@ const handlers = {
     } finally { fs.closeSync(fd); }
   }
 };
+
+// Gerät für den Upload-Verlauf: gleiche Kennung wie der Abgleich, Name wie unter „Tabs der anderen Geräte“
+function uploadDevice() {
+  let id = store.get('syncDevice');
+  if (!id) { id = require('node:crypto').randomUUID(); store.set('syncDevice', id); }
+  const platform = process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'windows' : process.platform;
+  return { id, platform, name: `${process.platform === 'darwin' ? 'Mac' : 'Windows-PC'} (${os.hostname().replace(/\.local$/, '')})` };
+}
 
 // Freigegebene Dateien (vom Starter übergeben, z. B. Doppelklick auf eine Word-Datei)
 const files = new Map();
@@ -229,7 +256,8 @@ function common() {
   updater.setBeforeInstall(() => event('update', { ...updater.state(), status: 'restarting' }));
   updater.init((s) => event('update', s));
   try {
-    sync.init((u, o) => fetch(u, o), () => openTabs, (s) => event('sync', s), (op) => event('bm.remote', op));
+    sync.init((u, o) => fetch(u, o), () => openTabs, (s) => event('sync', s), (op) => event('bm.remote', op), () => event('uploads', { at: Date.now() }));
+    store.onChange((k) => { if (k === 'uploads') event('uploads', { at: Date.now() }); });
   } catch (e) { engine.log('Abgleich: ' + e.message); }
 }
 

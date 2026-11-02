@@ -55,12 +55,17 @@ function allgemein() {
       <div class="row"><span>Tabs anzeigen</span><select id="sLayout"><option value="horizontal" ${s.tabLayout !== 'vertical' ? 'selected' : ''}>Oben (waagerecht)</option><option value="vertical" ${s.tabLayout === 'vertical' ? 'selected' : ''}>Links (senkrecht)</option></select></div>
       <div class="row"><span>Hintergrund-Tabs schlafen legen<span class="desc">spart Arbeitsspeicher und Akku</span></span><select id="sSuspend">${[[0, 'Nie'], [15, 'nach 15 Min.'], [30, 'nach 30 Min.'], [60, 'nach 1 Std.']].map(([v, l]) => `<option value="${v}" ${Number(s.suspendMinutes) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       ${sw('sBar', s.bookmarkBar !== false, 'Lesezeichenleiste', 'Strg/⌘+Umschalt+B')}</div>
+    <div class="group"><h3>Upload-Verlauf</h3>
+      ${sw('sUploads', s.uploadHistory !== false, 'Upload-Verlauf aktiv', 'Merkt sich bei jedem Hochladen nur Dateiname, Fingerabdruck (SHA-256), Seite, Zeit und Gerät – nie die Datei selbst. Auf allen deinen Geräten sichtbar (Sync).')}
+      <div class="row"><span>Verlauf ansehen und Dateien prüfen</span><button class="pill" id="sUpOpen">Upload-Verlauf öffnen</button></div></div>
     <div class="group"><h3>Suche</h3><div class="row"><span>Suchmaschine</span><select id="sEngine">${engines.map(([v, l]) => `<option value="${v}" ${s.searchEngine === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
     <div class="group"><h3>Downloads</h3><div class="row"><span>Speichern in<span class="desc" id="dlDir">${esc(s.downloadDir || 'Download-Ordner')}</span></span><button class="pill" id="sDl">Ordner wählen …</button></div></div>
     <div class="group"><h3>Tastenkürzel</h3>${[['Neuer Tab', 'Strg+T'], ['Tab schließen', 'Strg+W'], ['Geschlossenen Tab öffnen', 'Strg+Umschalt+T'], ['Adressleiste', 'Strg+L'], ['Suchen auf der Seite', 'Strg+F'], ['KI-Assistent', 'Strg+Umschalt+A'], ['ImmoAdv-Menü', 'Alt+Umschalt+I'], ['Verlauf', 'Strg+H'], ['Downloads', 'Strg+Umschalt+Y'], ['Lesezeichen setzen', 'Strg+D']].map(([l, k]) => `<div class="row"><span>${l}</span><span class="hint">${isMac ? k.replace('Strg', '⌘') : k}</span></div>`).join('')}</div>
     <div class="group"><h3>Erweitert</h3><p class="small">Selten gebrauchte Motor-Einstellungen (Schriften, Sprachen, Barrierefreiheit): <b>about:preferences?firefox</b> in die Adressleiste eingeben.</p></div>
     <p class="hint">ImmoAdv Browser ${esc(st.version)} · Motor: Firefox ESR ${esc((navigator.userAgent.match(/Firefox\/([\d.]+)/) || [])[1] || '')} (Mozilla, automatische Sicherheitsupdates)</p>`);
   bindSwitch('sRestore', 'restoreSession'); bindSwitch('sBar', 'bookmarkBar');
+  bindSwitch('sUploads', 'uploadHistory', async (on) => { for (const t of await browser.tabs.query({})) browser.tabs.sendMessage(t.id, { type: 'upload:setting', on }).catch(() => {}); });
+  $('sUpOpen').onclick = () => browser.tabs.create({ url: browser.runtime.getURL('pages/uploads.html') });
   $('sLayout').onchange = () => setS({ tabLayout: $('sLayout').value });
   $('sSuspend').onchange = () => setS({ suspendMinutes: Number($('sSuspend').value) });
   $('sEngine').onchange = () => setS({ searchEngine: $('sEngine').value });

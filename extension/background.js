@@ -25,6 +25,7 @@ async function start() {
   Vpn.init();
   Vault.refreshSites();
   Traceless.init();
+  UploadTrack.init();
   Blocker.refresh().catch(() => {});
   browser.alarms.create('lists', { periodInMinutes: 360 });
   browser.alarms.create('history', { delayInMinutes: 2, periodInMinutes: 720 });
@@ -41,6 +42,7 @@ async function start() {
 let bmChain = Promise.resolve();
 Native.on((ev, d) => {
   if (ev === 'sync') { syncState = d; broadcast('sync', d); }
+  if (ev === 'uploads') broadcast('uploads', d);
   // Nacheinander anwenden (02.11.2026): parallel angelegte Ordner entstanden sonst mehrfach („Immobilien“ ×10).
   if (ev === 'bm.remote') bmChain = bmChain.then(() => applyRemoteBookmark(d)).catch((e) => console.warn('Lesezeichen vom anderen Gerät', e));
   // „Jetzt neu starten“ (Einstellungen, die einen Neustart brauchen): Browser sauber beenden, das Programm startet ihn neu.
@@ -286,6 +288,12 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'sync:pass': return Native.call('sync.pass', { pass: m.pass }, 120000).catch((e) => ({ status: 'needPassphrase', message: e.message }));
     case 'sync:logout': return Native.call('sync.logout').catch((e) => ({ status: 'error', message: e.message }));
     case 'sync:now': pushBookmarks(); pushTabs(); return Native.call('sync.now', {}, 120000).catch((e) => ({ status: 'error', message: e.message }));
+    // Upload-Verlauf
+    case 'upload:enabled': return Promise.resolve(UploadTrack.on());
+    case 'upload:selected': return UploadTrack.selected(m, sender);
+    case 'uploads:list': return Native.call('uploads.list', { sync: !!m.sync, offset: m.offset || 0 }, m.sync ? 25000 : 10000).catch((e) => ({ error: e.message, items: [] }));
+    case 'uploads:delete': return Native.call('uploads.delete', { ids: m.ids }).catch((e) => ({ error: e.message }));
+    case 'uploads:pdf': return browser.tabs.saveAsPdf({ toFileName: m.fileName || 'Upload-Verlauf.pdf', shrinkToFit: true, showBackgroundColors: true, headerLeft: '', headerRight: '', footerLeft: '', footerRight: '' }).catch((e) => e.message);
     case 'file:read': return Native.call('file.read', { token: m.token, offset: m.offset || 0 }, 60000).catch((e) => ({ error: e.message }));
     default: return undefined;
   }

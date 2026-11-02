@@ -36,6 +36,7 @@ function items() {
     ['{ }', 'Entwicklertools', 'F12', () => cmd('devtools'), !isWeb],
     '-',
     ['🛡', 'Datenschutz-Center', '', () => { showPrivacy(); return 'stay'; }],
+    ['⇪', 'Upload-Verlauf', '', () => browser.tabs.create({ url: page('uploads.html') })],
     ['⚙', 'Einstellungen', 'Strg+,', () => browser.runtime.openOptionsPage()]
   ];
 }

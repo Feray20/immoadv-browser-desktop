@@ -13,7 +13,7 @@ function load({ creds = null } = {}) {
     runtime: { connectNative() { const p = { onMessage: ev(), onDisconnect: ev(), postMessage(m) { sent.push(m); setTimeout(() => p.onMessage._l.forEach((f) => f({ id: m.id, ok: true, data: reply(m) })), 1); } }; return p; },
       getURL: (p) => 'moz-extension://x/' + p, onMessage: ev(), sendMessage: async () => {}, getManifest: () => ({ version: '4.0.0' }) },
     storage: { local: { get: async (k) => (typeof k === 'string' ? { [k]: storage[k] } : Object.fromEntries((k || []).map((x) => [x, storage[x]]))), set: async (o) => Object.assign(storage, o), remove: async () => {} } },
-    theme: { update: async () => {} }, webRequest: { onBeforeRequest: ev(), onAuthRequired: ev(), onHeadersReceived: ev() }, webNavigation: { onCommitted: ev() },
+    theme: { update: async () => {} }, webRequest: { onBeforeRequest: ev(), onAuthRequired: ev(), onHeadersReceived: ev(), onCompleted: ev(), onErrorOccurred: ev() }, webNavigation: { onCommitted: ev() },
     tabs: { onRemoved: ev(), onUpdated: ev(), query: async () => [], executeScript: async () => [] },
     browserAction: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {}, setTitle: async () => {} },
     proxy: { onRequest: ev(), onError: ev() }, cookies: { getAll: async () => [] }, browsingData: { remove: async () => {} },
@@ -22,11 +22,11 @@ function load({ creds = null } = {}) {
     windows: { getAll: async () => [], onRemoved: ev(), create: async () => ({ id: 1 }) }
   };
   const lists = { werbung: ['doubleclick.net'], malware: ['bad.example'], phishing: ['phish.example'], sources: {} };
-  const ctx = { browser, console, setTimeout, clearTimeout, setInterval, URL, TextEncoder, btoa, AbortController, navigator: { onLine: false }, window: { addEventListener() {} },
+  const ctx = { browser, console, crypto: globalThis.crypto, Intl, URLSearchParams, setTimeout, clearTimeout, setInterval, URL, TextEncoder, btoa, AbortController, navigator: { onLine: false }, window: { addEventListener() {} },
     fetch: async (u) => { const m = /lists\/(\w+)\.json/.exec(u); return m ? { ok: true, json: async () => lists[m[1]] } : { ok: false, status: 503, json: async () => null }; } };
   ctx.self = ctx; vm.createContext(ctx);
   let code = listsSrc + '\n;\n';
-  for (const f of ['lib/native.js', 'lib/settings.js', 'lib/theme.js', 'lib/blocker.js', 'lib/vpn.js', 'lib/traceless.js', 'lib/vault.js', 'background.js']) code += fs.readFileSync(path.join(root, 'extension', f), 'utf8') + '\n;\n';
+  for (const f of ['lib/native.js', 'lib/settings.js', 'lib/theme.js', 'lib/blocker.js', 'lib/vpn.js', 'lib/traceless.js', 'lib/vault.js', 'lib/uploads-core.js', 'lib/uploadtrack.js', 'background.js']) code += fs.readFileSync(path.join(root, 'extension', f), 'utf8') + '\n;\n';
   vm.runInContext(code, ctx, { filename: 'background.js' });
   return { browser, sent };
 }
@@ -52,4 +52,29 @@ test('NordVPN: ohne Anmeldung direkt, mit Anmeldung nie ungeschützt (Notaus) un
   assert.equal(first.type, 'https');                          // kein Rückfall auf „direct“, auch ohne Serverliste
   assert.notEqual(first.host, undefined);
   assert.deepEqual(px({ url: 'http://192.168.1.10/', tabId: 1 }), { type: 'direct' });
+});
+
+test('Upload-Verlauf: Auswahl wird mit bereinigter Adresse gemeldet, Übertragung ehrlich verfolgt', async () => {
+  const { browser, sent } = load(); await wait(80);
+  const onMsg = browser.runtime.onMessage._l[0];
+  const tab = { id: 7, url: 'https://roche.wd3.myworkdayjobs.com/de-DE/ext/job/1/apply?token=geheim', title: 'Bewerbung Logistiker' };
+  const ok = await onMsg({ type: 'upload:selected', via: 'input', frameUrl: tab.url, files: [{ name: 'Lebenslauf.pdf', size: 5000, mime: 'application/pdf', sha256: 'e'.repeat(64) }] }, { tab });
+  assert.equal(ok, true);
+  const add = sent.find((m) => m.cmd === 'uploads.add');
+  assert.ok(add, 'nicht an das Programm gemeldet');
+  const r = add.recs[0];
+  assert.equal(r.url, 'https://roche.wd3.myworkdayjobs.com/de-DE/ext/job/1/apply');
+  assert.equal(r.portal, 'Workday'); assert.equal(r.employer, 'Roche'); assert.equal(r.status, 'SELECTED'); assert.equal(r.docType, 'Lebenslauf');
+  // Anfrage dieses Tabs mit dem Dateinamen im Formular → Übertragung gestartet, 200 → übertragen
+  const before = browser.webRequest.onBeforeRequest._l.at(-1), done = browser.webRequest.onCompleted._l.at(-1);
+  before({ requestId: 'q1', tabId: 7, method: 'POST', url: 'https://x/upload', requestBody: { formData: { file: ['Lebenslauf.pdf'] } } });
+  done({ requestId: 'q1', tabId: 7, statusCode: 200 });
+  await wait(10);
+  const st = sent.filter((m) => m.cmd === 'uploads.status').map((m) => m.status);
+  assert.deepEqual(st, ['TRANSFER_STARTED', 'TRANSFER_COMPLETED']);
+  // Anfrage eines anderen Tabs oder ohne Datei → keine Zuordnung
+  before({ requestId: 'q2', tabId: 8, method: 'POST', url: 'https://x/upload', requestBody: { formData: { file: ['Lebenslauf.pdf'] } } });
+  before({ requestId: 'q3', tabId: 7, method: 'POST', url: 'https://x/log', requestBody: { formData: { a: ['b'] } } });
+  await wait(10);
+  assert.equal(sent.filter((m) => m.cmd === 'uploads.status').length, 2);
 });

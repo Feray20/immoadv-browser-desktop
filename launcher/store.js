@@ -38,6 +38,9 @@ const defaults = {
   bookmarkBar: true,
   frequent: [],
   watchlist: [],
+  // Upload-Verlauf (02.11.2026): je hochgeladener Datei nur Fingerabdruck + Angaben, nie die Datei
+  uploadHistory: true,
+  uploads: [],
   searchEngine: 'google',
   downloadDir: null,
   bookmarks: [
