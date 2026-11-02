@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.22 – Updates installieren sich wieder richtig
+- „Update jetzt installieren“ funktioniert: der Browser schließt sich, installiert still und öffnet sich danach von selbst wieder – mit allen Tabs
+- Behoben: Das Update brach ab, weil Teile des Browsers noch liefen
+
 ImmoAdv Browser 4.1.21 – Mac-Bau erneut
 - Enthält alles aus 4.1.18–4.1.20 (Mac: ein Dock-Symbol, Kamera, Mikrofon, Mitteilungen, stille Updates)
 

@@ -21,6 +21,7 @@ let installWhenReady = false;   // Knopf gedrückt → nach dem Download sofort 
 let failures = 0;
 let beforeInstall = () => {};
 let retryTimer = null;
+let winSetup = null;    // Pfad des fertig geladenen Windows-Installers (aus „update-downloaded“)
 
 function log(msg) {
   try {
@@ -64,6 +65,7 @@ async function init(onState) {
   autoUpdater.on('download-progress', (p) => emit({ status: 'downloading', progress: Math.round(p.percent || 0), message: `Lädt Version ${state.version} …` }));
   autoUpdater.on('update-downloaded', (i) => {
     failures = 0;
+    if (i && i.downloadedFile) winSetup = i.downloadedFile;
     emit({ status: 'ready', version: i.version, notes: notesText(i.releaseNotes) || state.notes, message: `Version ${i.version} ist bereit` });
     if (installWhenReady) install(); else backgroundInstall();
   });
@@ -171,6 +173,70 @@ ${relaunch ? 'open "$APP"' : ''}
   if (relaunch) setImmediate(() => app.quit());
   return true;
 }
+// ---------- Windows: Update-Helfer (02.11.2026, Feray: „Update geht nicht über Updaten“, „danach automatisch wieder öffnen“) ----------
+// Fehler vorher: quitAndInstall startete den Installer, während Firefox noch offen war. Firefox startete über die
+// Weiterleitung (relay.js) sofort einen neuen Hintergrund-Dienst aus dem Programmordner – die Dateien waren gesperrt,
+// der Installer brach ab (Programmdatei teils leer), und der Browser kam nicht wieder.
+// Jetzt übernimmt ein kleiner unsichtbarer Helfer außerhalb des Programms:
+//   1. wartet, bis der Browser (Firefox-Motor) seine Tabs gespeichert und sich geschlossen hat (sonst nach 20 s beenden),
+//   2. beendet alle restlichen Teile des Programms (Hintergrund-Dienst, Weiterleitung),
+//   3. installiert still und wartet, bis der Installer fertig ist,
+//   4. öffnet den ImmoAdv Browser wieder – mit allen Tabs der letzten Sitzung.
+function pendingSetupFile() {
+  if (winSetup && fs.existsSync(winSetup)) return winSetup;
+  try {
+    let dir = 'immoadv-browser-updater';
+    try { const y = fs.readFileSync(path.join(process.resourcesPath, 'app-update.yml'), 'utf8'); const m = /updaterCacheDirName:\s*(\S+)/.exec(y); if (m) dir = m[1].replace(/['"]/g, ''); } catch {}
+    const pend = path.join(process.env.LOCALAPPDATA || app.getPath('appData'), dir, 'pending');
+    const info = JSON.parse(fs.readFileSync(path.join(pend, 'update-info.json'), 'utf8'));
+    const f = path.join(pend, String(info.fileName || ''));
+    return info.fileName && fs.existsSync(f) ? f : null;
+  } catch { return null; }
+}
+const psq = (s) => "'" + String(s).replace(/'/g, "''") + "'";
+let winBusy = false;
+function installWin({ relaunch = true } = {}) {
+  if (winBusy) return true;
+  const setup = pendingSetupFile();
+  if (!setup) { log('Update-Helfer: Installer nicht gefunden'); return false; }
+  let motor = '';
+  try { motor = require('./engine').paths.engine(); } catch { motor = path.join(app.getPath('userData'), 'Motor'); }
+  const instDir = path.dirname(app.getPath('exe'));
+  const exe = app.getPath('exe');
+  const logFile = path.join(app.getPath('userData'), 'update.log');
+  const script = path.join(app.getPath('temp'), `immoadv-update-${Date.now()}.ps1`);
+  const ps = `$ErrorActionPreference = 'SilentlyContinue'
+$log = ${psq(logFile)}; $motor = ${psq(motor)}; $inst = ${psq(instDir)}; $setup = ${psq(setup)}; $exe = ${psq(exe)}
+function L($m) { Add-Content -LiteralPath $log -Value ("{0} Update-Helfer: {1}" -f (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ'), $m) }
+function Teile($ordner) { Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($ordner + '\\', [StringComparison]::OrdinalIgnoreCase) } }
+${relaunch ? '' : `if (Teile $motor) { L 'Browser ist offen – Update kommt beim nächsten Start'; Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force; exit }
+`}L 'wartet, bis der Browser geschlossen ist'
+for ($i = 0; $i -lt 40 -and (Teile $motor); $i++) { Start-Sleep -Milliseconds 500 }
+if (Teile $motor) { L 'Browser reagiert nicht – wird beendet'; Teile $motor | Stop-Process -Force; Start-Sleep -Milliseconds 800 }
+for ($i = 0; $i -lt 10; $i++) { $t = Teile $inst; if (-not $t) { break }; $t | Stop-Process -Force; Start-Sleep -Milliseconds 600 }
+L ('installiert ' + (Split-Path $setup -Leaf))
+$p = Start-Process -FilePath $setup -ArgumentList '/S', '--updated' -Wait -PassThru
+L ('Installer fertig (Code ' + $p.ExitCode + ')')
+${relaunch ? `Start-Sleep -Milliseconds 800
+Start-Process -FilePath $exe -ArgumentList '--updated'
+L 'Browser wieder geöffnet'` : ''}
+Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force
+`;
+  try {
+    fs.writeFileSync(script, '﻿' + ps, 'utf8');
+    const ch = require('node:child_process').spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', script],
+      { detached: true, stdio: 'ignore', windowsHide: true });
+    ch.on('error', (e) => log('Update-Helfer nicht gestartet: ' + e.message));
+    ch.unref();
+  } catch (e) { log('Update-Helfer: ' + e.message); return false; }
+  winBusy = true;
+  // Der Helfer installiert – electron-updater darf beim Beenden nicht noch einmal selbst installieren.
+  try { autoUpdater.autoInstallOnAppQuit = false; } catch {}
+  log(`Update ${state.version}: Helfer gestartet (${relaunch ? 'öffnet danach wieder' : 'still'})`);
+  setTimeout(() => { try { store.flush(); } catch {} app.exit(0); }, 400);
+  return true;
+}
+
 // Mac: Ein fertig geladenes Update wird beim Beenden installiert (wie unter Windows) – ohne Neustart (Prüfung 01.11.2026).
 let quitInstalled = false;
 function installOnQuit() {
@@ -199,7 +265,7 @@ function backgroundInstall() {
     emit({ status: 'installing', message: `Version ${state.version} wird im Hintergrund installiert` });
     try {
       if (macManual) { if (installMac({ relaunch: false })) setTimeout(() => app.quit(), 300); else bgArmed = false; }
-      else autoUpdater.quitAndInstall(true, false);
+      else if (!installWin({ relaunch: false })) bgArmed = false;
     } catch (e) { bgArmed = false; log('Hintergrund-Installation: ' + e.message); }
   }, 20_000);
 }
@@ -211,7 +277,9 @@ function install() {
   emit({ status: 'installing', message: 'Wird installiert – der Browser startet gleich neu' });
   // Version 4: erst den Browser (Firefox-Motor) mit gespeicherten Tabs schließen lassen, dann installieren und neu starten
   try { beforeInstall(); } catch (e) { log('Vor dem Installieren: ' + e.message); }
-  setTimeout(() => { if (macManual) installMac(); else autoUpdater.quitAndInstall(true, true); }, 2500);
+  // Windows: der Helfer wartet selbst, bis Firefox die Tabs gespeichert hat – darum sofort starten.
+  if (macManual) setTimeout(() => installMac(), 2500);
+  else setTimeout(() => { if (!installWin({ relaunch: true })) autoUpdater.quitAndInstall(true, true); }, 1500);
   return true;
 }
 
