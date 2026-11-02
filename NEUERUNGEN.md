@@ -1,7 +1,9 @@
-ImmoAdv Browser 4.1.26 – ohne Scrollleisten
-- Keine Scrollleisten mehr – weder rechts noch unten, auf allen Seiten und in Menüs
-- Scrollen geht weiter: Mausrad, Touchpad, Tastatur; seitlich mit Umschalt + Mausrad oder mit gedrückter Maus ziehen
-- Mausrad drücken (Mittelklick) und Maus bewegen rollt die Seite in jede Richtung
+ImmoAdv Browser 4.1.27 – ein Symbol, saubere Anmeldung, keine Scrollleisten
+- Nur noch ein ImmoAdv-Browser-Symbol in der Taskleiste – das angeheftete Symbol bleibt bei jedem Update erhalten
+- Altes wird beim ersten Start automatisch entfernt: doppelte oder tote Verknüpfungen und alte Installationen – Passwörter, Lesezeichen und Profil bleiben
+- Anmelden mit Google, Apple und Microsoft (z. B. bei ChatGPT) klappt wieder
+- Passwörter wie am Mac: die Liste erscheint direkt unter dem Anmeldefeld, sobald du es antippst – nie mehr bei Bestätigungs-Codes oder Seiten ohne Anmeldung; Passkey-Felder werden erkannt
+- Keine Scrollleisten mehr – weder rechts noch unten; Scrollen mit Mausrad, Touchpad, Tastatur, Umschalt + Rad (seitlich), Ziehen mit der Maus oder Mittelklick-Rollen
 
 ImmoAdv Browser 4.1.25 – Upload-Verlauf
 - Neu im ⋯-Menü direkt über „Einstellungen“: Upload-Verlauf – jede Datei, die du auf einer Seite zum Hochladen auswählst (z. B. Lebenslauf bei StepStone, Workday, Personio), steht mit Datum, Uhrzeit, Portal, Seite und Gerät im Verlauf

@@ -97,6 +97,8 @@ user_pref("privacy.globalprivacycontrol.enabled", true);
 user_pref("privacy.donottrackheader.enabled", true);
 user_pref("privacy.fingerprintingProtection", true);
 user_pref("network.cookie.cookieBehavior", 5);                 // vollständiger Cookie-Schutz (jede Seite eigene Keksdose)
+// Anmelde-Weiterleitungen (Google → ChatGPT usw.) nicht als „Bounce-Tracker“ löschen (02.11.2026).
+user_pref("privacy.bounceTrackingProtection.mode", 3);   // 3 = nur erkennen, nichts löschen
 user_pref("browser.safebrowsing.malware.enabled", true);
 user_pref("browser.safebrowsing.phishing.enabled", true);
 user_pref("browser.safebrowsing.downloads.enabled", true);
@@ -161,7 +163,8 @@ user_pref("extensions.installDistroAddons", true);
 user_pref("extensions.webextensions.restrictedDomains", "accounts-static.cdn.mozilla.net,accounts.firefox.com,addons.cdn.mozilla.net,addons.mozilla.org,api.accounts.firefox.com,content.cdn.mozilla.net,discovery.addons.mozilla.org,install.mozilla.org,oauth.accounts.firefox.com,profile.accounts.firefox.com,support.mozilla.org,sync.services.mozilla.com");
 
 // ---------- Fenster/Taskleiste: eigenes ImmoAdv-Fenster, getrennt von einem normalen Firefox ----------
-user_pref("taskbar.grouping.useprofile", true);
+// false (02.11.2026): Fenster nutzen die feste Kennung aus TaskBarIDs (launcher/engine.js) – ein Symbol, bleibt bei Updates angeheftet.
+user_pref("taskbar.grouping.useprofile", false);
 user_pref("browser.taskbar.previews.enable", false);
 user_pref("app.update.auto", true);                            // Sicherheitsupdates des Motors direkt von Mozilla
 user_pref("app.update.background.enabled", true);
@@ -190,4 +193,6 @@ user_pref("layout.word_select.eat_space_to_next_word", false);   // Doppelklick 
 // Arbeitsseiten wie im normalen Browser (02.11.2026, Feray: „eBay klappt wieder nicht“): Der Fingerabdruck-Schutz verfälscht
 // Canvas/Bildschirm-Werte – die Bot-Erkennung von eBay, Amazon und PayPal hält das für einen Roboter (Anmeldung, Menüs,
 // Kasse hängen). Für diese Seiten aus, überall sonst bleibt er an.
-user_pref("privacy.fingerprintingProtection.granularOverrides", "[{\"firstPartyDomain\":\"ebay.de\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"ebay.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"ebaystatic.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"amazon.de\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"paypal.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"immoadv.de\",\"overrides\":\"-AllTargets\"}]");
+// Anmeldedienste (02.11.2026, Feray: „kann mich nicht mit Google anmelden“ bei ChatGPT): deren Bot-Prüfung lehnt
+// verfälschte Werte ab („OAuthCallback“) – Fingerabdruck-Schutz dort aus, Tracker-Schutz bleibt.
+user_pref("privacy.fingerprintingProtection.granularOverrides", "[{\"firstPartyDomain\":\"ebay.de\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"ebay.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"ebaystatic.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"amazon.de\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"paypal.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"immoadv.de\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"chatgpt.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"openai.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"google.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"google.de\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"youtube.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"gstatic.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"apple.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"icloud.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"live.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"microsoftonline.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"microsoft.com\",\"overrides\":\"-AllTargets\"}]");

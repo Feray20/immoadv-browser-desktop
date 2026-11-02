@@ -62,19 +62,41 @@
   // Wie bei Apple (Feray 02.11.2026): kleine Leiste direkt über dem Anmeldefeld – „Passwort übernehmen“, ein Klick füllt
   // Benutzername und Passwort aus. Kein Windows Hello / Touch ID mehr fürs Ausfüllen (Passkeys fragt die Seite selbst).
   let chip = null, chipFor = null, entriesNow = [];
+  // Echte Anmeldefelder erkennen (Feray 02.11.2026: „Passwort-Eingabe muss er automatisch erkennen und ob Passkey
+  // oder nicht – wie beim Mac“): Passwortfeld oder Benutzername/E-Mail einer Anmeldung. Nie bei Bestätigungs-Codes
+  // (2-Faktor, SMS), Suchfeldern, Newsletter- oder Kontaktformularen und nie bei unsichtbaren Feldern.
+  const shown = (el) => { if (!vis(el)) return false; const r = el.getBoundingClientRect(); if (r.width < 40 || r.height < 14) return false; const cs = getComputedStyle(el); return cs.visibility !== 'hidden' && Number(cs.opacity) > 0.05 && el.getAttribute('aria-hidden') !== 'true'; };
+  const sig = (el) => `${el.name} ${el.id} ${el.autocomplete} ${el.getAttribute('aria-label') || ''} ${el.placeholder || ''}`.toLowerCase();
+  const isCode = (el) => /one-time-code/.test(el.autocomplete || '') || /otp|totp|2fa|mfa|pin\b|code|token|verif|bestätig|sms/.test(sig(el)) || (el.inputMode === 'numeric' && Number(el.maxLength) > 0 && Number(el.maxLength) <= 8);
+  const isPasskey = (el) => /webauthn/i.test(el.getAttribute('autocomplete') || '');
+  function isLoginField(el) {
+    if (!(el instanceof HTMLInputElement) || !shown(el) || isCode(el)) return false;
+    if (el.type === 'password') return !isNewPw(el);
+    if (!['text', 'email', 'tel', ''].includes(el.type)) return false;
+    if (/search|suche|newsletter|subscribe|coupon|gutschein|promo/.test(sig(el))) return false;
+    if (/\busername\b|webauthn/.test(el.autocomplete || '')) return true;
+    const scope = el.form || el.closest('[role="dialog"], main, body');
+    const pwNear = !!scope && [...scope.querySelectorAll('input[type="password"]')].some(shown);
+    const looksUser = el.type === 'email' || /user|login|mail|benutzer|konto|account|identifier|anmelde/.test(sig(el));
+    // Zweistufige Anmeldung (Google, eBay, Microsoft): erst nur E-Mail – dann muss die Seite nach Anmeldung aussehen.
+    const loginPage = /login|signin|sign-in|anmeld|auth|account|konto/i.test(location.pathname + location.hostname + document.title);
+    return looksUser && (pwNear || loginPage);
+  }
   function anchorField() {
-    const pw = [...document.querySelectorAll('input[type="password"]')].find(vis);
-    if (pw) return pw;
-    return [...document.querySelectorAll('input[autocomplete="username"], input[type="email"], input[name*="user" i], input[id*="user" i], input[name*="login" i], input[id*="email" i]')].find(vis) || null;
+    const a = document.activeElement;
+    if (a && isLoginField(a)) return a;
+    return [...document.querySelectorAll('input[type="password"]')].find(isLoginField) || null;
   }
   function placeChip() {
     if (!chip || !chipFor || !chipFor.isConnected) return;
     const r = chipFor.getBoundingClientRect();
     if (!r.width) { chip.style.display = 'none'; return; }
-    chip.style.display = '';
+    chip.style.display = 'block';
     const h = chip.offsetHeight || 36;
+    // Wie am Mac: Liste direkt unter dem Feld, so breit wie das Feld (oben nur, wenn unten kein Platz ist).
+    chip.style.minWidth = Math.max(220, Math.min(r.width, 420)) + 'px';
     chip.style.left = Math.max(8, Math.min(window.innerWidth - chip.offsetWidth - 8, r.left)) + 'px';
-    chip.style.top = (r.top - h - 6 >= 4 ? r.top - h - 6 : r.bottom + 6) + 'px';
+    chip.style.top = (r.bottom + 4 + h <= window.innerHeight - 4 ? r.bottom + 4 : Math.max(4, r.top - h - 4)) + 'px';
   }
   async function fillWith(e, b) {
     if (b) b.textContent = 'Wird übernommen …';
@@ -95,19 +117,28 @@
     chip = document.createElement('immoadv-pw');
     chip.style.cssText = 'all:initial;position:fixed;z-index:2147483647;left:0;top:0;';
     const sr = chip.attachShadow({ mode: 'closed' });
+    const pk = isPasskey(f);
+    const host0 = location.hostname.replace(/^www\./, '');
     sr.innerHTML = `<style>
-      .c{display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:min(520px,calc(100vw - 16px));font:13px/1 -apple-system,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
-        background:rgba(15,34,64,.97);border:1px solid rgba(140,175,255,.3);border-radius:12px;padding:5px;box-shadow:0 10px 28px rgba(0,0,0,.35)}
-      button{font:inherit;height:28px;padding:0 11px;border-radius:8px;border:0;cursor:pointer;color:#fff;background:linear-gradient(120deg,#2A5BD7,#3a6cf0 45%,#19C2B0);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
-      button.x{background:transparent;color:#a7b4c8;padding:0 8px}button.x:hover{color:#fff}
-      .k{color:#cfe0ff;padding:0 4px 0 6px}
-    </style><div class="c" role="group" aria-label="Gespeicherte Anmeldung"><span class="k">🔑</span>${entries.slice(0, 4).map((e, i) => `<button data-i="${i}" title="Passwort übernehmen">${esc(entries.length > 1 ? (e.user || 'Passwort übernehmen') : (e.user ? 'Passwort übernehmen · ' + e.user : 'Passwort übernehmen'))}</button>`).join('')}<button class="x" data-x aria-label="Schließen">✕</button></div>`;
+      .c{box-sizing:border-box;width:100%;max-width:min(420px,calc(100vw - 16px));font:13px/1.25 -apple-system,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#eef3fb;
+        background:rgba(15,34,64,.98);border:1px solid rgba(140,175,255,.28);border-radius:12px;padding:5px;box-shadow:0 14px 34px rgba(0,0,0,.4)}
+      .h{display:flex;justify-content:space-between;align-items:center;padding:4px 8px 6px;color:#a7b4c8;font-size:11.5px}
+      .r{display:flex;gap:10px;align-items:center;width:100%;min-height:40px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+      .r:hover,.r:focus-visible{background:linear-gradient(120deg,#2A5BD7,#3a6cf0 45%,#19C2B0);color:#fff;outline:none}
+      .i{flex:none;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:rgba(255,255,255,.1)}
+      .t{min-width:0}.t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.t small{display:block;color:#a7b4c8;font-size:11.5px}
+      .r:hover small{color:#e5edff}.x{border:0;background:transparent;color:#a7b4c8;cursor:pointer;font:inherit;padding:0 2px}.x:hover{color:#fff}
+    </style><div class="c" role="listbox" aria-label="Gespeicherte Anmeldung"><div class="h"><span>${pk ? 'Passkey oder Passwort' : 'Gespeichertes Passwort'} · ${esc(host0)}</span><button class="x" data-x aria-label="Schließen">✕</button></div>
+      ${pk ? '<div class="r" style="cursor:default"><span class="i">🔐</span><span class="t"><b>Passkey</b><small>Die Seite fragt selbst per Windows Hello / Touch ID</small></span></div>' : ''}
+      ${entries.slice(0, 6).map((e, i) => `<button class="r" role="option" data-i="${i}"><span class="i">🔑</span><span class="t"><b>${esc(e.user || 'Ohne Benutzername')}</b><small>Passwort übernehmen</small></span></button>`).join('')}</div>`;
     sr.querySelectorAll('[data-i]').forEach((b) => b.addEventListener('mousedown', (ev) => { ev.preventDefault(); fillWith(entries[b.dataset.i], b); }));
     sr.querySelector('[data-x]').addEventListener('mousedown', (ev) => { ev.preventDefault(); closeChip(); });
     chipFor = f;
     document.documentElement.append(chip);
     placeChip();
   }
+  document.addEventListener('focusout', (ev) => { if (chip && ev.target === chipFor) setTimeout(() => { if (chip && document.activeElement !== chipFor) closeChip(); }, 150); }, true);
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && chip) closeChip(); }, true);
   window.addEventListener('scroll', placeChip, { passive: true, capture: true });
   window.addEventListener('resize', placeChip, { passive: true });
   // Starkes Passwort vorschlagen (Registrierung / Passwort ändern): Knopf über dem Feld, füllt alle neuen Passwortfelder.
@@ -144,8 +175,9 @@
   // Erneut anbieten, wenn ein Anmeldefeld angeklickt wird (z. B. nach „Schließen“ oder bei zweistufiger Anmeldung wie eBay).
   document.addEventListener('focusin', (ev) => {
     const t = ev.target;
-    if (!entriesNow.length || !(t instanceof HTMLInputElement) || chipFor === t || isNewPw(t)) return;
-    if (t.type === 'password' || /user|login|mail|benutzer|konto/i.test(`${t.name} ${t.id} ${t.autocomplete} ${t.type}`)) offerFill(entriesNow, t);
+    if (!(t instanceof HTMLInputElement) || chipFor === t || isNewPw(t) || !isLoginField(t)) return;
+    if (!entriesNow.length) { asked = false; look(); return; }
+    offerFill(entriesNow, t);
   }, true);
   async function offerSave(p) {
     const box = ui().querySelector('.box');
@@ -159,12 +191,13 @@
     setTimeout(close, 45000);
   }
 
+  // Nur Einträge für diese Seite holen (einmal), angezeigt wird erst beim Antippen eines Anmeldefelds – wie am Mac.
   let asked = false;
   async function look() {
     if (asked || !anchorField()) return;
     asked = true;
     const entries = await send({ type: 'pw:forUrl', url: location.href });
-    if (entries && entries.length) offerFill(entries);
+    if (entries && entries.length) { entriesNow = entries; const a = document.activeElement; if (a && isLoginField(a)) offerFill(entries, a); }
   }
   (async () => {
     const p = await send({ type: 'pw:pending', url: location.href });

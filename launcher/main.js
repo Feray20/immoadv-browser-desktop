@@ -215,6 +215,8 @@ function starter() {
     Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
     try { registerHost(); } catch (e) { engine.log('Host-Anmeldung: ' + e.message); }
     if (app.isPackaged) app.setAsDefaultProtocolClient('immoadv-browser');
+    // Einmal je neuer Version: alte Verknüpfungen/Installationen still entfernen (launcher/cleanup.js).
+    try { require('./cleanup').run(store, (m) => engine.log(m)); } catch (e) { engine.log('Aufräumen: ' + e.message); }
     const argv = [process.argv[0], ...process.argv.slice(1), ...pending];
     pending = argv;
     // Nach Update oder Einstellungsänderung: warten, bis der Browser zu ist, dann neu starten

@@ -420,6 +420,22 @@ function deploy() {
   return true;
 }
 
+// Ein Symbol in der Taskleiste (Feray 02.11.2026: „zwei Browser“, „jedes Update entfernt das angeheftete Symbol“):
+// Das Startprogramm meldet sich bei Windows als de.immoadv.browser.desktop, die Browserfenster des Motors bisher mit
+// einer eigenen Kennung – Windows zeigte zwei Programme und das angeheftete Symbol blieb leer. Der Motor liest seine
+// Kennung aus HKCU\Software\Mozilla\Firefox\TaskBarIDs (Wert = Motor-Ordner): dort dieselbe feste Kennung wie das
+// Startprogramm und die Verknüpfungen. Bleibt bei jedem Update gleich – das angeheftete Symbol bleibt.
+const TASKBAR_ID = 'de.immoadv.browser.desktop';
+let taskbarDone = false;
+function taskbarId() {
+  if (taskbarDone) return;
+  taskbarDone = true;
+  try {
+    const dir = path.dirname(exe());
+    require('node:child_process').execFileSync('reg.exe', ['add', 'HKCU\\Software\\Mozilla\\Firefox\\TaskBarIDs', '/v', dir, '/t', 'REG_SZ', '/d', TASKBAR_ID, '/f'], { windowsHide: true, timeout: 5000, stdio: 'ignore' });
+  } catch (e) { log('Taskleisten-Kennung: ' + (e.message || e)); }
+}
+
 function launch(args = []) {
   // Mac (02.11.2026, Feray: „lässt sich vom Dock nicht zwei-, dreimal starten“): Läuft der Motor schon (am Mac bleibt
   // er nach dem Schließen des letzten Fensters aktiv), startete ein zweiter Prozess mit demselben Profil – macOS/Firefox
@@ -435,6 +451,7 @@ function launch(args = []) {
   }
   const purgeFlag = path.join(paths.engine(), '.purge');
   if (fs.existsSync(purgeFlag)) { args = ['-purgecaches', ...args]; try { fs.unlinkSync(purgeFlag); } catch { /* egal */ } }
+  if (isWin) taskbarId();
   const child = spawn(exe(), ['--profile', paths.profile(), ...args], { detached: true, stdio: 'ignore', windowsHide: false, cwd: path.dirname(exe()) });
   child.on('error', (e) => log('Start fehlgeschlagen: ' + e.message));   // z. B. Virenscanner/Smart App Control – nie abstürzen
   child.unref();
