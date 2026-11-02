@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.0.2 – Passkeys am Mac
+- Passkeys am MacBook: mit Touch ID direkt aus dem iCloud-Schlüsselbund – dieselben wie auf iPhone und iPad, ohne QR-Code; neue Passkeys sind sofort auf allen Apple-Geräten da
+- Weiterhin möglich: per QR-Code mit iPhone oder Android-Gerät (z. B. Google-Passkeys) und mit Sicherheitsschlüssel (YubiKey)
+
 ImmoAdv Browser 4.0.1 – sieht aus wie dein ImmoAdv Browser
 - Symbolleiste wie in Version 3: grünes „Geschützt“ in der Adressleiste, ✦ KI-Assistent, ↓ Downloads und ⋯ ImmoAdv-Menü
 - ⋯-Menü wie gewohnt: Neuer Tab/Fenster, geschlossenen Tab öffnen, KI, Immobilien-Check, Suchen, Zoom, Drucken, Bildschirmfoto, Verlauf, Lesezeichen, Downloads, Passwörter, Merkliste, PDF, Datenschutz-Center, Einstellungen
