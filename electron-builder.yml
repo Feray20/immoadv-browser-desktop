@@ -101,11 +101,14 @@ mac:
       name: PowerPoint-Präsentation
       role: Viewer
   category: public.app-category.productivity
+  # Nur Apple-Chip (02.11.2026): Die „universal“-Fassung (Apple-Chip + Intel zusammengefügt) zerstörte ohne
+  # Neusignierung die Code-Signatur des Electron-Frameworks – macOS beendete den Browser sofort beim Start
+  # („Code Signature Invalid“, Absturzbericht 4.0.1). Ferays MacBook hat einen Apple-Chip.
   target:
     - target: dmg
-      arch: [universal]
+      arch: [arm64]
     - target: zip               # wird für automatische Updates am Mac gebraucht
-      arch: [universal]
+      arch: [arm64]
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist

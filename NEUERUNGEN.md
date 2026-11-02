@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.0.3 – Mac startet zuverlässig
+- Mac: Der Browser startet wieder – vorher beendete macOS ihn sofort wegen einer beschädigten Signatur
+- Mac: signiert mit dem Apple-Zertifikat von ImmoAdv, gebaut für Apple-Chip
+
 ImmoAdv Browser 4.0.3 – besser lesbar
 - Aktiver Tab deutlich hervorgehoben (helle Fläche, fette weiße Schrift, Fade-Linie), andere Tabs ruhiger
 - Symbole, Knöpfe und Lesezeichen kräftiger und gut erkennbar

@@ -15,7 +15,7 @@
     "start": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs --offline && node scripts/build-extension.mjs && electron .",
     "test": "node --test test/*.test.mjs test/*.test.js",
     "dist:win": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/build-extension.mjs && node scripts/ensure-release.mjs && electron-builder --win --x64 --publish always && node scripts/finalize-release.mjs",
-    "dist:mac": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/build-extension.mjs && node scripts/ensure-release.mjs && electron-builder --mac --universal --publish always && node scripts/finalize-release.mjs"
+    "dist:mac": "node scripts/fetch-vendor.mjs && node scripts/build-rules.mjs && node scripts/build-extension.mjs && node scripts/ensure-release.mjs && electron-builder --mac --arm64 --publish always && node scripts/finalize-release.mjs"
   },
   "dependencies": {
     "electron-updater": ">=6.3.0",

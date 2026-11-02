@@ -8,8 +8,22 @@ cd "$(dirname "$0")/.."
 # Mac (02.11.2026): Liegt auf Ferays Mac ein Apple-Zertifikat (Xcode-Konto), signiert electron-builder damit – dann
 # erkennt macOS den Browser nach Updates wieder (keine erneute Schlüsselbund-Abfrage für gespeicherte Passwörter).
 # Ohne Zertifikat wie bisher unsigniert/ad-hoc.
-if [ "$P" = "windows" ] || ! security find-identity -v -p codesigning 2>/dev/null | grep -qE '"(Developer ID Application|Apple Development|Mac Developer):'; then
+if [ "$P" = "windows" ]; then
   export CSC_IDENTITY_AUTO_DISCOVERY=false
+else
+  # Mac: ausdrücklich Ferays „Developer ID Application“ (sonst „Apple Development“) – nicht dem Zufall überlassen.
+  IDS=$(security find-identity -v -p codesigning 2>/dev/null || true)
+  MACID=$(printf '%s\n' "$IDS" | grep -E '"Developer ID Application:' | head -1 | sed -E 's/.*"(.*)"/\1/' || true)
+  [ -n "$MACID" ] || MACID=$(printf '%s\n' "$IDS" | grep -E '"Apple Development:' | head -1 | sed -E 's/.*"(.*)"/\1/' || true)
+  if [ -n "$MACID" ]; then
+    export CSC_NAME="$MACID"
+    echo "Signatur: $MACID"
+    # Beglaubigung bei Apple, wenn ein notarytool-Profil „ImmoAdv“ im Schlüsselbund liegt (sonst nur signiert).
+    if xcrun notarytool history --keychain-profile "ImmoAdv" >/dev/null 2>&1; then export APPLE_KEYCHAIN_PROFILE="ImmoAdv"; fi
+  else
+    export CSC_IDENTITY_AUTO_DISCOVERY=false
+    echo "Kein Apple-Zertifikat gefunden – Browser wird ohne eigene Signatur gebaut."
+  fi
 fi
 node --version
 npm install --no-audit --no-fund
@@ -24,6 +38,6 @@ if [ "$P" = "windows" ]; then
   node scripts/store-package.mjs                 # dann das Store-Paket (.appx) – liegt in Azure unter „Artefakte“
   rm -rf store && mkdir -p store && cp dist/*.appx store/ 2>/dev/null || true
 else
-  npx electron-builder --mac --universal --publish never
+  npx electron-builder --mac --arm64 --publish never
   node scripts/publish-immoadv.mjs mac
 fi
