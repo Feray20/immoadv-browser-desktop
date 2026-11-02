@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.4 – Updates installieren sich wirklich
+- Fertig geladene Updates installieren sich jetzt still im Hintergrund – der Browser bleibt offen, Tabs und Anmeldungen bleiben erhalten
+- Mac: In Menüleiste, Dock und bei Cmd+Tab steht jetzt „ImmoAdv Browser“ mit ImmoAdv-Logo statt „Firefox“
+
 ImmoAdv Browser 4.1.3 – öffnet am Mac wieder
 - Mac: Die Meldung „ImmoAdv Browser ist beschädigt“ kommt nicht mehr – das Programm ist jetzt durchgehend gültig signiert
 

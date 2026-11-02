@@ -134,6 +134,7 @@ async function install(onProgress = () => {}) {
 /** Windows: ImmoAdv-Logo statt Firefox-Logo im Programm des Motors (Taskleiste, Fenster, Alt+Tab).
  *  Nur die lokale Kopie im ImmoAdv-Ordner; nach jedem Mozilla-Update erneut (Merker: Größe + Zeit der Datei). */
 async function brandIcon() {
+  if (isMac) return brandMac();
   if (!isWin) return false;
   const file = exe(), ico = path.join(paths.engineFiles(), 'icons', 'main-window.ico');
   const mark = path.join(paths.engine(), '.immoadv-logo');
@@ -148,6 +149,51 @@ async function brandIcon() {
     log('ImmoAdv-Logo gesetzt');
     return true;
   } catch (e) { log('Logo: ' + (e.message || e)); return false; }
+}
+
+/** Mac (02.11.2026, Feray: „in der Kopfzeile soll ImmoAdv Browser stehen“): In der Menüleiste, im Dock und bei
+ *  Cmd+Tab stand „Firefox“ – der Name kommt aus dem Programmpaket des Motors. Die lokale Kopie im ImmoAdv-Ordner bekommt
+ *  Name und Logo von ImmoAdv und wird danach neu (ad-hoc) signiert, damit macOS sie weiter startet. Nach jedem
+ *  Mozilla-Update erneut (Merker: Größe + Zeit der Info.plist). Nur wenn der Motor gerade nicht läuft. */
+async function brandMac() {
+  const appPath = path.join(paths.engine(), 'Firefox.app');
+  const plist = path.join(appPath, 'Contents', 'Info.plist');
+  const mark = path.join(paths.engine(), '.immoadv-name');
+  let st; try { st = fs.statSync(plist); } catch { return false; }
+  const key = `${st.size}:${st.mtimeMs}`;
+  try { if (fs.readFileSync(mark, 'utf8') === key) return false; } catch { /* noch nie */ }
+  if (running()) return false;
+  const NAME = 'ImmoAdv Browser';
+  try {
+    await run('plutil', ['-replace', 'CFBundleName', '-string', NAME, plist]);
+    await run('plutil', ['-replace', 'CFBundleDisplayName', '-string', NAME, plist]);
+    // Übersetzte Namen (de.lproj usw.) haben Vorrang vor der Info.plist – überall ersetzen.
+    const res = path.join(appPath, 'Contents', 'Resources');
+    for (const d of fs.readdirSync(res).filter((x) => x.endsWith('.lproj'))) {
+      const f = path.join(res, d, 'InfoPlist.strings');
+      if (!fs.existsSync(f)) continue;
+      try {
+        await run('plutil', ['-convert', 'xml1', f]);
+        await run('plutil', ['-replace', 'CFBundleName', '-string', NAME, f]);
+        await run('plutil', ['-replace', 'CFBundleDisplayName', '-string', NAME, f]);
+      } catch (e) { log('Name ' + d + ': ' + (e.message || e)); }
+    }
+    // Logo: das ImmoAdv-Symbol des Programms statt des Firefox-Symbols (Asset-Katalog-Verweis entfernen, sonst gewinnt er).
+    const icns = path.join(process.resourcesPath || '', 'icon.icns');
+    if (fs.existsSync(icns)) {
+      let iconFile = 'firefox';
+      try { iconFile = String(await run('plutil', ['-extract', 'CFBundleIconFile', 'raw', plist])).trim().replace(/\.icns$/, '') || 'firefox'; } catch { /* Standard */ }
+      fs.copyFileSync(icns, path.join(res, iconFile + '.icns'));
+      try { await run('plutil', ['-remove', 'CFBundleIconName', plist]); } catch { /* nicht vorhanden */ }
+    }
+    await run('codesign', ['--force', '--deep', '--sign', '-', appPath], { timeout: 120000 });
+    try { await run('xattr', ['-cr', appPath]); } catch { /* egal */ }
+    try { const now = new Date(); fs.utimesSync(appPath, now, now); } catch { /* egal */ }
+    const st2 = fs.statSync(plist);
+    fs.writeFileSync(mark, `${st2.size}:${st2.mtimeMs}`);
+    log('Mac: Name und Logo ImmoAdv Browser gesetzt');
+    return true;
+  } catch (e) { log('Mac-Name: ' + (e.message || e)); return false; }
 }
 
 /** Läuft der Motor gerade mit dem ImmoAdv-Profil? */

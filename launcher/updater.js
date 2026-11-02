@@ -65,7 +65,7 @@ async function init(onState) {
   autoUpdater.on('update-downloaded', (i) => {
     failures = 0;
     emit({ status: 'ready', version: i.version, notes: notesText(i.releaseNotes) || state.notes, message: `Version ${i.version} ist bereit` });
-    if (installWhenReady) install();
+    if (installWhenReady) install(); else backgroundInstall();
   });
   autoUpdater.on('error', (e) => {
     log(`Fehler: ${e && (e.stack || e.message)}`);
@@ -126,7 +126,7 @@ async function downloadMacRaw() {
           if (!macSha || sum !== macSha) { log(`Mac-Update: Prüfsumme passt nicht (${macSha ? 'abweichend' : 'fehlt'})`); fs.unlinkSync(target + '.part'); return emit({ status: 'error', message: 'Update-Datei beschädigt – neuer Versuch später' }); }
           fs.renameSync(target + '.part', target); macZip = target;
           emit({ status: 'ready', message: `Version ${v} ist bereit` });
-          if (installWhenReady) install();
+          if (installWhenReady) install(); else backgroundInstall();
           return;
         } catch (e) { log('Mac-Download: ' + e.message); }
       }
@@ -177,6 +177,27 @@ function installOnQuit() {
   if (quitInstalled || !macManual || state.status !== 'ready' || store.get('autoUpdate') === false) return;
   quitInstalled = true;
   try { installMac({ relaunch: false }); } catch (e) { log('Mac-Update beim Beenden: ' + e.message); }
+}
+
+// Updates installieren sich wirklich (02.11.2026, Feray: „Update geht nicht“): Das Update wurde zwar geladen, aber nur
+// beim kompletten Beenden bzw. beim Start bei geschlossenem Browser eingespielt – bleibt der Browser offen oder wird der PC
+// einfach ausgeschaltet, passierte das nie. Jetzt installiert der Hintergrund-Dienst ein fertiges Update still selbst:
+// Nur das Programm wird ersetzt – der Browser (Fenster, Tabs, Anmeldungen, Passwörter) läuft weiter und verbindet sich
+// danach von selbst mit der neuen Version. Nichts geht verloren, kein Neustart nötig.
+let bgArmed = false;
+function backgroundInstall() {
+  if (bgArmed || !supported() || store.get('autoUpdate') === false || !process.argv.includes('--host-server')) return;
+  if (process.platform !== 'win32' && !macManual) return;
+  bgArmed = true;
+  setTimeout(() => {
+    if (state.status !== 'ready') { bgArmed = false; return; }
+    log(`Update ${state.version}: wird im Hintergrund installiert`);
+    emit({ status: 'installing', message: `Version ${state.version} wird im Hintergrund installiert` });
+    try {
+      if (macManual) { if (installMac({ relaunch: false })) setTimeout(() => app.quit(), 300); else bgArmed = false; }
+      else autoUpdater.quitAndInstall(true, false);
+    } catch (e) { bgArmed = false; log('Hintergrund-Installation: ' + e.message); }
+  }, 20_000);
 }
 
 /** Jetzt installieren – still, ohne Rückfragen; der Browser startet danach selbst neu. */
