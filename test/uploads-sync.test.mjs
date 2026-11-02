@@ -93,3 +93,29 @@ test('Upload auf dem PC → sofort auf dem zweiten Gerät; Löschen kommt übera
   assert.equal((pc.mem.uploads || []).length, 0);
   pc.sync.logout(); mac.sync.logout();
 });
+
+test('Ein Eintrag, der nur lokal fehlt (nicht von Feray gelöscht), wird nie auf anderen Geräten gelöscht', async () => {
+  rows.clear();
+  const pc = device('pc-2'), mac = device('mac-2');
+  for (const d of [pc, mac]) d.mem.syncAuth = Buffer.from('X' + JSON.stringify({ refresh: 'r', email: 'f@x.de' })).toString('base64');
+  const key = crypto.randomBytes(32).toString('base64');
+  for (const d of [pc, mac]) d.mem.syncKey = Buffer.from('X' + key).toString('base64');
+  pc.sync.init(fakeFetch, () => [], () => {}, () => {}, () => {});
+  mac.sync.init(fakeFetch, () => [], () => {}, () => {}, () => {});
+  pc.uploads.add([{ id: 'keep-0000-0001', name: 'Zeugnis.pdf', size: 5, sha256: 'e'.repeat(64), at: Date.now() }], { id: 'pc-2', name: 'PC', platform: 'windows' });
+  await pc.sync.runNow(); await mac.sync.runNow();
+  assert.equal((mac.mem.uploads || []).length, 1);
+  // Mac verliert den Eintrag ohne Löschen (z. B. alte Datei zurückgespielt) → darf keine Löschung verschicken
+  mac.mem.uploads = [];
+  await mac.sync.runNow(); await pc.sync.runNow();
+  assert.equal((pc.mem.uploads || []).length, 1, 'Eintrag wurde fälschlich überall gelöscht');
+  assert.ok(![...rows.values()].some((r) => r.kind === 'up' && r.deleted));
+  pc.sync.logout(); mac.sync.logout();
+});
+
+test('Zeitpunkt aus Sekunden oder ISO-Text bleibt erhalten (kein „jetzt“)', () => {
+  const up = require(path.join(launcher, 'uploads.js'));
+  assert.equal(up.clean({ id: 'abcdefgh-1', at: 1793600000 }).at, 1793600000000);
+  assert.equal(up.clean({ id: 'abcdefgh-2', at: '2026-11-02T10:00:00Z' }).at, Date.parse('2026-11-02T10:00:00Z'));
+  assert.equal(up.clean({ id: 'abcdefgh-3', at: 1793600000123 }).at, 1793600000123);
+});

@@ -18,6 +18,10 @@
     const list = Array.from(files || []).filter((f) => f && typeof f.size === 'number').slice(0, 50);
     if (!list.length || !(await isOn())) return;
     const out = [];
+    // gleiche Auswahl kommt über „input“ und „change“ – vor dem Rechnen aussortieren (große Dateien nur einmal lesen)
+    const pre = list.map((f) => `${f.name}|${f.size}|${f.lastModified}`).join('/');
+    if (recent.get(pre) && Date.now() - recent.get(pre) < 4000) return;
+    recent.set(pre, Date.now());
     for (const f of list) {
       let sha256 = '';
       try { sha256 = await self.ImmoSha256.hashBlob(f); } catch (e) { sha256 = ''; }   // nicht lesbar → kein Hash (nie erfunden)
@@ -30,11 +34,14 @@
     if (out.length) send({ type: 'upload:selected', files: out, via, frameUrl: location.href, frameTitle: document.title });
   }
 
-  // Dateiauswahl (auch versteckte Felder hinter „Datei hochladen“-Knöpfen)
-  document.addEventListener('change', (e) => {
-    const el = e.target;
+  // Dateiauswahl (auch versteckte Felder hinter „Datei hochladen“-Knöpfen). „input“ ist composed und erreicht uns auch aus
+  // Shadow-DOM-Komponenten; doppelte Meldungen fängt „recent“ ab.
+  const pick = (e) => {
+    const el = (e.composedPath && e.composedPath()[0]) || e.target;
     if (el && el.tagName === 'INPUT' && el.type === 'file' && el.files && el.files.length) handle(el.files, 'input');
-  }, true);
+  };
+  document.addEventListener('change', pick, true);
+  document.addEventListener('input', pick, true);
 
   // Drag & Drop: nur zählen, wenn die Seite das Ablegen selbst übernimmt (Upload-Fläche) – sonst öffnet der Browser die Datei
   document.addEventListener('drop', (e) => {

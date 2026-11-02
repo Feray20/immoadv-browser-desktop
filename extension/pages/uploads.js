@@ -66,10 +66,10 @@ function applyFilters() {
 }
 
 // ---------- Ansichten ----------
+// Nur ein Buchstaben-Symbol (Prüfung 02.11.2026): echte Favicons hätten beim Öffnen jede Bewerbungs-Domain angefragt –
+// das verrät den Bewerbungsverlauf an diese Seiten.
 function favicon(r) {
-  const letter = esc((placeOf(r)[0] || '?').toUpperCase());
-  if (!r.domain) return `<div class="fav">${letter}</div>`;
-  return `<div class="fav"><img src="https://${esc(r.domain)}/favicon.ico" alt="" referrerpolicy="no-referrer" loading="lazy" data-l="${letter}"></div>`;
+  return `<div class="fav">${esc((placeOf(r)[0] || '?').toUpperCase())}</div>`;
 }
 function itemHtml(r) {
   return `<div class="item" data-id="${esc(r.id)}">${favicon(r)}
@@ -130,7 +130,6 @@ function render() {
   filtered = applyFilters();
   $('count').textContent = items.length ? `${filtered.length.toLocaleString('de-DE')} von ${items.length.toLocaleString('de-DE')} Uploads` : '';
   ({ list: renderList, akten: renderAkten, versionen: renderVersionen })[view]();
-  $('out').querySelectorAll('img[data-l]').forEach((img) => { img.onerror = () => { img.parentElement.textContent = img.dataset.l; }; });
 }
 
 // ---------- Datei prüfen (lokal) ----------
@@ -210,7 +209,17 @@ $('q').oninput = () => { clearTimeout(qT); qT = setTimeout(() => { shown = PAGE;
 for (const id of ['fStatus', 'fType', 'fDevice']) $(id).onchange = () => { shown = PAGE; render(); };
 $('more').onclick = () => { shown += PAGE; render(); };
 $('csv').onclick = csv;
-$('pdf').onclick = async () => { shown = Infinity; render(); const r = await send({ type: 'uploads:pdf', fileName: `Upload-Verlauf ${new Date().toISOString().slice(0, 10)}.pdf` }); shown = PAGE; render(); if (typeof r === 'string' && r !== 'saved' && r !== 'replaced') toast(r === 'canceled' ? 'Abgebrochen' : 'PDF nicht möglich: ' + r); };
+// PDF: unter Windows direkt speichern; am Mac kennt Firefox „Als PDF speichern“ für Erweiterungen nicht – dort öffnet sich
+// der Druckdialog (unten links „PDF“ → „Als PDF sichern“).
+$('pdf').onclick = async () => {
+  shown = Infinity; render();
+  const os = (await browser.runtime.getPlatformInfo().catch(() => ({}))).os;
+  let r = 'print';
+  if (os !== 'mac') r = await send({ type: 'uploads:pdf', fileName: `Upload-Verlauf ${new Date().toISOString().slice(0, 10)}.pdf` });
+  if (r === 'canceled') toast('Abgebrochen');
+  else if (r !== 'saved' && r !== 'replaced') window.print();
+  shown = PAGE; render();
+};
 $('out').addEventListener('click', async (e) => {
   const h = e.target.closest('.hash[data-h]');
   if (h && h.dataset.h) { await navigator.clipboard.writeText(h.dataset.h).catch(() => {}); toast('Fingerabdruck kopiert'); return; }

@@ -6,7 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function load({ creds = null } = {}) {
   const listsSrc = fs.readFileSync(path.join(root, 'src/shared/lists.js'), 'utf8').replace(/module\.exports\s*=\s*(\{[^}]*\});?\s*$/m, 'self.ImmoLists = $1;');
-  const ev = () => { const l = []; return { addListener: (f) => l.push(f), _l: l }; };
+  const ev = () => { const l = []; return { addListener: (f) => l.push(f), removeListener: (f) => { const i = l.indexOf(f); if (i >= 0) l.splice(i, 1); }, _l: l }; };
   const storage = {}; const sent = [];
   const reply = (m) => ({ 'settings.get': { blockAds: true, allowlist: ['meinebank.de'] }, 'vpn.creds': creds, 'vault.list': [], 'update.state': { status: 'current' }, 'migrate.v3': { bookmarks: [] } }[m.cmd] ?? null);
   const browser = {
@@ -22,7 +22,7 @@ function load({ creds = null } = {}) {
     windows: { getAll: async () => [], onRemoved: ev(), create: async () => ({ id: 1 }) }
   };
   const lists = { werbung: ['doubleclick.net'], malware: ['bad.example'], phishing: ['phish.example'], sources: {} };
-  const ctx = { browser, console, crypto: globalThis.crypto, Intl, URLSearchParams, setTimeout, clearTimeout, setInterval, URL, TextEncoder, btoa, AbortController, navigator: { onLine: false }, window: { addEventListener() {} },
+  const ctx = { browser, console, crypto: globalThis.crypto, Intl, URLSearchParams, clearInterval, setTimeout, clearTimeout, setInterval, URL, TextEncoder, btoa, AbortController, navigator: { onLine: false }, window: { addEventListener() {} },
     fetch: async (u) => { const m = /lists\/(\w+)\.json/.exec(u); return m ? { ok: true, json: async () => lists[m[1]] } : { ok: false, status: 503, json: async () => null }; } };
   ctx.self = ctx; vm.createContext(ctx);
   let code = listsSrc + '\n;\n';

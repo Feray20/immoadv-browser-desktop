@@ -218,8 +218,7 @@ function applyRemote(row, body) {
       if (!row.deleted) recentRemote.set(body.url, Date.now()); else recentRemote.delete(body.url);
       try { onBookmark({ deleted: !!row.deleted, url: body.url, title: body.title || '', folder: body.folder || '' }); } catch { /* nie kritisch */ }
     } else if (row.kind === 'up') {
-      uploads.applyRemote(body, row.deleted);
-      uploadsChanged = true;
+      if (uploads.applyRemote(body, row.deleted)) uploadsChanged = true;
     } else if (row.kind === 'settings' && !row.deleted) {
       for (const k of SETTINGS_SYNCED) if (k in body && body[k] !== undefined) store.set(k, body[k]);
     }
@@ -227,10 +226,14 @@ function applyRemote(row, body) {
 }
 
 // ---------- Abgleich ----------
+// Wer während eines laufenden Abgleichs fragt („Datei prüfen“), wartet auf den nächsten vollständigen Lauf.
+const waiters = [];
 async function runNow() {
   if (!syncKey || state.status !== 'on') return;
-  if (busy) { again = true; return; }
+  if (busy) { again = true; return new Promise((r) => waiters.push(r)); }
   busy = true;
+  const mine = waiters.splice(0);
+  uploads.beginBatch();   // viele Upload-Einträge vom anderen Gerät: einmal speichern statt je Eintrag
   try {
     const seen = { ...(store.get('syncSeen') || {}) };
     const local0 = localRecords();   // für Löschungen (kommen ohne Inhalt) und Konflikte
@@ -280,9 +283,11 @@ async function runNow() {
         applyRemote(row, body);
         seen[row.rid] = { c: Number(row.changed_at), h: row.deleted ? 'x' : C.mac(syncKey, canon(row.kind, body)), k: row.kind };
       }
-      if (newest) store.set('syncCursor', newest);
+      // Gemerkten Stand zusammen mit dem Cursor sichern – bricht der Lauf danach ab, gingen fremde Einträge sonst als „neu“ zurück
+      if (newest) { store.set('syncSeen', seen); store.set('syncCursor', newest); }
       if (rows.length < 500) break;
     }
+    applying = true; try { uploads.endBatch(); } finally { applying = false; }
     // 2) Eigene Änderungen hochladen (neu, geändert, gelöscht)
     const local = localRecords();
     const now = Date.now();
@@ -294,7 +299,11 @@ async function runNow() {
       up.push({ user_id: session.userId, rid, kind: r.kind, data: C.seal(syncKey, JSON.stringify(r.body)), deleted: false, device: deviceId(), changed_at: changed });
       seen[rid] = { c: changed, h, k: r.kind };
     }
+    // Upload-Verlauf: Löschungen nur für Einträge, die Feray selbst gelöscht hat (nie wegen fehlender/unlesbarer Einträge)
+    const removed = uploads.removedIds();
+    const removedRids = new Set(removed.map((id) => C.rid(syncKey, 'up', id)));
     for (const [rid, s] of Object.entries(seen)) {
+      if (s.k === 'up' && !removedRids.has(rid)) continue;
       if ((s.k === 'pw' || s.k === 'bm' || s.k === 'up') && s.h !== 'x' && !local.has(rid)) {
         const changed = Math.max(now, s.c + 1);
         up.push({ user_id: session.userId, rid, kind: s.k, data: C.seal(syncKey, '{}'), deleted: true, device: deviceId(), changed_at: changed });
@@ -317,6 +326,7 @@ async function runNow() {
       await http('/rest/v1/browser_sync?on_conflict=user_id,rid', { method: 'POST', body: up.slice(i, i + 200), headers: { prefer: 'resolution=merge-duplicates,return=minimal' } });
     }
     store.set('syncSeen', seen);
+    if (removed.length) uploads.clearRemoved(removed);
     if (uploadsChanged) { uploadsChanged = false; try { onUploads(); } catch { /* nie kritisch */ } }
     const counts = { passwords: vault.plainEntries().length, bookmarks: (store.get('bookmarks') || []).length, uploads: uploads.all().length };
     emit({ status: 'on', lastSync: Date.now(), message: '', counts });
@@ -325,7 +335,9 @@ async function runNow() {
     if (e.status === 401 || e.status === 403) { realtimeStop(); emit({ status: 'needLogin', message: 'Bitte neu anmelden' }); }
     else emit({ message: 'Abgleich gerade nicht möglich – neuer Versuch gleich' });
   } finally {
+    applying = true; try { uploads.endBatch(); } finally { applying = false; }
     busy = false;
+    for (const r of mine) r();
     if (again) { again = false; setTimeout(runNow, 500); }
   }
 }
