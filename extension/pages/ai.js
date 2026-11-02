@@ -128,7 +128,7 @@ $('compose').addEventListener('submit', (e) => { e.preventDefault(); if (ctrl) {
 $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('compose').requestSubmit(); } });
 $('convs').onchange = () => { conv = convs.find((c) => c.id === $('convs').value) || null; render(); };
 $('newConv').onclick = () => { conv = null; render(); $('q').focus(); };
-$('delConv').onclick = async () => { if (!conv || !confirm('Dieses Gespräch löschen?')) return; convs = convs.filter((c) => c !== conv); conv = null; await browser.storage.local.set({ aiConvs: convs }); render(); };
+$('delConv').onclick = async (e) => { const b = e.currentTarget; if (!conv) return; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; const t = b.textContent; b.textContent = 'Löschen?'; setTimeout(() => { b.dataset.sure = ''; b.textContent = t; }, 4000); return; } b.dataset.sure = ''; convs = convs.filter((c) => c !== conv); conv = null; await browser.storage.local.set({ aiConvs: convs }); render(); };
 
 (async () => {
   try { cfg = await send({ type: 'ai:config' }); } catch (e) { cfg = null; }

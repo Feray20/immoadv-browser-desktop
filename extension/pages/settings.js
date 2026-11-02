@@ -8,6 +8,16 @@ let st = null, tab = (location.hash || '#allgemein').slice(1);
 const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine'];
 
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.remove('hidden'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.add('hidden'), 2600); }
+// Zweimal tippen statt Bestätigungsfenster (02.11.2026: „ich kann nichts löschen“ – das Fenster von confirm() erschien in
+// den Einstellungen nicht, der Klick auf ✕ blieb ohne Wirkung). Erster Klick: Knopf wird rot „Löschen?“, zweiter
+// Klick innerhalb von 4 Sekunden führt aus.
+function sure(b, label = 'Löschen?') {
+  if (b.dataset.sure === '1') { b.dataset.sure = ''; clearTimeout(b._sureT); return true; }
+  b.dataset.sure = '1'; const old = b.textContent; b._old = b._old || old;
+  b.textContent = label; b.classList.add('danger'); b.style.background = '#DC2626'; b.style.color = '#fff'; b.style.width = 'auto'; b.style.padding = '0 10px';
+  clearTimeout(b._sureT); b._sureT = setTimeout(() => { b.dataset.sure = ''; b.textContent = b._old; b.classList.remove('danger'); b.style.cssText = ''; }, 4000);
+  return false;
+}
 const sw = (id, on, label, desc) => `<div class="row"><span>${label}${desc ? `<span class="desc">${desc}</span>` : ''}</span><label class="switch"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><i></i></label></div>`;
 async function setS(patch) {
   st.settings = await send({ type: 'settings:set', patch });
@@ -157,7 +167,7 @@ async function sync() {
     <div class="group"><h3>Tabs auf deinen anderen Geräten</h3>${tabs.length ? tabs.map((d) => `<details class="fold"><summary>${esc(d.name || 'Gerät')} <span class="hint">${d.tabs.length} Tabs · ${when(d.at)}</span></summary>${d.tabs.map((t) => `<div class="list-item"><div class="grow"><a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.title || t.url)}</a></div></div>`).join('')}</details>`).join('') : '<p class="hint">Noch keine anderen Geräte.</p>'}</div>
     <div class="group"><button class="danger" id="syOut">Auf diesem Gerät abmelden</button><p class="small">Daten auf diesem Gerät bleiben erhalten.</p></div>`);
   $('syNow').onclick = async () => { $('syNow').disabled = true; $('syNow').textContent = 'Gleicht ab …'; await send({ type: 'sync:now' }); sync(); };
-  $('syOut').onclick = async () => { if (confirm('Sync auf diesem Gerät beenden?')) { await send({ type: 'sync:logout' }); sync(); } };
+  $('syOut').onclick = async (e) => { if (sure(e.currentTarget, 'Wirklich beenden?')) { await send({ type: 'sync:logout' }); sync(); } };
 }
 browser.runtime.onMessage.addListener((m) => { if (m && m.type === 'sync' && tab === 'sync' && !document.activeElement?.matches('input')) sync(); });
 
@@ -179,7 +189,7 @@ async function passwoerter() {
   $('pwQ').oninput = () => { passwoerter.q = $('pwQ').value; const pos = $('pwQ').selectionStart; passwoerter().then(() => { $('pwQ').focus(); $('pwQ').setSelectionRange(pos, pos); }); };
   $('body').querySelectorAll('[data-copy]').forEach((b) => { b.onclick = async () => { const r = await send({ type: 'pw:copy', id: b.dataset.copy }); toast(r ? 'Kopiert – wird nach 30 Sekunden aus der Zwischenablage entfernt' : 'Freigabe abgebrochen'); }; });
   $('body').querySelectorAll('[data-show]').forEach((b) => { b.onclick = async () => { const r = await send({ type: 'pw:reveal', id: b.dataset.show }); if (r) { b.textContent = r.pass; setTimeout(() => { b.textContent = 'Anzeigen'; }, 15000); } else toast('Freigabe abgebrochen'); }; });
-  $('body').querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { if (confirm('Diesen Eintrag löschen?')) { await send({ type: 'pw:delete', id: b.dataset.del }); passwoerter(); } }; });
+  $('body').querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { if (sure(b)) { await send({ type: 'pw:delete', id: b.dataset.del }); toast('Gelöscht'); passwoerter(); } }; });
   $('pwImport').onclick = async () => { const r = await send({ type: 'pw:import' }); if (r) toast(r.error || `${r.added} übernommen${r.skipped ? `, ${r.skipped} übersprungen` : ''}`); passwoerter(); };
 }
 
@@ -214,7 +224,7 @@ function vpn() {
   $('vRe').onclick = async () => { $('vRe').textContent = 'Prüft …'; st.vpn = await send({ type: 'vpn:recheck' }); vpn(); };
   $('vEdit').onclick = async () => { st.vpn = await send({ type: 'vpn:logout' }); vpn(); };
   $('vCountry').onchange = async () => { st.vpn = await send({ type: 'vpn:country', code: $('vCountry').value }); toast('Land gewechselt'); vpn(); };
-  $('vOut').onclick = async () => { if (confirm('NordVPN abmelden? Danach läuft alles ohne VPN.')) { st.vpn = await send({ type: 'vpn:logout' }); vpn(); } };
+  $('vOut').onclick = async (e) => { if (sure(e.currentTarget, 'Wirklich abmelden? (ohne VPN)')) { st.vpn = await send({ type: 'vpn:logout' }); vpn(); } };
 }
 
 const AI_PROVIDERS = [

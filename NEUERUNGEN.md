@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.2 – Löschen funktioniert
+- Passwörter, KI-Gespräche, Sync- und NordVPN-Abmeldung: ✕ einmal tippen → „Löschen?“, nochmal tippen → erledigt (vorher passierte beim Tippen auf ✕ nichts)
+
 ImmoAdv Browser 4.1.1 – Sync und Updates zuverlässig
 - Sync: Gelöschte Passwörter und Lesezeichen werden jetzt auch auf dem anderen Gerät gelöscht (vorher kamen sie zurück)
 - Sync: Beim ersten Abgleich großer Bestände geht kein Eintrag mehr verloren; offline geänderte Passwörter werden nicht mehr von älteren überschrieben
