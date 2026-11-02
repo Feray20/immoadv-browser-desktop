@@ -11,7 +11,10 @@ const Vault = (() => {
   async function fill(id, url) { return Native.call('vault.fill', { id, url }, 130000); }
   async function offer(tabId, d) {
     if (!/^https:/.test(d.url) || !d.pass) return;
-    try { if (await Native.call('vault.known', { url: d.url, user: d.user, pass: d.pass })) return; } catch (e) { return; }
+    let mode = 'new';
+    try { mode = await Native.call('vault.status', { url: d.url, user: d.user, pass: d.pass }); } catch (e) { try { if (await Native.call('vault.known', { url: d.url, user: d.user, pass: d.pass })) return; } catch (e2) { return; } }
+    if (mode === 'same') return;
+    d = { ...d, mode };
     try { if (await Native.call('vault.never', { url: d.url })) return; } catch (e) {}
     pending.set(tabId, { ...d, at: Date.now() });
     setTimeout(() => { const p = pending.get(tabId); if (p && Date.now() - p.at > 110000) pending.delete(tabId); }, 120000);
@@ -21,7 +24,7 @@ const Vault = (() => {
     if (!p) return null;
     let a = '', b = ''; try { a = ImmoLists.siteOf(new URL(p.url).hostname); b = ImmoLists.siteOf(new URL(url).hostname); } catch (e) {}
     if (a !== b) return null;
-    return { user: p.user, site: a };
+    return { user: p.user, site: a, mode: p.mode || 'new' };
   }
   async function decide(tabId, choice) {
     const p = pending.get(tabId); pending.delete(tabId);

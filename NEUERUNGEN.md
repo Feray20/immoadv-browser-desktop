@@ -1,3 +1,9 @@
+ImmoAdv Browser 4.1.14 – Passwörter komplett
+- „Passwort aktualisieren?“ statt „speichern“, wenn sich ein gespeichertes Passwort geändert hat
+- Passwörter in den Einstellungen bearbeiten und von Hand hinzufügen
+- Bei Registrierung/Passwort ändern: „Starkes Passwort verwenden“ direkt am Feld
+- Passkeys bleiben getrennt bei Windows Hello bzw. Apple – im Tresor stehen nur Passwörter
+
 ImmoAdv Browser 4.1.13 – Passwörter wie bei Apple, Links im Hintergrund
 - Gespeicherte Passwörter: kleiner Knopf „Passwort übernehmen“ direkt über dem Anmeldefeld – ein Klick, ohne Windows Hello / Touch ID (Passkeys fragt die Seite wie gewohnt)
 - Links aus der ImmoAdv-Software (z. B. „Bei Amazon bestellen“) gehen im Browser als Tab im Hintergrund auf – kein Programmwechsel mehr

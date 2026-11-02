@@ -55,6 +55,24 @@ function known(url, user, pass) {
   return all().some((p) => p.site === site && matches(p, url) && p.user === (user || '') && dec(p.pass) === pass);
 }
 
+// Status einer abgeschickten Anmeldung: schon gleich gespeichert, gespeichert mit anderem Passwort (→ aktualisieren) oder neu.
+function status(url, user, pass) {
+  const site = siteOf(hostOf(url));
+  const same = all().filter((p) => p.site === site && matches(p, url) && p.user === (user || ''));
+  if (!same.length) return 'new';
+  return same.some((p) => dec(p.pass) === pass) ? 'same' : 'update';
+}
+// Eintrag von Hand ändern (Einstellungen → Passwörter → Bearbeiten). Leeres Passwort = Passwort bleibt.
+function update(id, { user, pass, url } = {}) {
+  const list = all(); const p = list.find((x) => x.id === id);
+  if (!p) return false;
+  if (typeof user === 'string') p.user = user.trim();
+  if (pass) p.pass = enc(pass);
+  if (url) { const h = hostOf(url); const st = siteOf(h); if (st) { p.host = h; p.site = st; } }
+  p.changed = Date.now();
+  save(list);
+  return true;
+}
 function remove(id) { save(all().filter((p) => p.id !== id)); }
 // Mehrere auf einmal (02.11.2026: Mehrfachauswahl im Passwort-Tresor) – ein Speichervorgang, ein Sync-Abgleich.
 function removeMany(ids) { const set = new Set((ids || []).map(String)); if (set.size) save(all().filter((p) => !set.has(String(p.id)))); }
@@ -152,7 +170,7 @@ function applySync(b, deleted) {
   save(list);
 }
 
-module.exports = { removeMany, matches, plainEntries, applySync,
+module.exports = { removeMany, status, update, matches, plainEntries, applySync,
   forUrl, add, known, remove, unlock, reveal, importCSV,
   list: () => all().map(({ id, site, host, user, added }) => ({ id, site, host, user, added })),
   /** Für das Ausfüllen: Passwort erst nach Freigabe */

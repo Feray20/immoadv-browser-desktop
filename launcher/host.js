@@ -88,6 +88,9 @@ const handlers = {
     return c;
   },
   'vault.known': ({ url, user, pass }) => vault.known(url, user, pass),
+  'vault.status': ({ url, user, pass }) => vault.status(String(url || ''), user, pass),
+  'vault.update': ({ id, user, pass, url }) => { if (!vault.update(String(id || ''), { user, pass, url })) throw new Error('Eintrag nicht gefunden'); return vault.list(); },
+  'vault.add': ({ url, user, pass }) => { if (!vault.add({ url: /^https?:/i.test(String(url)) ? url : 'https://' + url, user, pass })) throw new Error('Speichern nicht möglich'); return vault.list(); },
   'vault.save': ({ url, user, pass }) => vault.add({ url, user, pass }),
   'vault.never': ({ url }) => { try { const h = new URL(url).hostname; return (store.get('neverSave') || []).some((d) => h === d || h.endsWith('.' + d)); } catch { return false; } },
   'vault.neverAdd': ({ url }) => { try { const h = new URL(url).hostname.replace(/^www\./, ''); store.set('neverSave', [...new Set([...(store.get('neverSave') || []), h])]); } catch {} return true; },

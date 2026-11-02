@@ -110,15 +110,50 @@
   }
   window.addEventListener('scroll', placeChip, { passive: true, capture: true });
   window.addEventListener('resize', placeChip, { passive: true });
+  // Starkes Passwort vorschlagen (Registrierung / Passwort ändern): Knopf über dem Feld, füllt alle neuen Passwortfelder.
+  function genPass() {
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', r = new Uint32Array(18); crypto.getRandomValues(r);
+    const raw = [...r].map((x) => A[x % A.length]).join('');
+    return `${raw.slice(0, 6)}-${raw.slice(6, 12)}-${raw.slice(12, 18)}`;
+  }
+  function isNewPw(t) {
+    if (!(t instanceof HTMLInputElement) || t.type !== 'password') return false;
+    if (/new-password/i.test(t.autocomplete || '')) return true;
+    const scope = t.form || document; const pws = [...scope.querySelectorAll('input[type="password"]')].filter(vis);
+    return pws.length >= 2 && !/current-password/i.test(t.autocomplete || '');
+  }
+  function offerGenerate(t) {
+    closeChip();
+    chip = document.createElement('immoadv-pw');
+    chip.style.cssText = 'all:initial;position:fixed;z-index:2147483647;left:0;top:0;';
+    const sr = chip.attachShadow({ mode: 'closed' });
+    sr.innerHTML = `<style>.c{display:flex;gap:6px;align-items:center;font:13px/1 -apple-system,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;background:rgba(15,34,64,.97);border:1px solid rgba(140,175,255,.3);border-radius:12px;padding:5px;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+      button{font:inherit;height:28px;padding:0 11px;border-radius:8px;border:0;cursor:pointer;color:#fff;background:linear-gradient(120deg,#2A5BD7,#3a6cf0 45%,#19C2B0)}button.x{background:transparent;color:#a7b4c8;padding:0 8px}</style>
+      <div class="c"><span style="color:#cfe0ff;padding:0 4px 0 6px">🔐</span><button data-g>Starkes Passwort verwenden</button><button class="x" data-x>✕</button></div>`;
+    sr.querySelector('[data-g]').addEventListener('mousedown', (ev) => {
+      ev.preventDefault();
+      const pw = genPass(); const scope = t.form || document;
+      for (const f of [...scope.querySelectorAll('input[type="password"]')].filter(vis)) if (isNewPw(f) || f === t) setVal(f, pw);
+      closeChip();
+    });
+    sr.querySelector('[data-x]').addEventListener('mousedown', (ev) => { ev.preventDefault(); closeChip(); });
+    chipFor = t; document.documentElement.append(chip); placeChip();
+  }
+  document.addEventListener('focusin', (ev) => { const t = ev.target; if (isNewPw(t) && chipFor !== t && !t.value) offerGenerate(t); }, true);
+
   // Erneut anbieten, wenn ein Anmeldefeld angeklickt wird (z. B. nach „Schließen“ oder bei zweistufiger Anmeldung wie eBay).
   document.addEventListener('focusin', (ev) => {
     const t = ev.target;
-    if (!entriesNow.length || !(t instanceof HTMLInputElement) || chipFor === t) return;
+    if (!entriesNow.length || !(t instanceof HTMLInputElement) || chipFor === t || isNewPw(t)) return;
     if (t.type === 'password' || /user|login|mail|benutzer|konto/i.test(`${t.name} ${t.id} ${t.autocomplete} ${t.type}`)) offerFill(entriesNow, t);
   }, true);
   async function offerSave(p) {
     const box = ui().querySelector('.box');
-    box.innerHTML = `<div class="t"><i>🔑</i>Passwort speichern?</div><p>${esc(p.user || 'Anmeldung')} auf ${esc(p.site)} – verschlüsselt im ImmoAdv-Tresor, auf allen deinen Geräten.</p>
+    const upd = p.mode === 'update';
+    box.innerHTML = upd
+      ? `<div class="t"><i>🔑</i>Passwort aktualisieren?</div><p>Für ${esc(p.user || 'diese Anmeldung')} auf ${esc(p.site)} ist ein anderes Passwort gespeichert. Das neue übernehmen – auf allen deinen Geräten.</p>
+      <div class="row"><button class="a" data-c="save">Aktualisieren</button><button data-c="no">Nein</button></div>`
+      : `<div class="t"><i>🔑</i>Passwort speichern?</div><p>${esc(p.user || 'Anmeldung')} auf ${esc(p.site)} – verschlüsselt im ImmoAdv-Tresor, auf allen deinen Geräten.</p>
       <div class="row"><button class="a" data-c="save">Speichern</button><button data-c="never">Nie für diese Seite</button><button data-c="no">Nein</button></div>`;
     box.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { send({ type: 'pw:decide', choice: b.dataset.c }); close(); }));
     setTimeout(close, 45000);

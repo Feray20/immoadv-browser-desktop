@@ -181,7 +181,8 @@ async function passwoerter() {
       <input type="search" id="pwQ" placeholder="Suchen …" value="${esc(passwoerter.q || '')}" style="width:100%">
       <div class="pw-bar" style="display:flex;align-items:center;gap:12px;margin:10px 0 4px;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="pwAll"> Alle ${q ? 'gefundenen ' : ''}auswählen</label><button class="danger" id="pwDelSel" hidden>Ausgewählte löschen</button><span class="small" id="pwSelN"></span></div>
       ${shown.map((p) => `<div class="list-item" data-row="${esc(p.id)}"><input type="checkbox" class="pw-sel" data-sel="${esc(p.id)}" aria-label="Auswählen" style="margin-right:10px;width:18px;height:18px;cursor:pointer"><div class="grow"><b>${esc(p.site)}</b><span class="desc">${esc(p.user || '(ohne Benutzername)')}</span></div>
-        <button class="pill" data-copy="${esc(p.id)}">Kopieren</button><button class="pill ghost" data-show="${esc(p.id)}">Anzeigen</button><button class="icon" data-del="${esc(p.id)}" aria-label="Löschen">✕</button></div>`).join('') || '<p class="hint">Keine Einträge</p>'}</div>
+        <button class="pill" data-copy="${esc(p.id)}">Kopieren</button><button class="pill ghost" data-show="${esc(p.id)}">Anzeigen</button><button class="pill ghost" data-edit="${esc(p.id)}">Bearbeiten</button><button class="icon" data-del="${esc(p.id)}" aria-label="Löschen">✕</button></div>`).join('') || '<p class="hint">Keine Einträge</p>'}</div>
+    <div class="group"><h3>Passwort hinzufügen</h3><div class="pw-add" style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><input id="paSite" placeholder="Webseite (z. B. ebay.de)"><input id="paUser" placeholder="Benutzername / E-Mail" autocomplete="off"><input id="paPass" type="password" placeholder="Passwort" autocomplete="new-password"><button class="secondary" id="paSave">Speichern</button></div><p class="small">Passkeys bleiben getrennt: Sie liegen sicher bei ${isMac ? 'Apple (iCloud-Schlüsselbund)' : 'Windows Hello'} – hier stehen nur Passwörter.</p></div>
     <div class="group"><h3>Passkeys</h3><p class="small">Passkeys werden nie kopiert – sie bleiben sicher dort, wo sie erstellt wurden. Im ImmoAdv Browser kannst du sie so nutzen:</p>
       <p class="small">${isMac
         ? '• <b>Mit Touch ID auf diesem Mac:</b> Deine Passkeys aus dem iCloud-Schlüsselbund stehen direkt zur Verfügung – dieselben wie auf iPhone und iPad, ohne QR-Code. Neue Passkeys landen im iCloud-Schlüsselbund und sind sofort auch auf iPhone und iPad da.<br>• <b>Voraussetzung:</b> Systemeinstellungen → [dein Name] → iCloud → „Passwörter & Schlüsselbund“ ist an. Ohne iCloud werden neue Passkeys nur auf diesem Mac gespeichert.<br>• <b>Mit dem iPhone oder Android-Gerät:</b> Bei der Anmeldung „iPhone, iPad oder Android-Gerät“ wählen und den QR-Code scannen – für Passkeys, die nur dort liegen (z. B. im Google-Passwortmanager). Bluetooth am Mac muss an sein.<br>• <b>Mit einem Sicherheitsschlüssel</b> (z. B. YubiKey): einstecken oder an den Mac halten, wenn die Seite danach fragt.'
@@ -196,6 +197,21 @@ async function passwoerter() {
   let total = list.length;
   const gone = (ids) => { for (const id of ids) $('body').querySelector(`[data-row="${CSS.escape(id)}"]`)?.remove(); total -= ids.length; if (h3) h3.textContent = `Passwort-Tresor · ${total} Einträge`; selUpd(); };
   $('body').querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { const id = b.dataset.del; gone([id]); try { await send({ type: 'pw:delete', id }); toast('Gelöscht – auch auf deinen anderen Geräten'); } catch (e) { toast('Löschen fehlgeschlagen: ' + e.message); passwoerter(); } }; });
+  // Bearbeiten: Benutzername und/oder neues Passwort direkt in der Zeile (leeres Passwortfeld = altes bleibt).
+  $('body').querySelectorAll('[data-edit]').forEach((b) => { b.onclick = () => {
+    const id = b.dataset.edit, row = $('body').querySelector(`[data-row="${CSS.escape(id)}"]`), e = list.find((x) => x.id === id);
+    if (!row || !e || row.querySelector('.pw-ed')) return;
+    const f = document.createElement('div'); f.className = 'pw-ed'; f.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:8px';
+    f.innerHTML = `<input class="u" value="${esc(e.user || '')}" placeholder="Benutzername" style="flex:1;min-width:160px"><input class="p" type="password" placeholder="Neues Passwort (leer = bleibt)" autocomplete="new-password" style="flex:1;min-width:160px"><button class="secondary s">Speichern</button><button class="pill ghost c">Abbrechen</button>`;
+    row.style.flexWrap = 'wrap'; row.append(f);
+    f.querySelector('.c').onclick = () => f.remove();
+    f.querySelector('.s').onclick = async () => { try { await send({ type: 'pw:update', id, user: f.querySelector('.u').value, pass: f.querySelector('.p').value || undefined }); toast('Aktualisiert – auch auf deinen anderen Geräten'); passwoerter(); } catch (er) { toast('Nicht gespeichert: ' + er.message); } };
+  }; });
+  $('paSave').onclick = async () => {
+    const site = $('paSite').value.trim(), user = $('paUser').value.trim(), pass = $('paPass').value;
+    if (!site || !pass) return toast('Webseite und Passwort eingeben');
+    try { await send({ type: 'pw:add', url: site, user, pass }); toast('Gespeichert – auch auf deinen anderen Geräten'); passwoerter(); } catch (er) { toast('Nicht gespeichert: ' + er.message); }
+  };
   // Mehrfachauswahl
   const sel = () => [...$('body').querySelectorAll('.pw-sel:checked')].map((c) => c.dataset.sel);
   function selUpd() {
