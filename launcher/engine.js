@@ -328,6 +328,9 @@ function userJs() {
     bookmarkBar: s.bookmarkBar === false ? 'never' : 'always',
     verticalTabs: String(vertical),
     sidebarVisibility: vertical ? 'always-show' : 'hide-sidebar',
+    // Feray 02.11.2026: „Verlauf, Lesezeichen und Zahnrad nicht links, sondern oben rechts im ⋯-Menü“ – die Leiste am
+    // linken Rand gibt es nur noch bei Tabs links. Der KI-Assistent öffnet weiter als Seitenleiste (ohne Symbol-Streifen).
+    sidebarRevamp: String(vertical),
     suspendMs: String(minutes > 0 ? minutes * 60000 : 7 * 24 * 3600 * 1000),
     startupPage: s.restoreSession === false ? '1' : '3',
     httpsOnly: String(s.httpsOnly !== false),

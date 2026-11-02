@@ -179,7 +179,8 @@ async function passwoerter() {
   const shown = list.filter((p) => !q || (p.site + ' ' + p.user).toLowerCase().includes(q)).sort((a, b) => a.site.localeCompare(b.site));
   body(`<div class="group"><h3>Passwort-Tresor · ${list.length} Einträge</h3><p class="small">Jedes Passwort einzeln verschlüsselt (${isMac ? 'Mac-Schlüsselbund' : 'Windows DPAPI'}). Anzeigen, Kopieren und Ausfüllen nur nach ${lockName}.</p>
       <input type="search" id="pwQ" placeholder="Suchen …" value="${esc(passwoerter.q || '')}" style="width:100%">
-      ${shown.map((p) => `<div class="list-item"><div class="grow"><b>${esc(p.site)}</b><span class="desc">${esc(p.user || '(ohne Benutzername)')}</span></div>
+      <div class="pw-bar" style="display:flex;align-items:center;gap:12px;margin:10px 0 4px;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="pwAll"> Alle ${q ? 'gefundenen ' : ''}auswählen</label><button class="danger" id="pwDelSel" hidden>Ausgewählte löschen</button><span class="small" id="pwSelN"></span></div>
+      ${shown.map((p) => `<div class="list-item" data-row="${esc(p.id)}"><input type="checkbox" class="pw-sel" data-sel="${esc(p.id)}" aria-label="Auswählen" style="margin-right:10px;width:18px;height:18px;cursor:pointer"><div class="grow"><b>${esc(p.site)}</b><span class="desc">${esc(p.user || '(ohne Benutzername)')}</span></div>
         <button class="pill" data-copy="${esc(p.id)}">Kopieren</button><button class="pill ghost" data-show="${esc(p.id)}">Anzeigen</button><button class="icon" data-del="${esc(p.id)}" aria-label="Löschen">✕</button></div>`).join('') || '<p class="hint">Keine Einträge</p>'}</div>
     <div class="group"><h3>Passkeys</h3><p class="small">Passkeys werden nie kopiert – sie bleiben sicher dort, wo sie erstellt wurden. Im ImmoAdv Browser kannst du sie so nutzen:</p>
       <p class="small">${isMac
@@ -189,7 +190,27 @@ async function passwoerter() {
   $('pwQ').oninput = () => { passwoerter.q = $('pwQ').value; const pos = $('pwQ').selectionStart; passwoerter().then(() => { $('pwQ').focus(); $('pwQ').setSelectionRange(pos, pos); }); };
   $('body').querySelectorAll('[data-copy]').forEach((b) => { b.onclick = async () => { const r = await send({ type: 'pw:copy', id: b.dataset.copy }); toast(r ? 'Kopiert – wird nach 30 Sekunden aus der Zwischenablage entfernt' : 'Freigabe abgebrochen'); }; });
   $('body').querySelectorAll('[data-show]').forEach((b) => { b.onclick = async () => { const r = await send({ type: 'pw:reveal', id: b.dataset.show }); if (r) { b.textContent = r.pass; setTimeout(() => { b.textContent = 'Anzeigen'; }, 15000); } else toast('Freigabe abgebrochen'); }; });
-  $('body').querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { if (sure(b)) { await send({ type: 'pw:delete', id: b.dataset.del }); toast('Gelöscht'); passwoerter(); } }; });
+  // Löschen sofort mit einem Klick (Wunsch Feray 02.11.2026: „sofort ohne Popup“) – die Zeile verschwindet direkt, ohne
+  // die Liste neu aufzubauen (kein Flackern). Der Sync überträgt das Löschen automatisch auf alle Geräte.
+  const h3 = $('body').querySelector('.group h3');
+  let total = list.length;
+  const gone = (ids) => { for (const id of ids) $('body').querySelector(`[data-row="${CSS.escape(id)}"]`)?.remove(); total -= ids.length; if (h3) h3.textContent = `Passwort-Tresor · ${total} Einträge`; selUpd(); };
+  $('body').querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { const id = b.dataset.del; gone([id]); try { await send({ type: 'pw:delete', id }); toast('Gelöscht – auch auf deinen anderen Geräten'); } catch (e) { toast('Löschen fehlgeschlagen: ' + e.message); passwoerter(); } }; });
+  // Mehrfachauswahl
+  const sel = () => [...$('body').querySelectorAll('.pw-sel:checked')].map((c) => c.dataset.sel);
+  function selUpd() {
+    const n = sel().length, all = $('body').querySelectorAll('.pw-sel').length;
+    $('pwDelSel').hidden = !n; $('pwDelSel').textContent = n === all && n > 1 ? `Alle ${n} löschen` : `${n} löschen`;
+    $('pwSelN').textContent = n ? `${n} ausgewählt` : '';
+    $('pwAll').checked = !!all && n === all; $('pwAll').indeterminate = n > 0 && n < all;
+  }
+  $('body').querySelectorAll('.pw-sel').forEach((c) => { c.onchange = selUpd; });
+  $('pwAll').onchange = () => { const on = $('pwAll').checked; $('body').querySelectorAll('.pw-sel').forEach((c) => { c.checked = on; }); selUpd(); };
+  $('pwDelSel').onclick = async () => {
+    const ids = sel(); if (!ids.length) return;
+    gone(ids);
+    try { await send({ type: 'pw:deleteMany', ids }); toast(`${ids.length} gelöscht – auch auf deinen anderen Geräten`); } catch (e) { toast('Löschen fehlgeschlagen: ' + e.message); passwoerter(); }
+  };
   $('pwImport').onclick = async () => { const r = await send({ type: 'pw:import' }); if (r) toast(r.error || `${r.added} übernommen${r.skipped ? `, ${r.skipped} übersprungen` : ''}`); passwoerter(); };
 }
 

@@ -56,6 +56,8 @@ function known(url, user, pass) {
 }
 
 function remove(id) { save(all().filter((p) => p.id !== id)); }
+// Mehrere auf einmal (02.11.2026: Mehrfachauswahl im Passwort-Tresor) – ein Speichervorgang, ein Sync-Abgleich.
+function removeMany(ids) { const set = new Set((ids || []).map(String)); if (set.size) save(all().filter((p) => !set.has(String(p.id)))); }
 
 // ---------- Windows Hello / Touch ID ----------
 const HELLO = `
@@ -150,7 +152,7 @@ function applySync(b, deleted) {
   save(list);
 }
 
-module.exports = { matches, plainEntries, applySync,
+module.exports = { removeMany, matches, plainEntries, applySync,
   forUrl, add, known, remove, unlock, reveal, importCSV,
   list: () => all().map(({ id, site, host, user, added }) => ({ id, site, host, user, added })),
   /** Für das Ausfüllen: Passwort erst nach Freigabe */

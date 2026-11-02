@@ -92,6 +92,7 @@ const handlers = {
   'vault.never': ({ url }) => { try { const h = new URL(url).hostname; return (store.get('neverSave') || []).some((d) => h === d || h.endsWith('.' + d)); } catch { return false; } },
   'vault.neverAdd': ({ url }) => { try { const h = new URL(url).hostname.replace(/^www\./, ''); store.set('neverSave', [...new Set([...(store.get('neverSave') || []), h])]); } catch {} return true; },
   'vault.delete': ({ id }) => { vault.remove(id); return vault.list(); },
+  'vault.deleteMany': ({ ids }) => { vault.removeMany(Array.isArray(ids) ? ids.slice(0, 5000) : []); return vault.list(); },
   'vault.reveal': async ({ id }) => vault.reveal(id),
   'vault.copy': async ({ id }) => {
     const r = await vault.reveal(id); if (!r) return false;

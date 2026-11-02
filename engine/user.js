@@ -11,7 +11,7 @@ user_pref("browser.tabs.inTitlebar", 1);                                   // Ta
 user_pref("browser.compactmode.show", true);
 user_pref("browser.uidensity", 0);
 user_pref("browser.toolbars.bookmarks.visibility", "{{bookmarkBar}}");
-user_pref("sidebar.revamp", true);
+user_pref("sidebar.revamp", {{sidebarRevamp}});                 // nur bei Tabs links; sonst keine Leiste am linken Rand (Verlauf/Lesezeichen im ⋯-Menü)
 user_pref("sidebar.verticalTabs", {{verticalTabs}});
 user_pref("sidebar.visibility", "{{sidebarVisibility}}");
 user_pref("sidebar.main.tools", "aichat,history,bookmarks");

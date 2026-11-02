@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.9 – aufgeräumt
+- Passwort löschen mit einem Klick auf ✕ – sofort, ohne Rückfrage
+- Mehrere oder alle Passwörter auswählen und auf einmal löschen – verschwindet automatisch auch auf deinen anderen Geräten
+- Keine Leiste mehr am linken Rand: Verlauf, Lesezeichen und Einstellungen sind oben rechts im ⋯-Menü
+
 ImmoAdv Browser 4.1.8 – überall „ImmoAdv Browser“
 - Fehlerseiten, Add-ons, Dialoge und Menüs sagen „ImmoAdv Browser“ statt „Firefox“ (Windows und Mac)
 - Windows: Task-Manager und Taskleiste zeigen „ImmoAdv Browser“

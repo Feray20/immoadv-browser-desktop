@@ -255,6 +255,7 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'pw:decide': return Vault.decide(tabId, m.choice);
     case 'pw:list': return Native.call('vault.list');
     case 'pw:delete': return Native.call('vault.delete', { id: m.id }).then((r) => { Vault.refreshSites(); return r; });
+    case 'pw:deleteMany': return Native.call('vault.deleteMany', { ids: m.ids }).then((r) => { Vault.refreshSites(); return r; });
     case 'pw:copy': return Native.call('vault.copy', { id: m.id }, 130000);
     case 'pw:reveal': return Native.call('vault.reveal', { id: m.id }, 130000);
     case 'pw:import': return Native.call('vault.import', {}, 300000).then((r) => { Vault.refreshSites(); return r; });
