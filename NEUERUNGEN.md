@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.7 – Mac startet zuverlässig vom Dock
+- Mac: Ein Klick aufs Dock-Symbol öffnet den Browser immer (vorher passierte beim zweiten/dritten Start nichts)
+
 ImmoAdv Browser 4.1.6 – Updates ohne Hänger
 - Bei offenem Browser wird nie mehr im Hintergrund installiert (dabei konnten Seiten und Einstellungen hängen) – stattdessen ein Klick auf „Update jetzt installieren“: installiert und öffnet sich mit allen Tabs wieder
 - Ist kein Browserfenster offen, installiert sich ein fertiges Update still von selbst

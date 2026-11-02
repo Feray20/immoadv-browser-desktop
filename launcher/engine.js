@@ -322,6 +322,18 @@ function deploy() {
 }
 
 function launch(args = []) {
+  // Mac (02.11.2026, Feray: „lässt sich vom Dock nicht zwei-, dreimal starten“): Läuft der Motor schon (am Mac bleibt
+  // er nach dem Schließen des letzten Fensters aktiv), startete ein zweiter Prozess mit demselben Profil – macOS/Firefox
+  // ignorierten ihn, es passierte nichts. Jetzt wird das laufende Programm über macOS geweckt: neues Fenster bzw. die Links.
+  if (isMac && running()) {
+    const appPath = path.join(paths.engine(), 'Firefox.app');
+    const urls = args.filter((a) => !String(a).startsWith('-'));
+    const child = spawn('open', ['-a', appPath, ...urls], { detached: true, stdio: 'ignore' });
+    child.on('error', (e) => log('Wecken fehlgeschlagen: ' + e.message));
+    child.unref();
+    log(`Wecken ${urls.join(' ')}`.trim());
+    return;
+  }
   const child = spawn(exe(), ['--profile', paths.profile(), ...args], { detached: true, stdio: 'ignore', windowsHide: false, cwd: path.dirname(exe()) });
   child.on('error', (e) => log('Start fehlgeschlagen: ' + e.message));   // z. B. Virenscanner/Smart App Control – nie abstürzen
   child.unref();
