@@ -149,8 +149,43 @@ function starter() {
     } catch (e) { engine.log('Update beim Start: ' + e.message); return false; }
   }
 
+  // Im Hintergrund öffnen (02.11.2026, Feray: Links aus der ImmoAdv-Software – z. B. „Bei Amazon bestellen“ – sollen
+  // im Browser hinten aufgehen, ohne dass das Fenster nach vorne springt). Läuft der Browser schon, gehen die Links über
+  // den Hintergrund-Dienst an den Browser (neuer Tab hinten); sonst normaler Start.
+  function openBackground(urls) {
+    return new Promise((resolve) => {
+      try {
+        const os = require('node:os'), net = require('node:net');
+        const user = String(process.env.USERNAME || process.env.USER || os.userInfo().username || 'nutzer').replace(/[^\w.-]/g, '_');
+        const PIPE = process.platform === 'win32' ? `\\\\.\\pipe\\immoadv-browser-${user}` : path.join(os.tmpdir(), `immoadv-browser-${user}.sock`);
+        const sock = net.connect(PIPE);
+        let buf = Buffer.alloc(0), done = false;
+        const end = (ok) => { if (done) return; done = true; try { sock.destroy(); } catch {} resolve(ok); };
+        const t = setTimeout(() => end(false), 3000);
+        sock.on('error', () => { clearTimeout(t); end(false); });
+        sock.on('connect', () => {
+          const body = Buffer.from(JSON.stringify({ id: 'bg1', cmd: 'tabs.openBg', urls }), 'utf8');
+          const head = Buffer.alloc(4); head.writeUInt32LE(body.length, 0);
+          sock.write(Buffer.concat([head, body]));
+        });
+        sock.on('data', (c) => {
+          buf = Buffer.concat([buf, c]);
+          while (buf.length >= 4) {
+            const len = buf.readUInt32LE(0); if (buf.length < 4 + len) return;
+            let msg = null; try { msg = JSON.parse(buf.slice(4, 4 + len).toString('utf8')); } catch {}
+            buf = buf.slice(4 + len);
+            if (msg && msg.id === 'bg1') { clearTimeout(t); end(!!(msg.ok && msg.data > 0)); }
+          }
+        });
+      } catch { resolve(false); }
+    });
+  }
+
   async function open(argv, { wait = false } = {}) {
     const urls = targets(argv);
+    if ((argv || []).includes('--background') && urls.length && urls.every((u) => /^https?:/i.test(u))) {
+      try { if (engine.running() && (await openBackground(urls))) { engine.log(`Hintergrund ${urls.length} Link(s)`); return true; } } catch {}
+    }
     if (installPending()) return true;
     if (!(await ensureEngine())) return false;
     if (wait) await engine.waitClosed();

@@ -45,6 +45,13 @@ Native.on((ev, d) => {
   if (ev === 'bm.remote') bmChain = bmChain.then(() => applyRemoteBookmark(d)).catch((e) => console.warn('Lesezeichen vom anderen Gerät', e));
   // „Jetzt neu starten“ (Einstellungen, die einen Neustart brauchen): Browser sauber beenden, das Programm startet ihn neu.
   if (ev === 'restart') restartForUpdate();
+  if (ev === 'openBg') {
+    // Links aus der ImmoAdv-Software: neuer Tab hinten im zuletzt benutzten Fenster, ohne Fokuswechsel.
+    browser.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null).then((w) => {
+      for (const url of (d && d.urls) || []) browser.tabs.create({ url, active: false, ...(w && w.id != null ? { windowId: w.id } : {}) }).catch(() => {});
+    });
+    return;
+  }
   if (ev === 'update') { updateState = d; broadcast('update', d); updateBadge(); if (d.status === 'restarting') restartForUpdate(); else offerUpdate(); }
 });
 

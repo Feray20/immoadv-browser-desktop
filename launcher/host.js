@@ -124,6 +124,9 @@ const handlers = {
     return true;
   },
   // Updates
+  // Links im Hintergrund öffnen (vom Start-Programm, z. B. aus der ImmoAdv-Software): an alle verbundenen Browserfenster
+  // melden; Rückgabe = Anzahl erreichter Browser (ohne den Absender selbst).
+  'tabs.openBg': ({ urls }) => { const list = (Array.isArray(urls) ? urls : []).filter((u) => /^https?:\/\//i.test(String(u))).slice(0, 20); if (!list.length) return 0; event('openBg', { urls: list }); return Math.max(0, outputs.size - 1); },
   'update.state': () => updater.state(),
   'update.check': () => { updater.check(); return updater.state(); },
   'update.now': () => { updater.updateNow(); return updater.state(); },

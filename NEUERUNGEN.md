@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.13 – Passwörter wie bei Apple, Links im Hintergrund
+- Gespeicherte Passwörter: kleiner Knopf „Passwort übernehmen“ direkt über dem Anmeldefeld – ein Klick, ohne Windows Hello / Touch ID (Passkeys fragt die Seite wie gewohnt)
+- Links aus der ImmoAdv-Software (z. B. „Bei Amazon bestellen“) gehen im Browser als Tab im Hintergrund auf – kein Programmwechsel mehr
+
 ImmoAdv Browser 4.1.12 – eBay, Amazon und PayPal wie im normalen Browser
 - Fingerabdruck-Schutz auf eBay, Amazon, PayPal und ImmoAdv aus – deren Bot-Erkennung blockierte sonst Anmeldung, Menüs und Kasse
 - Links auf diesen Seiten werden nicht mehr verändert

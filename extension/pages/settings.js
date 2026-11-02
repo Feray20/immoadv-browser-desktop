@@ -177,7 +177,7 @@ async function passwoerter() {
   try { list = await send({ type: 'pw:list' }); } catch (e) { body(`<p class="hint">${esc(e.message)}</p>`); return; }
   const q = (passwoerter.q || '').toLowerCase();
   const shown = list.filter((p) => !q || (p.site + ' ' + p.user).toLowerCase().includes(q)).sort((a, b) => a.site.localeCompare(b.site));
-  body(`<div class="group"><h3>Passwort-Tresor · ${list.length} Einträge</h3><p class="small">Jedes Passwort einzeln verschlüsselt (${isMac ? 'Mac-Schlüsselbund' : 'Windows DPAPI'}). Anzeigen, Kopieren und Ausfüllen nur nach ${lockName}.</p>
+  body(`<div class="group"><h3>Passwort-Tresor · ${list.length} Einträge</h3><p class="small">Jedes Passwort einzeln verschlüsselt (${isMac ? 'Mac-Schlüsselbund' : 'Windows DPAPI'}). Ausfüllen mit einem Klick auf „Passwort übernehmen“ direkt am Anmeldefeld; Anzeigen und Kopieren hier nur nach ${lockName}.</p>
       <input type="search" id="pwQ" placeholder="Suchen …" value="${esc(passwoerter.q || '')}" style="width:100%">
       <div class="pw-bar" style="display:flex;align-items:center;gap:12px;margin:10px 0 4px;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="pwAll"> Alle ${q ? 'gefundenen ' : ''}auswählen</label><button class="danger" id="pwDelSel" hidden>Ausgewählte löschen</button><span class="small" id="pwSelN"></span></div>
       ${shown.map((p) => `<div class="list-item" data-row="${esc(p.id)}"><input type="checkbox" class="pw-sel" data-sel="${esc(p.id)}" aria-label="Auswählen" style="margin-right:10px;width:18px;height:18px;cursor:pointer"><div class="grow"><b>${esc(p.site)}</b><span class="desc">${esc(p.user || '(ohne Benutzername)')}</span></div>

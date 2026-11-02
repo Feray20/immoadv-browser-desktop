@@ -156,6 +156,12 @@ module.exports = { removeMany, matches, plainEntries, applySync,
   forUrl, add, known, remove, unlock, reveal, importCSV,
   list: () => all().map(({ id, site, host, user, added }) => ({ id, site, host, user, added })),
   /** Für das Ausfüllen: Passwort erst nach Freigabe */
-  async credentialsFor(id) { return reveal(id); },
+  // Ausfüllen ohne Windows Hello / Touch ID (Feray 02.11.2026: „nur dort, wo Passkeys sind“) – Anzeigen und Kopieren in
+  // den Einstellungen bleiben geschützt. Wer es strenger will: Einstellung „helloForFill“.
+  async credentialsFor(id) {
+    if (store.get('helloForFill') === true) return reveal(id);
+    const p = all().find((x) => x.id === id);
+    return p ? { user: p.user, pass: dec(p.pass) } : null;
+  },
   available: () => safeStorage.isEncryptionAvailable()
 };
