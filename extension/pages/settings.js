@@ -30,7 +30,7 @@ const bindSwitch = (id, key, after) => { const el = $(id); if (el) el.onchange =
 const foldList = (key, label, html, n) => `<details class="fold"><summary>${label} <span class="hint">${n}</span></summary>${html}</details>`;
 const dom = (v) => String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
 
-const SEGS = [['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['passwoerter', 'Passwörter'], ['adressen', 'Adressen'], ['sync', 'Sync'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['merkliste', 'Merkliste'], ['updates', 'Updates']];
+const SEGS = [['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['passwoerter', 'Passwörter'], ['adressen', 'Adressen'], ['sync', 'Sync'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['merkliste', 'Merkliste'], ['leistung', 'Leistung'], ['updates', 'Updates']];
 function nav() {
   $('seg').innerHTML = SEGS.map(([k, l]) => `<button data-k="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
   $('seg').querySelectorAll('button').forEach((b) => { b.onclick = () => { tab = b.dataset.k; history.replaceState(null, '', '#' + tab); render(); }; });
@@ -41,7 +41,7 @@ async function render() {
   st = await send({ type: 'state' });
   $('ver').textContent = 'Version ' + st.version + (st.native ? '' : ' · Programm nicht verbunden');
   nav();
-  ({ allgemein, datenschutz, sicherheit, passwoerter, adressen, sync, vpn, ki, merkliste, updates }[tab] || allgemein)();
+  ({ allgemein, datenschutz, sicherheit, passwoerter, adressen, sync, vpn, ki, merkliste, leistung, updates }[tab] || allgemein)();
 }
 
 function allgemein() {
@@ -301,6 +301,35 @@ function merkliste() {
     ${w.map((x) => `<div class="list-item"><div class="grow"><a href="${esc(x.url)}" target="_blank" rel="noopener"><b>${esc(x.title)}</b></a><span class="desc">${esc([x.city, x.source].filter(Boolean).join(' · '))}</span></div>
       <span class="hint">${eur(x.price)}${x.brutto ? ` · ${x.brutto.toFixed(1).replace('.', ',')} % brutto` : ''}${x.cashflow != null ? ` · ${eur(x.cashflow)}/Monat` : ''}</span><button class="icon" data-w="${x.id}" aria-label="Entfernen">✕</button></div>`).join('') || '<p class="hint">Noch leer – im Immobilien-Check auf „Auf die Merkliste“ tippen.</p>'}</div>`);
   $('body').querySelectorAll('[data-w]').forEach((b) => { b.onclick = async () => { await send({ type: 'watch:remove', id: Number(b.dataset.w) }); st = await send({ type: 'state' }); merkliste(); }; });
+}
+
+// Leistung (Feray 02.11.2026: „damit ich sehe, wo es hakt“): Ampeln für Verbindung zum Programm, Arbeitsspeicher, Tabs,
+// Update und Sync – darunter die letzten Protokollzeilen. Aktualisiert sich alle 5 Sekunden, solange die Seite offen ist.
+async function leistung() {
+  const amp = (ok, warn) => (ok ? '🟢' : warn ? '🟡' : '🔴');
+  const row = (l, v, a, d = '') => `<div class="row"><span>${a} ${l}${d ? `<span class="desc">${d}</span>` : ''}</span><b>${v}</b></div>`;
+  const draw = async () => {
+    if (tab !== 'leistung') return;
+    const t0 = performance.now();
+    const p = await send({ type: 'perf:info' }).catch(() => null) || {};
+    const ui = Math.round(performance.now() - t0);
+    const memPct = p.sysTotalMb ? Math.round(100 * (1 - p.sysFreeMb / p.sysTotalMb)) : null;
+    const u = p.update || {}, sy = p.sync || {};
+    body(`<div class="group"><h3>Leistung jetzt</h3>
+      ${row('Verbindung zum ImmoAdv-Programm', p.pingMs != null ? p.pingMs + ' ms' : 'getrennt', amp(p.pingMs != null && p.pingMs < 150, p.pingMs != null && p.pingMs < 800), p.error ? esc(p.error) : 'Passwörter, Sync, Updates laufen darüber')}
+      ${row('Antwort der Einstellungen', ui + ' ms', amp(ui < 300, ui < 1200))}
+      ${row('Arbeitsspeicher des Computers', memPct != null ? `${memPct} % belegt` : '–', amp(memPct != null && memPct < 80, memPct != null && memPct < 92), p.sysTotalMb ? `${Math.round((p.sysTotalMb - p.sysFreeMb) / 1024 * 10) / 10} von ${Math.round(p.sysTotalMb / 1024)} GB · Hintergrund-Dienst ${p.hostMb || '–'} MB` : '')}
+      ${row('Offene Tabs', `${p.tabs ?? '–'}${p.discarded ? ` (${p.discarded} schlafen)` : ''}`, amp((p.tabs || 0) < 40, (p.tabs || 0) < 80), 'Viele Tabs brauchen Speicher – schlafende Tabs kosten fast nichts')}
+      ${row('Blockierte Tracker (offene Tabs)', p.blockedNow ?? '–', '🛡')}
+      ${row('Update', esc(u.message || u.status || '–'), amp(['current', 'idle', 'unsupported'].includes(u.status), ['available', 'downloading', 'ready', 'checking'].includes(u.status)), `Version ${esc(p.version || st.version)}`)}
+      ${row('Sync', esc(sy.message || sy.status || 'aus'), amp(sy.status === 'on' || !sy.status, sy.status === 'off'))}
+      ${row('Laufzeit Hintergrund-Dienst', p.uptimeMin != null ? p.uptimeMin + ' Min.' : '–', '⏱', `${esc(p.platform || '')} · ${p.cpus || '–'} Kerne`)}
+    </div>
+    <div class="group"><h3>Letzte Ereignisse</h3><pre class="small" style="white-space:pre-wrap;margin:0;max-height:220px;overflow:auto">${esc([...(p.updateErrors || []).map((l) => '⚠ ' + l), ...(p.motor || [])].slice(-16).join('\n') || 'Keine Einträge')}</pre>
+      <p class="small">Prozesse und Speicher je Tab: <b>about:processes</b> in die Adressleiste eingeben.</p></div>`);
+  };
+  await draw();
+  clearInterval(leistung.t); leistung.t = setInterval(() => { if (tab !== 'leistung' || document.hidden) return; draw(); }, 5000);
 }
 
 function updates() {

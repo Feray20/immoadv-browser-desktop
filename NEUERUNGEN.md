@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.15 – Leistung sichtbar
+- Neuer Bereich „Leistung“ in den Einstellungen: Ampeln für Verbindung, Arbeitsspeicher, Tabs, Update und Sync plus die letzten Ereignisse – so siehst du sofort, wo es hakt
+
 ImmoAdv Browser 4.1.14 – Passwörter komplett
 - „Passwort aktualisieren?“ statt „speichern“, wenn sich ein gespeichertes Passwort geändert hat
 - Passwörter in den Einstellungen bearbeiten und von Hand hinzufügen

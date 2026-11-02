@@ -264,6 +264,11 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'pw:delete': return Native.call('vault.delete', { id: m.id }).then((r) => { Vault.refreshSites(); return r; });
     case 'pw:update': return Native.call('vault.update', { id: m.id, user: m.user, pass: m.pass, url: m.url }).then((r) => { Vault.refreshSites(); return r; });
     case 'pw:add': return Native.call('vault.add', { url: m.url, user: m.user, pass: m.pass }).then((r) => { Vault.refreshSites(); return r; });
+    case 'perf:info': {
+      const t0 = performance.now();
+      return Native.call('perf.info', {}, 8000).then((h) => ({ ...h, pingMs: Math.round(performance.now() - t0) })).catch((e) => ({ error: e.message, pingMs: null }))
+        .then(async (h) => { const tabs = await browser.tabs.query({}).catch(() => []); return { ...h, tabs: tabs.length, discarded: tabs.filter((x) => x.discarded).length, blockedNow: Blocker.blockedOn ? tabs.reduce((a, x) => a + (Blocker.blockedOn(x.id) || 0), 0) : null }; });
+    }
     case 'pw:deleteMany': return Native.call('vault.deleteMany', { ids: m.ids }).then((r) => { Vault.refreshSites(); return r; });
     case 'pw:copy': return Native.call('vault.copy', { id: m.id }, 130000);
     case 'pw:reveal': return Native.call('vault.reveal', { id: m.id }, 130000);

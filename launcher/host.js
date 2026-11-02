@@ -130,6 +130,21 @@ const handlers = {
   // Links im Hintergrund öffnen (vom Start-Programm, z. B. aus der ImmoAdv-Software): an alle verbundenen Browserfenster
   // melden; Rückgabe = Anzahl erreichter Browser (ohne den Absender selbst).
   'tabs.openBg': ({ urls }) => { const list = (Array.isArray(urls) ? urls : []).filter((u) => /^https?:\/\//i.test(String(u))).slice(0, 20); if (!list.length) return 0; event('openBg', { urls: list }); return Math.max(0, outputs.size - 1); },
+  // Leistung (02.11.2026, Feray: „in den Einstellungen Leistung, damit ich sehe, wo es hakt“): nur Zahlen und die
+  // letzten Protokollzeilen (ohne Passwörter, Adressen werden gekürzt) – nichts verlässt das Gerät.
+  'perf.info': () => {
+    const os = require('node:os');
+    const tail = (f, n, re) => { try { const t = fs.readFileSync(path.join(app.getPath('userData'), f), 'utf8').split(/\r?\n/).filter((l) => l && !/^\s+at /.test(l)); return (re ? t.filter((l) => re.test(l)) : t).slice(-n).map((l) => l.replace(/(https?:\/\/[^/\s]+)[^\s]*/g, '$1/…').slice(0, 220)); } catch { return []; } };
+    const mem = process.memoryUsage();
+    return {
+      version: app.getVersion(), platform: process.platform, arch: process.arch, os: os.release(),
+      uptimeMin: Math.round(process.uptime() / 60), hostMb: Math.round(mem.rss / 1048576),
+      sysFreeMb: Math.round(os.freemem() / 1048576), sysTotalMb: Math.round(os.totalmem() / 1048576), cpus: os.cpus().length, load: os.loadavg ? os.loadavg()[0] : null,
+      browsers: Math.max(0, outputs.size - 1), engineRunning: (() => { try { return engine.running(); } catch { return null; } })(),
+      update: updater.state(), sync: (() => { try { const s = sync.state(); return { status: s.status, message: s.message }; } catch { return null; } })(),
+      motor: tail('motor.log', 12), updateErrors: tail('update.log', 8, /error|Fehler|warn/i)
+    };
+  },
   'update.state': () => updater.state(),
   'update.check': () => { updater.check(); return updater.state(); },
   'update.now': () => { updater.updateNow(); return updater.state(); },
