@@ -4,7 +4,13 @@
 set -euo pipefail
 P="${1:?windows oder mac}"
 cd "$(dirname "$0")/.."
-export CSC_IDENTITY_AUTO_DISCOVERY=false        # ohne eigenes Zertifikat (Store signiert die Store-Version kostenlos)
+# Windows: ohne eigenes Zertifikat (Store signiert die Store-Version kostenlos).
+# Mac (02.11.2026): Liegt auf Ferays Mac ein Apple-Zertifikat (Xcode-Konto), signiert electron-builder damit – dann
+# erkennt macOS den Browser nach Updates wieder (keine erneute Schlüsselbund-Abfrage für gespeicherte Passwörter).
+# Ohne Zertifikat wie bisher unsigniert/ad-hoc.
+if [ "$P" = "windows" ] || ! security find-identity -v -p codesigning 2>/dev/null | grep -qE '"(Developer ID Application|Apple Development|Mac Developer):'; then
+  export CSC_IDENTITY_AUTO_DISCOVERY=false
+fi
 node --version
 npm install --no-audit --no-fund
 npm test

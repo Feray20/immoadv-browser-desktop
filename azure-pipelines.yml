@@ -9,8 +9,9 @@ trigger:
 pr: none
 
 variables:
-  # Mac vorerst aus (Feray 01.11.2026: erst nur Windows). Sobald der Mac-Agent im Pool „ImmoAdv“ online ist: 'true'.
-  MAC_BAUEN: 'false'
+  # Mac an (Feray 02.11.2026: „beide Software für Mac ready“). Läuft auf dem MacBook-Agent im Pool „ImmoAdv“;
+  # ist der Mac aus oder der Agent nicht eingerichtet, wartet nur dieser Teil – Windows baut unabhängig weiter.
+  MAC_BAUEN: 'true'
 
 stages:
   - stage: windows
