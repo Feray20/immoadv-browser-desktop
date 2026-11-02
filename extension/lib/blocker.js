@@ -16,6 +16,8 @@ const Blocker = (() => {
     try {
       const u = new URL(url);
       if (!u.search || (/(^|\.)google\.[a-z.]+$/.test(u.hostname) && u.pathname.startsWith('/o/oauth'))) return url;
+      // Arbeitsseiten (eBay, Amazon, PayPal, ImmoAdv) unverändert lassen – deren Links brauchen ihre Parameter (02.11.2026).
+      if (WORK_SITES.some((d) => u.hostname === d || u.hostname.endsWith('.' + d))) return url;
       let changed = false;
       for (const k of [...u.searchParams.keys()]) if (TRACK_PARAMS.test(k)) { u.searchParams.delete(k); changed = true; }
       return changed ? u.toString() : url;

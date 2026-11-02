@@ -181,3 +181,7 @@ user_pref("browser.ml.linkPreview.shift", false);
 user_pref("ui.click_hold_context_menus", false);
 user_pref("browser.tabs.splitView.enabled", false);              // „Link in geteilter Ansicht“ ausblenden (Menü kürzer)
 user_pref("layout.word_select.eat_space_to_next_word", false);   // Doppelklick markiert nur das Wort (wie Chrome), ohne Leerzeichen dahinter
+// Arbeitsseiten wie im normalen Browser (02.11.2026, Feray: „eBay klappt wieder nicht“): Der Fingerabdruck-Schutz verfälscht
+// Canvas/Bildschirm-Werte – die Bot-Erkennung von eBay, Amazon und PayPal hält das für einen Roboter (Anmeldung, Menüs,
+// Kasse hängen). Für diese Seiten aus, überall sonst bleibt er an.
+user_pref("privacy.fingerprintingProtection.granularOverrides", "[{\"firstPartyDomain\":\"ebay.de\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"ebay.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"ebaystatic.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"amazon.de\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"paypal.com\",\"overrides\":\"-AllTargets\"},{\"firstPartyDomain\":\"immoadv.de\",\"overrides\":\"-AllTargets\"}]");

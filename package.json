@@ -1,7 +1,7 @@
 {
   "name": "immoadv-browser",
   "productName": "ImmoAdv Browser",
-  "version": "4.1.11",
+  "version": "4.1.12",
   "description": "ImmoAdv Browser 4 – ImmoAdv-Oberfläche auf dem Firefox-Motor (ESR): Google-Anmeldung, Passkeys, NordVPN, Blocker, Passwort-Tresor, KI-Assistent, Immobilien-Check",
   "author": "Feray Korkmaz",
   "license": "UNLICENSED",

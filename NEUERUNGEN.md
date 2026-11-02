@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.12 – eBay, Amazon und PayPal wie im normalen Browser
+- Fingerabdruck-Schutz auf eBay, Amazon, PayPal und ImmoAdv aus – deren Bot-Erkennung blockierte sonst Anmeldung, Menüs und Kasse
+- Links auf diesen Seiten werden nicht mehr verändert
+
 ImmoAdv Browser 4.1.11 – schöner und griffiger
 - Aktiver Tab wie bei Chrome: geht nahtlos in die Leiste darunter über, mit ImmoAdv-Fade-Linie oben
 - Rechtsklick-Menü deckend dunkel statt durchsichtig grau (Windows 11); kürzer ohne Link-Vorschau und geteilte Ansicht
