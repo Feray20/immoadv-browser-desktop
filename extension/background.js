@@ -39,6 +39,8 @@ async function start() {
   try { updateState = await Native.call('update.state'); updateBadge(); setTimeout(offerUpdate, 4000); } catch (e) {}
 }
 Native.on((ev, d) => {
+  if (ev === 'sync') { syncState = d; broadcast('sync', d); }
+  if (ev === 'bm.remote') applyRemoteBookmark(d).catch((e) => console.warn('Lesezeichen vom anderen Gerät', e));
   if (ev === 'update') { updateState = d; broadcast('update', d); updateBadge(); if (d.status === 'restarting') restartForUpdate(); else offerUpdate(); }
 });
 
@@ -71,6 +73,60 @@ async function restartForUpdate() {
   await new Promise((r) => setTimeout(r, 1200));
   for (const w of await browser.windows.getAll()) await browser.windows.remove(w.id).catch(() => {});
 }
+
+// ---------- Geräte-Abgleich (Windows ⇄ Mac): Lesezeichen und offene Tabs an das Programm melden ----------
+// Das Programm verschlüsselt alles Ende-zu-Ende mit dem Sync-Passwort; hier nur der Stand aus Firefox.
+let syncState = null, bmTimer = null, tabTimer = null, applyingBm = 0;
+const ROOT_IDS = new Set(['root________', 'toolbar_____', 'menu________', 'unfiled_____', 'mobile______']);
+async function bookmarkList() {
+  const out = [];
+  const walk = (n, path) => {
+    for (const c of n.children || []) {
+      if (c.url) { if (/^https?:/i.test(c.url)) out.push({ title: c.title || '', url: c.url, folder: path }); }
+      else if (c.children) walk(c, ROOT_IDS.has(c.id) ? (c.id === 'toolbar_____' ? '' : (c.title || 'Weitere')) : (path ? path + '/' : '') + (c.title || ''));
+    }
+  };
+  const tree = await browser.bookmarks.getTree();
+  walk(tree[0], '');
+  return out;
+}
+function pushBookmarks() {
+  clearTimeout(bmTimer);
+  bmTimer = setTimeout(async () => { if (applyingBm) return pushBookmarks(); try { await Native.call('bm.local', { list: await bookmarkList() }); } catch (e) { /* Programm nicht bereit */ } }, 3000);
+}
+async function folderId(path) {
+  const tree = await browser.bookmarks.getTree();
+  const toolbar = (tree[0].children || []).find((c) => c.id === 'toolbar_____') || tree[0].children[1];
+  let parent = toolbar;
+  for (const name of String(path || '').split('/').filter(Boolean)) {
+    const kids = await browser.bookmarks.getChildren(parent.id);
+    parent = kids.find((k) => !k.url && k.title === name) || await browser.bookmarks.create({ parentId: parent.id, title: name });
+  }
+  return parent.id;
+}
+async function applyRemoteBookmark(op) {
+  if (!op || !op.url) return;
+  applyingBm++;
+  try {
+    const same = await browser.bookmarks.search({ url: op.url }).catch(() => []);
+    if (op.deleted) { for (const b of same) await browser.bookmarks.remove(b.id).catch(() => {}); }
+    else if (!same.length) await browser.bookmarks.create({ parentId: await folderId(op.folder), title: op.title || op.url, url: op.url });
+    else if (op.title && same[0].title !== op.title) await browser.bookmarks.update(same[0].id, { title: op.title });
+  } finally { setTimeout(() => { applyingBm = Math.max(0, applyingBm - 1); }, 1500); }
+}
+function pushTabs() {
+  clearTimeout(tabTimer);
+  tabTimer = setTimeout(async () => {
+    try {
+      const tabs = (await browser.tabs.query({})).filter((t) => !t.incognito && /^https?:/.test(t.url || '')).slice(0, 60).map((t) => ({ url: t.url, title: t.title || '' }));
+      await Native.call('tabs.local', { tabs });
+    } catch (e) { /* Programm nicht bereit */ }
+  }, 5000);
+}
+for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) browser.bookmarks[ev].addListener(pushBookmarks);
+browser.tabs.onUpdated.addListener((id, ch) => { if (ch.url || ch.title) pushTabs(); });
+browser.tabs.onRemoved.addListener(pushTabs);
+setTimeout(() => { pushBookmarks(); pushTabs(); }, 15000);
 
 // ---------- Version 3 → 4: Lesezeichen übernehmen ----------
 async function migrate() {
@@ -195,6 +251,13 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'pw:copy': return Native.call('vault.copy', { id: m.id }, 130000);
     case 'pw:reveal': return Native.call('vault.reveal', { id: m.id }, 130000);
     case 'pw:import': return Native.call('vault.import', {}, 300000).then((r) => { Vault.refreshSites(); return r; });
+    // Geräte-Abgleich
+    case 'sync:state': return Native.call('sync.state').catch((e) => ({ status: 'error', message: e.message }));
+    case 'sync:login': return Native.call('sync.login', { email: m.email, password: m.password }, 30000).catch((e) => ({ status: 'needLogin', message: e.message }));
+    case 'sync:mfa': return Native.call('sync.mfa', { code: m.code }, 30000).catch((e) => ({ status: 'needMfa', message: e.message }));
+    case 'sync:pass': return Native.call('sync.pass', { pass: m.pass }, 120000).catch((e) => ({ status: 'needPassphrase', message: e.message }));
+    case 'sync:logout': return Native.call('sync.logout').catch((e) => ({ status: 'error', message: e.message }));
+    case 'sync:now': pushBookmarks(); pushTabs(); return Native.call('sync.now', {}, 120000).catch((e) => ({ status: 'error', message: e.message }));
     case 'file:read': return Native.call('file.read', { token: m.token, offset: m.offset || 0 }, 60000).catch((e) => ({ error: e.message }));
     default: return undefined;
   }

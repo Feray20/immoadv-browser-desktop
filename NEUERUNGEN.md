@@ -1,3 +1,9 @@
+ImmoAdv Browser 4.1.0 – Windows und Mac im Gleichklang
+- Neu: Sync zwischen Windows-PC und Mac – Passwörter, Lesezeichen, Einstellungen und offene Tabs, automatisch jede Minute und nach jeder Änderung
+- Ende-zu-Ende-verschlüsselt mit deinem eigenen Sync-Passwort – ImmoAdv speichert nur unlesbare Daten
+- Einrichten: Einstellungen → Sync → mit dem ImmoAdv-Konto anmelden (inkl. Bestätigungscode) → Sync-Passwort festlegen; auf dem zweiten Gerät dasselbe Sync-Passwort eingeben
+- „Tabs auf deinen anderen Geräten“: offene Seiten vom anderen Computer direkt öffnen
+
 ImmoAdv Browser 4.0.4 – eBay, Adressen, Updates
 - eBay: Knöpfe und Fenster im Verkäuferbereich (z. B. „Nachricht an den Käufer“) funktionieren – eBay, Amazon und PayPal werden nie blockiert
 - Neu in den Einstellungen: „Adressen“ – eigene Adressen selbst eintragen, nur diese werden beim Ausfüllen angeboten

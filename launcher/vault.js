@@ -132,7 +132,25 @@ function importCSV(text) {
   return { added, skipped };
 }
 
-module.exports = { matches,
+// ---------- Geräte-Abgleich (launcher/sync.js) ----------
+// Klartext verlässt dieses Programm nur Ende-zu-Ende-verschlüsselt mit dem Sync-Schlüssel (AES-256-GCM).
+function plainEntries() {
+  const out = [];
+  for (const p of all()) { const pass = dec(p.pass); if (pass != null) out.push({ id: p.id, site: p.site, host: p.host, user: p.user || '', pass, changed: p.changed || p.added || 0 }); }
+  return out;
+}
+function applySync(b, deleted) {
+  if (!b || !b.site || !safeStorage.isEncryptionAvailable()) return;
+  const list = all();
+  const i = list.findIndex((p) => p.site === b.site && (p.user || '') === (b.user || '') && (!sharedSite(b.site) || noWww(p.host) === noWww(b.host)));
+  if (deleted) { if (i >= 0) { list.splice(i, 1); save(list); } return; }
+  if (!b.pass) return;
+  if (i >= 0) { if (dec(list[i].pass) === b.pass) return; list[i] = { ...list[i], pass: enc(b.pass), changed: Number(b.changed) || Date.now() }; }
+  else list.push({ id: crypto.randomUUID(), site: b.site, host: b.host || b.site, user: b.user || '', pass: enc(b.pass), added: Date.now(), changed: Number(b.changed) || Date.now() });
+  save(list);
+}
+
+module.exports = { matches, plainEntries, applySync,
   forUrl, add, known, remove, unlock, reveal, importCSV,
   list: () => all().map(({ id, site, host, user, added }) => ({ id, site, host, user, added })),
   /** Für das Ausfüllen: Passwort erst nach Freigabe */

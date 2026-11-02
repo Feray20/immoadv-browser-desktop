@@ -137,11 +137,16 @@ function save() {
   saveTimer = now - firstPending > 3000 ? setTimeout(writeAsync, 0) : setTimeout(writeAsync, 400);
 }
 
+// Beobachter (Geräte-Abgleich): wird nach set/setMany mit dem Schlüssel aufgerufen – nicht bei setQuiet.
+const watchers = new Set();
+const changed = (k) => { for (const fn of watchers) { try { fn(k); } catch { /* nie kritisch */ } } };
+
 module.exports = {
   get: (k) => load()[k],
   all: () => ({ ...load() }),
-  set(k, v) { load()[k] = v; save(); },
+  set(k, v) { load()[k] = v; save(); changed(k); },
   setQuiet(k, v) { load()[k] = v; save(); },       // interne Daten (Statistik, Sitzung, besuchte Seiten)
-  setMany(obj) { Object.assign(load(), obj); save(); },
+  setMany(obj) { Object.assign(load(), obj); save(); Object.keys(obj || {}).forEach(changed); },
+  onChange(fn) { watchers.add(fn); return () => watchers.delete(fn); },
   flush: () => writeNow()
 };

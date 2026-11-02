@@ -18,7 +18,7 @@ function load({ creds = null } = {}) {
     browserAction: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {}, setTitle: async () => {} },
     proxy: { onRequest: ev(), onError: ev() }, cookies: { getAll: async () => [] }, browsingData: { remove: async () => {} },
     alarms: { create() {}, onAlarm: ev() }, menus: { removeAll: async () => {}, create() {}, onClicked: ev() },
-    bookmarks: { getTree: async () => [{ children: [{ id: 'menu________' }, { id: 'toolbar_____' }] }], search: async () => [], create: async () => ({ id: 'n' }) },
+    bookmarks: { getTree: async () => [{ children: [{ id: 'menu________' }, { id: 'toolbar_____' }] }], search: async () => [], create: async () => ({ id: 'n' }), getChildren: async () => [], update: async () => ({}), remove: async () => {}, onCreated: ev(), onRemoved: ev(), onChanged: ev(), onMoved: ev() },
     windows: { getAll: async () => [], onRemoved: ev(), create: async () => ({ id: 1 }) }
   };
   const lists = { werbung: ['doubleclick.net'], malware: ['bad.example'], phishing: ['phish.example'], sources: {} };

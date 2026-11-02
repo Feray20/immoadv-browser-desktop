@@ -8,6 +8,7 @@ const store = require('./store');
 const vault = require('./vault');
 const engine = require('./engine');
 const updater = require('./updater');
+const sync = require('./sync');
 
 const SECRET = ['vpnCreds', 'passwords', 'aiKeys', 'neverSave', 'lastSession'];
 const SETTABLE = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'allowlist', 'blocklist', 'httpsOnly', 'cleanLinks', 'dnsProvider',
@@ -40,6 +41,7 @@ function publicSettings() {
 }
 
 let copyTimer = null;
+let openTabs = [];      // offene Tabs dieses Geräts (von der Erweiterung) – für „Tabs der anderen Geräte“
 const handlers = {
   ping: () => ({ version: app.getVersion() }),
   'settings.get': () => publicSettings(),
@@ -124,6 +126,23 @@ const handlers = {
   'update.state': () => updater.state(),
   'update.check': () => { updater.check(); return updater.state(); },
   'update.now': () => { updater.updateNow(); return updater.state(); },
+  // Geräte-Abgleich Windows ⇄ Mac (⇄ iPhone): Passwörter, Lesezeichen, Einstellungen, offene Tabs – Ende-zu-Ende-verschlüsselt
+  'sync.state': () => sync.state(),
+  'sync.login': ({ email, password }) => sync.login(email, password),
+  'sync.mfa': ({ code }) => sync.mfa(code),
+  'sync.pass': ({ pass }) => sync.setPassphrase(pass),
+  'sync.logout': () => { sync.logout(); return sync.state(); },
+  'sync.now': async () => { await sync.runNow(); return sync.state(); },
+  // Lesezeichen aus Firefox (die Erweiterung meldet den ganzen Stand) → Programm-Liste → Abgleich
+  'bm.local': ({ list }) => {
+    const clean = (Array.isArray(list) ? list : []).filter((b) => b && /^https?:\/\//i.test(String(b.url || ''))).slice(0, 5000)
+      .map((b) => ({ title: String(b.title || '').slice(0, 300), url: String(b.url).slice(0, 2000), folder: String(b.folder || '').slice(0, 300), tags: [] }));
+    const merged = sync.keepRecent(clean);
+    const before = JSON.stringify(store.get('bookmarks') || []);
+    if (JSON.stringify(merged) !== before) store.set('bookmarks', merged);
+    return { n: merged.length };
+  },
+  'tabs.local': ({ tabs }) => { openTabs = (Array.isArray(tabs) ? tabs : []).slice(0, 60); sync.tabsChanged(); return true; },
   // Version 3 → 4
   'migrate.v3': () => ({ bookmarks: store.get('bookmarks') || [] }),
   // Dateien vom Desktop (Office-Betrachter): nur Dateien, die das Programm selbst freigegeben hat
@@ -182,6 +201,9 @@ function common() {
   loadShared();
   updater.setBeforeInstall(() => event('update', { ...updater.state(), status: 'restarting' }));
   updater.init((s) => event('update', s));
+  try {
+    sync.init((u, o) => fetch(u, o), () => openTabs, (s) => event('sync', s), (op) => event('bm.remote', op));
+  } catch (e) { engine.log('Abgleich: ' + e.message); }
 }
 
 /** Direkt über stdin/stdout (Mac/Linux-Entwicklung) */

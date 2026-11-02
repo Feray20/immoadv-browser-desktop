@@ -6,8 +6,8 @@ const os = require('node:os');
 const { safeStorage } = require('electron');
 const store = require('./store');
 const vault = require('./vault');
-const C = require('../shared/synccrypto');
-const { siteOf } = require('../shared/lists');
+const C = require('./synccrypto');
+const { siteOf } = require('../src/shared/lists');
 
 const URL_BASE = 'https://mieoylqhtvghcnvaxutg.supabase.co';
 const APIKEY = 'sb_publishable_vlerR4aelUQdlXbZV8753w_mgTiWghM';   // öffentlicher Schlüssel (kein Geheimnis); Zugriff regeln die Datenbank-Regeln
@@ -21,6 +21,8 @@ let busy = false, again = false, timer = null, pushTimer = null;
 let remoteTabs = [];         // Tabs der anderen Geräte
 let getOpenTabs = () => [];
 let notify = () => {};
+let onBookmark = () => {};
+const recentRemote = new Map();   // URL → Zeit: gerade vom anderen Gerät gekommen, Firefox legt sie noch an   // Lesezeichen vom anderen Gerät → Firefox (über die Erweiterung)
 const state = { status: 'off', email: '', lastSync: 0, message: '', counts: {} };
 const emit = (patch) => { Object.assign(state, patch); notify({ ...state, remoteTabs }); };
 
@@ -150,6 +152,8 @@ function applyRemote(row, body) {
         else list.splice(Math.min(Number(body.order) || list.length, list.length), 0, item);
       }
       store.set('bookmarks', list);
+      if (!row.deleted) recentRemote.set(body.url, Date.now()); else recentRemote.delete(body.url);
+      try { onBookmark({ deleted: !!row.deleted, url: body.url, title: body.title || '', folder: body.folder || '' }); } catch { /* nie kritisch */ }
     } else if (row.kind === 'settings' && !row.deleted) {
       for (const k of SETTINGS_SYNCED) if (k in body && body[k] !== undefined) store.set(k, body[k]);
     }
@@ -232,8 +236,8 @@ function schedulePush() {
   pushTimer = setTimeout(runNow, 2500);
 }
 
-function init(fetchFn, openTabsFn, onState) {
-  fetcher = fetchFn; getOpenTabs = openTabsFn || getOpenTabs; notify = onState || notify;
+function init(fetchFn, openTabsFn, onState, onBm) {
+  fetcher = fetchFn; getOpenTabs = openTabsFn || getOpenTabs; notify = onState || notify; onBookmark = onBm || onBookmark;
   store.onChange((k) => { if (['passwords', 'bookmarks', ...SETTINGS_SYNCED].includes(k)) schedulePush(); });
   const k = store.get('syncKey') && decLocal(store.get('syncKey'));
   const auth = store.get('syncAuth') && JSON.parse(decLocal(store.get('syncAuth')) || 'null');
@@ -246,7 +250,18 @@ function init(fetchFn, openTabsFn, onState) {
   timer = setInterval(runNow, 60000);
 }
 
+// Lesezeichen, die gerade vom anderen Gerät kamen und in Firefox noch fehlen, nicht als „gelöscht“ werten (2 Minuten Schonfrist)
+function keepRecent(list) {
+  const now = Date.now(), have = new Set(list.map((b) => b.url)), out = [...list];
+  for (const [url, t] of recentRemote) {
+    if (now - t > 120000) { recentRemote.delete(url); continue; }
+    if (!have.has(url)) { const b = (store.get('bookmarks') || []).find((x) => x.url === url); if (b) out.push(b); }
+  }
+  return out;
+}
+
 module.exports = {
+  keepRecent,
   init, login, mfa, setPassphrase, logout, runNow, tabsChanged: () => { if (state.status === 'on') { clearTimeout(pushTimer); pushTimer = setTimeout(runNow, 15000); } },
   state: () => ({ ...state, remoteTabs }), forSite: (u) => siteOf(u)
 };

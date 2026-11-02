@@ -20,7 +20,7 @@ const bindSwitch = (id, key, after) => { const el = $(id); if (el) el.onchange =
 const foldList = (key, label, html, n) => `<details class="fold"><summary>${label} <span class="hint">${n}</span></summary>${html}</details>`;
 const dom = (v) => String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
 
-const SEGS = [['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['passwoerter', 'Passwörter'], ['adressen', 'Adressen'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['merkliste', 'Merkliste'], ['updates', 'Updates']];
+const SEGS = [['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['passwoerter', 'Passwörter'], ['adressen', 'Adressen'], ['sync', 'Sync'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['merkliste', 'Merkliste'], ['updates', 'Updates']];
 function nav() {
   $('seg').innerHTML = SEGS.map(([k, l]) => `<button data-k="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
   $('seg').querySelectorAll('button').forEach((b) => { b.onclick = () => { tab = b.dataset.k; history.replaceState(null, '', '#' + tab); render(); }; });
@@ -31,7 +31,7 @@ async function render() {
   st = await send({ type: 'state' });
   $('ver').textContent = 'Version ' + st.version + (st.native ? '' : ' · Programm nicht verbunden');
   nav();
-  ({ allgemein, datenschutz, sicherheit, passwoerter, adressen, vpn, ki, merkliste, updates }[tab] || allgemein)();
+  ({ allgemein, datenschutz, sicherheit, passwoerter, adressen, sync, vpn, ki, merkliste, updates }[tab] || allgemein)();
 }
 
 function allgemein() {
@@ -110,6 +110,56 @@ function adressen() {
     <p class="small">Gespeichert nur auf diesem Computer. Beim Ausfüllen auf ein Adressfeld klicken und die Adresse aus der Liste wählen.</p></div>`);
   $('adrOpen').onclick = () => browser.tabs.create({ url: browser.runtime.getURL('pages/cmd.html?c=addresses'), active: false });
 }
+
+// Sync (Feray 02.11.2026: „Mac und Windows nahtlos, mit den Passwörtern“): ImmoAdv-Konto + eigenes Sync-Passwort.
+// Alles wird auf dem Gerät mit dem Sync-Passwort verschlüsselt; ImmoAdv speichert nur Chiffretext.
+async function sync() {
+  let z = await send({ type: 'sync:state' }).catch(() => null) || { status: 'error', message: 'Programm nicht erreichbar' };
+  const msg = z.message ? `<p class="small" style="color:#ffb3bb">${esc(z.message)}</p>` : '';
+  const when = (t) => (t ? new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–');
+  if (z.status === 'off' || z.status === 'needLogin' || z.status === 'error') {
+    body(`<div class="group"><h3>Geräte abgleichen</h3><p class="small">Passwörter, Lesezeichen, Einstellungen und offene Tabs zwischen deinem Windows-PC und Mac – Ende-zu-Ende-verschlüsselt. Anmelden mit deinem ImmoAdv-Konto.</p>
+      <input type="email" id="syE" placeholder="E-Mail" autocomplete="username" value="${esc(z.email || '')}" style="width:100%;margin-top:8px">
+      <input type="password" id="syP" placeholder="Passwort" autocomplete="current-password" style="width:100%;margin-top:8px">
+      <button class="primary" id="syGo">Anmelden</button>${msg}</div>`);
+    const go = async () => { $('syGo').disabled = true; await send({ type: 'sync:login', email: $('syE').value, password: $('syP').value }); sync(); };
+    $('syGo').onclick = go; $('syP').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+    return;
+  }
+  if (z.status === 'needMfa') {
+    body(`<div class="group"><h3>Bestätigungscode</h3><p class="small">6-stelliger Code aus deiner Authenticator-App.</p>
+      <input type="text" id="syC" inputmode="numeric" autocomplete="one-time-code" maxlength="8" style="width:100%;margin-top:8px"><button class="primary" id="syGo">Bestätigen</button>${msg}</div>`);
+    const go = async () => { $('syGo').disabled = true; await send({ type: 'sync:mfa', code: $('syC').value }); sync(); };
+    $('syGo').onclick = go; $('syC').onkeydown = (e) => { if (e.key === 'Enter') go(); }; $('syC').focus();
+    return;
+  }
+  if (z.status === 'needPassphrase') {
+    body(`<div class="group"><h3>${z.hasKey ? 'Sync-Passwort eingeben' : 'Sync-Passwort festlegen'}</h3>
+      <p class="small">${z.hasKey ? 'Dasselbe Sync-Passwort wie auf deinem anderen Gerät.' : 'Neues Sync-Passwort (mindestens 8 Zeichen). Damit werden deine Daten verschlüsselt – auf allen Geräten gleich. <b>Gut merken:</b> Ohne dieses Passwort kann niemand, auch ImmoAdv nicht, die Daten wiederherstellen.'}</p>
+      <input type="password" id="syK" autocomplete="new-password" placeholder="Sync-Passwort" style="width:100%;margin-top:8px">
+      ${z.hasKey ? '' : '<input type="password" id="syK2" autocomplete="new-password" placeholder="Sync-Passwort wiederholen" style="width:100%;margin-top:8px">'}
+      <button class="primary" id="syGo">${z.hasKey ? 'Entsperren und abgleichen' : 'Festlegen und abgleichen'}</button>${msg}</div>`);
+    const go = async () => {
+      if (!z.hasKey && $('syK').value !== $('syK2').value) return toast('Die beiden Eingaben sind verschieden');
+      $('syGo').disabled = true; $('syGo').textContent = 'Wird verschlüsselt …';
+      await send({ type: 'sync:pass', pass: $('syK').value }); sync();
+    };
+    $('syGo').onclick = go;
+    return;
+  }
+  const c = z.counts || {}, tabs = z.remoteTabs || [];
+  body(`<div class="group"><h3>Sync ist an</h3>
+      <div class="row"><span>Konto<span class="desc">${esc(z.email || '')}</span></span><span class="hint">${z.status === 'on' ? '● verbunden' : esc(z.status)}</span></div>
+      <div class="row"><span>Zuletzt abgeglichen</span><span class="hint">${when(z.lastSync)}</span></div>
+      <div class="row"><span>Passwörter · Lesezeichen</span><span class="hint">${c.passwords ?? '–'} · ${c.bookmarks ?? '–'}</span></div>
+      <p class="small">Abgeglichen werden Passwörter, Lesezeichen, Einstellungen (Ausnahmen, Sperrliste, Suchmaschine …) und offene Tabs – automatisch jede Minute und nach jeder Änderung.</p>
+      <button class="secondary" id="syNow">Jetzt abgleichen</button>${msg}</div>
+    <div class="group"><h3>Tabs auf deinen anderen Geräten</h3>${tabs.length ? tabs.map((d) => `<details class="fold"><summary>${esc(d.name || 'Gerät')} <span class="hint">${d.tabs.length} Tabs · ${when(d.at)}</span></summary>${d.tabs.map((t) => `<div class="list-item"><div class="grow"><a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.title || t.url)}</a></div></div>`).join('')}</details>`).join('') : '<p class="hint">Noch keine anderen Geräte.</p>'}</div>
+    <div class="group"><button class="danger" id="syOut">Auf diesem Gerät abmelden</button><p class="small">Daten auf diesem Gerät bleiben erhalten.</p></div>`);
+  $('syNow').onclick = async () => { $('syNow').disabled = true; $('syNow').textContent = 'Gleicht ab …'; await send({ type: 'sync:now' }); sync(); };
+  $('syOut').onclick = async () => { if (confirm('Sync auf diesem Gerät beenden?')) { await send({ type: 'sync:logout' }); sync(); } };
+}
+browser.runtime.onMessage.addListener((m) => { if (m && m.type === 'sync' && tab === 'sync' && !document.activeElement?.matches('input')) sync(); });
 
 async function passwoerter() {
   body('<p class="hint">Lädt …</p>');
