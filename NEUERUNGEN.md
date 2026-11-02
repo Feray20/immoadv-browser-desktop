@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.18 – Kamera und Mikrofon am Mac
+- Google Meet, Teams & Co.: macOS fragt jetzt nach Kamera und Mikrofon – der Browser erscheint in Systemeinstellungen → Datenschutz
+
 ImmoAdv Browser 4.1.17 – Mit Google anmelden
 - Geräte abgleichen: Anmeldung jetzt auch mit Google (gleiches ImmoAdv-Konto) – auf Windows, Mac und iPhone
 

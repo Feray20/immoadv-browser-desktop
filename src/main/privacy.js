@@ -33,20 +33,35 @@ const PERMS = {
 };
 const ALWAYS = ['fullscreen', 'clipboard-sanitized-write', 'pointerLock'];
 
+async function macMediaAccess(types) {
+  if (process.platform !== 'darwin') return true;
+  const { systemPreferences } = require('electron');
+  const want = (types && types.length ? types : ['audio', 'video']).map((m) => (m === 'video' ? 'camera' : 'microphone'));
+  for (const t of want) {
+    try {
+      if (systemPreferences.getMediaAccessStatus(t) === 'granted') continue;
+      if (!(await systemPreferences.askForMediaAccess(t))) return false;
+    } catch { return false; }
+  }
+  return true;
+}
+
 async function askPermission(wc, permission, details) {
   if (ALWAYS.includes(permission)) return true;
   const label = PERMS[permission];
   if (!label) return false;                               // unbekannt / selten gebraucht → nein
   const site = siteOf(hostOf(details.requestingUrl || wc.getURL()));
   const saved = (store.get('permissions') || {})[site] || {};
-  if (permission in saved) return saved[permission];
+  if (permission in saved) return saved[permission] && permission === 'media' ? macMediaAccess(details.mediaTypes) : saved[permission];
   const win = BrowserWindow.fromWebContents(wc) || BrowserWindow.getAllWindows()[0];
   const what = permission === 'media' && details.mediaTypes ? details.mediaTypes.map((m) => (m === 'video' ? 'Kamera' : 'Mikrofon')).join(' und ') : label;
   const { response, checkboxChecked } = await dialog.showMessageBox(win, {
     type: 'question', buttons: ['Erlauben', 'Blockieren'], defaultId: 1, cancelId: 1,
     title: 'Berechtigung', message: `${site} möchte ${what} verwenden.`, checkboxLabel: 'Für diese Seite merken', checkboxChecked: true
   });
-  const allow = response === 0;
+  let allow = response === 0;
+  // Mac: nach dem Erlauben auf der Seite auch macOS um Kamera/Mikrofon fragen (einmalig) – sonst bleibt beides stumm.
+  if (allow && permission === 'media') allow = await macMediaAccess(details.mediaTypes);
   if (checkboxChecked) {
     const all = { ...(store.get('permissions') || {}) };
     all[site] = { ...(all[site] || {}), [permission]: allow };

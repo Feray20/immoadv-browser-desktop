@@ -76,6 +76,10 @@ appx:
 # ---------- Mac ----------
 mac:
   icon: build/icon.png
+  # Texte für die macOS-Abfrage von Kamera und Mikrofon (z. B. Google Meet, Teams) – ohne sie stürzt der Zugriff ab bzw. wird verweigert.
+  extendInfo:
+    NSCameraUsageDescription: Der ImmoAdv Browser braucht die Kamera für Videoanrufe auf Webseiten (z. B. Google Meet, Teams) – nur wenn du es auf der Seite erlaubst.
+    NSMicrophoneUsageDescription: Der ImmoAdv Browser braucht das Mikrofon für Anrufe auf Webseiten (z. B. Google Meet, Teams) – nur wenn du es auf der Seite erlaubst.
   # 7-Zip wird nur unter Windows gebraucht (Firefox-Installer entpacken) – am Mac nicht mitliefern
   files:
     - launcher/**/*
