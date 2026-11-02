@@ -164,3 +164,10 @@ user_pref("app.update.background.enabled", true);
 // Eigene Adressen trägt man selbst unter Einstellungen → Firefox-Einstellungen → Datenschutz → Adressen ein; nur diese werden angeboten.
 user_pref("extensions.formautofill.addresses.capture.enabled", false);
 user_pref("extensions.formautofill.addresses.enabled", true);
+// Startseite: kein Firefox-Wetter-Kästchen (Feray 02.11.2026: Knopf ragte über den Rahmen; braucht außerdem den Standort)
+user_pref("browser.newtabpage.activity-stream.showWeather", false);
+user_pref("browser.newtabpage.activity-stream.system.showWeather", false);
+user_pref("browser.newtabpage.activity-stream.widgets.system.enabled", false);
+// Favicons der Lesezeichen behalten (auch wenn der Verlauf kurz gehalten wird)
+user_pref("browser.chrome.site_icons", true);
+user_pref("browser.chrome.favicons", true);

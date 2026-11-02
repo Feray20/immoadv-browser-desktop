@@ -20,7 +20,7 @@ const bindSwitch = (id, key, after) => { const el = $(id); if (el) el.onchange =
 const foldList = (key, label, html, n) => `<details class="fold"><summary>${label} <span class="hint">${n}</span></summary>${html}</details>`;
 const dom = (v) => String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
 
-const SEGS = [['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['passwoerter', 'Passwörter'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['merkliste', 'Merkliste'], ['updates', 'Updates']];
+const SEGS = [['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['passwoerter', 'Passwörter'], ['adressen', 'Adressen'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['merkliste', 'Merkliste'], ['updates', 'Updates']];
 function nav() {
   $('seg').innerHTML = SEGS.map(([k, l]) => `<button data-k="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
   $('seg').querySelectorAll('button').forEach((b) => { b.onclick = () => { tab = b.dataset.k; history.replaceState(null, '', '#' + tab); render(); }; });
@@ -31,7 +31,7 @@ async function render() {
   st = await send({ type: 'state' });
   $('ver').textContent = 'Version ' + st.version + (st.native ? '' : ' · Programm nicht verbunden');
   nav();
-  ({ allgemein, datenschutz, sicherheit, passwoerter, vpn, ki, merkliste, updates }[tab] || allgemein)();
+  ({ allgemein, datenschutz, sicherheit, passwoerter, adressen, vpn, ki, merkliste, updates }[tab] || allgemein)();
 }
 
 function allgemein() {
@@ -100,6 +100,15 @@ function sicherheit() {
   $('bAddBtn').onclick = async () => { const d = dom($('bAdd').value); if (d.includes('.')) { await setS({ blocklist: [...new Set([...(s.blocklist || []), d])] }); sicherheit(); } };
   $('body').querySelectorAll('[data-a]').forEach((b) => { b.onclick = async () => { const l2 = [...s.allowlist]; l2.splice(+b.dataset.a, 1); await setS({ allowlist: l2 }); sicherheit(); }; });
   $('body').querySelectorAll('[data-b]').forEach((b) => { b.onclick = async () => { const l2 = [...s.blocklist]; l2.splice(+b.dataset.b, 1); await setS({ blocklist: l2 }); sicherheit(); }; });
+}
+
+// Adressen (Feray 02.11.2026): keine „Adresse speichern?“-Abfrage mehr – eigene Adressen trägt man hier selbst ein.
+// Nur diese werden beim Ausfüllen von Formularen angeboten; fremde Lieferadressen (Kunden) werden nie gespeichert.
+function adressen() {
+  body(`<div class="group"><h3>Meine Adressen</h3><p class="small">Der Browser fragt beim Bestellen nicht mehr, ob er eine Adresse speichern soll – so landen keine Kundenadressen im Browser. Deine eigenen Adressen (Privat, Firma, Lager …) trägst du hier selbst ein. Sie werden beim Ausfüllen von Formularen angeboten.</p>
+    <button class="primary" id="adrOpen">Adressen ansehen, hinzufügen, bearbeiten</button>
+    <p class="small">Gespeichert nur auf diesem Computer. Beim Ausfüllen auf ein Adressfeld klicken und die Adresse aus der Liste wählen.</p></div>`);
+  $('adrOpen').onclick = () => browser.tabs.create({ url: browser.runtime.getURL('pages/cmd.html?c=addresses'), active: false });
 }
 
 async function passwoerter() {

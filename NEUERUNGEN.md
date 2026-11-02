@@ -1,8 +1,13 @@
-ImmoAdv Browser 4.0.3 – Mac startet zuverlässig
+ImmoAdv Browser 4.0.4 – eBay, Adressen, Updates
+- eBay: Knöpfe und Fenster im Verkäuferbereich (z. B. „Nachricht an den Käufer“) funktionieren – eBay, Amazon und PayPal werden nie blockiert
+- Neu in den Einstellungen: „Adressen“ – eigene Adressen selbst eintragen, nur diese werden beim Ausfüllen angeboten
+- Updates installieren sich jetzt sicher: ein geladenes Update wird beim nächsten Start installiert, danach öffnet sich der Browser wieder
+- Lesezeichenleiste zeigt die Symbole der Websites statt Weltkugeln
+- Startseite ohne Firefox-Wetter-Kästchen; Knöpfe passen überall in ihren Rahmen
+
+ImmoAdv Browser 4.0.3 – besser lesbar, Mac startet zuverlässig
 - Mac: Der Browser startet wieder – vorher beendete macOS ihn sofort wegen einer beschädigten Signatur
 - Mac: signiert mit dem Apple-Zertifikat von ImmoAdv, gebaut für Apple-Chip
-
-ImmoAdv Browser 4.0.3 – besser lesbar
 - Aktiver Tab deutlich hervorgehoben (helle Fläche, fette weiße Schrift, Fade-Linie), andere Tabs ruhiger
 - Symbole, Knöpfe und Lesezeichen kräftiger und gut erkennbar
 - Rechtsklick- und andere Menüs deckend dunkel und dichter, Auswahl klar blau

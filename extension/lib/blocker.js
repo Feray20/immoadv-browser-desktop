@@ -9,6 +9,8 @@ const Blocker = (() => {
   const perTab = new Map();             // Tab → Anzahl Blockierungen (Abzeichen am Knopf)
 
   // Tracking-Zusätze in Links (Kampagnen-/Klick-IDs) – werden vor dem Laden entfernt
+  // Arbeitsseiten (Feray 02.11.2026: eBay-Knöpfe gingen nicht): Verkaufen/Einkaufen muss immer vollständig funktionieren.
+  const WORK_SITES = ['ebay.de', 'ebay.com', 'amazon.de', 'paypal.com', 'immoadv.de'];
   const TRACK_PARAMS = /^(utm_[a-z_]+|fbclid|gclid|gclsrc|dclid|gbraid|wbraid|msclkid|mc_cid|mc_eid|igshid|igsh|yclid|ttclid|twclid|li_fat_id|_hsenc|_hsmi|__hssc|__hstc|__hsfp|hsctatracking|oly_enc_id|oly_anon_id|vero_id|vero_conv|rb_clickid|s_cid|mkt_tok|_openstat|wickedid|epik|srsltid|sc_cid|trk|trkCampaign|ga_[a-z_]+)$/i;
   function cleanURL(url) {
     try {
@@ -67,8 +69,13 @@ const Blocker = (() => {
     let page = ''; try { page = new URL(pageUrl).hostname; } catch (e) {}
     if (/^moz-extension:/.test(pageUrl)) return null;
     const pageSite = siteOf(page || host);
-    const allow = Settings.get('allowlist') || [];
-    if (allow.some((d) => pageSite === d || pageSite.endsWith('.' + d))) return null;
+    // Oberste Seite des Tabs (bei eingebetteten Fenstern, z. B. eBay „Nachricht an den Käufer“) – Ausnahmen gelten für den ganzen Tab.
+    const anc = details.frameAncestors && details.frameAncestors.length ? details.frameAncestors[details.frameAncestors.length - 1].url : '';
+    let topSite = pageSite; try { if (anc) topSite = siteOf(new URL(anc).hostname); } catch (e) {}
+    const allow = (Settings.get('allowlist') || []).concat(WORK_SITES);
+    if (allow.some((d) => pageSite === d || pageSite.endsWith('.' + d) || topSite === d || topSite.endsWith('.' + d))) return null;
+    // eBay-eigene Hilfsdomains (Bilder, Skripte, Sicherheitsprüfung) nie blockieren – sonst hängen Knöpfe und Fenster.
+    if (/(^|\.)(ebay\.[a-z.]+|ebaystatic\.com|ebayimg\.com|ebaydesc\.com|ebay-us\.com|ebayrtm\.com|paypal\.com|paypalobjects\.com)$/.test(host)) return null;
     const site = siteOf(host);
     if (sessionAllow.has(site)) return null;
     const own = Settings.get('blocklist') || [];

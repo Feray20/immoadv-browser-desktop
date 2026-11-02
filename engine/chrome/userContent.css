@@ -15,3 +15,10 @@
   }
   body { background: #0f2240 radial-gradient(900px 520px at 12% -10%, rgba(42,91,215,.22), transparent 60%) !important; }
 }
+
+/* Knöpfe passen immer in ihren Rahmen (Feray 02.11.2026: „alle Buttons müssen natürlich passen“) – Firefox-eigene Seiten */
+@-moz-document url-prefix("about:") {
+  button, .button, moz-button, [role="button"] { max-width: 100% !important; box-sizing: border-box !important; white-space: normal !important; overflow-wrap: anywhere; min-height: 32px; }
+  .weather, .weatherCard, .weatherOptIn, .weather-wrapper { display: none !important; }
+}
+

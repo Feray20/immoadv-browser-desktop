@@ -113,8 +113,45 @@ function starter() {
     catch (e) { engine.log('Installation: ' + (e && e.stack || e)); progress({ step: 'error', message: String(e.message || e) }); return false; }
   }
 
+  // Heruntergeladenes Update beim Start installieren (Feray 02.11.2026: „Update lässt sich nicht automatisch installieren“).
+  // Grund: Beim Schließen beendet Firefox den Hintergrunddienst sofort – „beim Beenden installieren“ kam nie dran.
+  // Jetzt: Liegt ein fertig geladenes, geprüftes Update (electron-updater „pending“) mit höherer Version bereit und läuft
+  // der Browser gerade nicht, wird es vor dem Öffnen still installiert; danach startet der Browser selbst neu.
+  function pendingUpdate() {
+    if (process.platform !== 'win32' || !app.isPackaged || process.windowsStore) return null;
+    try {
+      let dir = 'immoadv-browser-updater';
+      try { const y = fs.readFileSync(path.join(process.resourcesPath, 'app-update.yml'), 'utf8'); const m = /updaterCacheDirName:\s*(\S+)/.exec(y); if (m) dir = m[1].replace(/['"]/g, ''); } catch {}
+      const pend = path.join(process.env.LOCALAPPDATA || app.getPath('appData'), dir, 'pending');
+      const info = JSON.parse(fs.readFileSync(path.join(pend, 'update-info.json'), 'utf8'));
+      const file = path.join(pend, String(info.fileName || ''));
+      const v = /(\d+\.\d+\.\d+)/.exec(String(info.fileName || ''))?.[1];
+      if (!v || !fs.existsSync(file)) return null;
+      const n = (x) => x.split('.').map(Number), a = n(v), b = n(app.getVersion());
+      const newer = a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+      if (newer <= 0) return null;
+      // Nur ein Versuch je Version – schlägt die Installation fehl, startet der Browser beim nächsten Mal normal.
+      const mark = path.join(pend, `versucht-${v}`);
+      if (fs.existsSync(mark)) return null;
+      return { file, v, mark };
+    } catch { return null; }
+  }
+  function installPending() {
+    const p = pendingUpdate();
+    if (!p) return false;
+    try { if (engine.running()) return false; } catch {}
+    try {
+      engine.log(`Update ${p.v} wird beim Start installiert`);
+      try { fs.writeFileSync(p.mark, new Date().toISOString()); } catch {}
+      require('node:child_process').spawn(p.file, ['/S', '--updated', '--force-run'], { detached: true, stdio: 'ignore' }).unref();
+      setTimeout(() => app.quit(), 300);
+      return true;
+    } catch (e) { engine.log('Update beim Start: ' + e.message); return false; }
+  }
+
   async function open(argv, { wait = false } = {}) {
     const urls = targets(argv);
+    if (installPending()) return true;
     if (!(await ensureEngine())) return false;
     if (wait) await engine.waitClosed();
     try { if (!engine.running()) await engine.brandIcon(); engine.deploy(); } catch (e) { engine.log('Einrichten: ' + (e && e.stack || e)); }

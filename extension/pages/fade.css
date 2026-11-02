@@ -87,3 +87,10 @@ select option { background: #183863; }
 .brand b { color: var(--text); }
 ::-moz-selection { background: rgba(75,123,255,.45); }
 * { scrollbar-color: rgba(255,255,255,.18) transparent; scrollbar-width: thin; }
+
+/* Knöpfe passen immer in ihren Rahmen (Feray 02.11.2026) – nie über den Rand, lange deutsche Texte brechen um */
+button, .pill, .primary, .secondary, .danger { box-sizing: border-box; max-width: 100%; }
+.pill { height: auto; min-height: 30px; padding-block: 4px; line-height: 1.25; }
+.row > span { min-width: 0; }
+.row > button, .row > select { flex-shrink: 0; }
+.addrow input { min-width: 0; }

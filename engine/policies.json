@@ -55,7 +55,14 @@
       "Cryptomining": true,
       "Fingerprinting": true,
       "EmailTracking": true,
-      "Locked": false
+      "Locked": false,
+      "Exceptions": [
+        "https://www.ebay.de",
+        "https://ebay.de",
+        "https://signin.ebay.de",
+        "https://www.ebay.com",
+        "https://www.paypal.com"
+      ]
     },
     "HttpsOnlyMode": "enabled",
     "PostQuantumKeyAgreementEnabled": true,
