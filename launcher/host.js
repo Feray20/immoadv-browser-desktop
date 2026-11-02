@@ -221,9 +221,11 @@ function startServer() {
   if (process.platform !== 'win32') { try { fs.unlinkSync(PIPE); } catch { /* keiner */ } }
   common();
   let idle = null;
+  updater.setIdleCheck(() => !outputs.size);
   const checkIdle = () => {
     clearTimeout(idle);
     if (outputs.size) return;
+    updater.backgroundInstall();   // kein Browserfenster verbunden → fertiges Update jetzt still einspielen
     idle = setTimeout(() => { if (!outputs.size && updater.state().status !== 'installing' && updater.state().status !== 'downloading') { store.flush(); app.quit(); } }, 90 * 1000);
   };
   const server = net.createServer((conn) => { clearTimeout(idle); attach(conn, conn, checkIdle); });

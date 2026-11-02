@@ -184,13 +184,17 @@ function installOnQuit() {
 // einfach ausgeschaltet, passierte das nie. Jetzt installiert der Hintergrund-Dienst ein fertiges Update still selbst:
 // Nur das Programm wird ersetzt – der Browser (Fenster, Tabs, Anmeldungen, Passwörter) läuft weiter und verbindet sich
 // danach von selbst mit der neuen Version. Nichts geht verloren, kein Neustart nötig.
+// Nachtrag 02.11.2026: Nur wenn gerade KEIN Browserfenster verbunden ist. Lief die Installation bei offenem Browser,
+// wurde der Hintergrund-Dienst mitten in der Sitzung ersetzt – Einstellungen blieben leer, Seiten hingen. Bei offenem
+// Browser kommt stattdessen das Fenster „Neue Version“ (ein Klick: installiert und öffnet sich mit allen Tabs wieder).
 let bgArmed = false;
+let idleNow = () => false;
 function backgroundInstall() {
-  if (bgArmed || !supported() || store.get('autoUpdate') === false || !process.argv.includes('--host-server')) return;
+  if (bgArmed || !supported() || store.get('autoUpdate') === false || !process.argv.includes('--host-server') || !idleNow()) return;
   if (process.platform !== 'win32' && !macManual) return;
   bgArmed = true;
   setTimeout(() => {
-    if (state.status !== 'ready') { bgArmed = false; return; }
+    if (state.status !== 'ready' || !idleNow()) { bgArmed = false; return; }
     log(`Update ${state.version}: wird im Hintergrund installiert`);
     emit({ status: 'installing', message: `Version ${state.version} wird im Hintergrund installiert` });
     try {
@@ -225,4 +229,4 @@ function setAuto(on) {
   if (supported() && !macManual) { autoUpdater.autoDownload = !!on; autoUpdater.autoInstallOnAppQuit = !!on; }
 }
 
-module.exports = { setBeforeInstall: (fn) => { beforeInstall = fn; }, init, check, download, install, installOnQuit, updateNow, setAuto, logPath: () => path.join(app.getPath('userData'), 'update.log'), state: snapshot, onChange: (l) => listeners.push(l) };
+module.exports = { setBeforeInstall: (fn) => { beforeInstall = fn; }, setIdleCheck: (fn) => { idleNow = fn; }, backgroundInstall, init, check, download, install, installOnQuit, updateNow, setAuto, logPath: () => path.join(app.getPath('userData'), 'update.log'), state: snapshot, onChange: (l) => listeners.push(l) };
