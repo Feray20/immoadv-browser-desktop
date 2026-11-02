@@ -1,3 +1,12 @@
+ImmoAdv Browser 4.0.3 – besser lesbar
+- Aktiver Tab deutlich hervorgehoben (helle Fläche, fette weiße Schrift, Fade-Linie), andere Tabs ruhiger
+- Symbole, Knöpfe und Lesezeichen kräftiger und gut erkennbar
+- Rechtsklick- und andere Menüs deckend dunkel und dichter, Auswahl klar blau
+- Keine „Adresse speichern?“-Abfrage mehr beim Bestellen – eigene Adressen trägst du selbst in den Einstellungen ein
+- Einstellungen öffnen wieder zuverlässig (vorher teils leere Seite)
+- KI-Assistent öffnet zuverlässig (notfalls als eigener Tab)
+- „Erweiterung (ImmoAdv Browser)“ in der Adressleiste ausgeblendet
+
 ImmoAdv Browser 4.0.2 – Passkeys am Mac
 - Passkeys am MacBook: mit Touch ID direkt aus dem iCloud-Schlüsselbund – dieselben wie auf iPhone und iPad, ohne QR-Code; neue Passkeys sind sofort auf allen Apple-Geräten da
 - Weiterhin möglich: per QR-Code mit iPhone oder Android-Gerät (z. B. Google-Passkeys) und mit Sicherheitsschlüssel (YubiKey)

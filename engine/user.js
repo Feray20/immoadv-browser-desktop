@@ -159,3 +159,8 @@ user_pref("taskbar.grouping.useprofile", true);
 user_pref("browser.taskbar.previews.enable", false);
 user_pref("app.update.auto", true);                            // Sicherheitsupdates des Motors direkt von Mozilla
 user_pref("app.update.background.enabled", true);
+
+// „Adresse speichern?“ nie mehr fragen (Feray 02.11.2026): Beim Bestellen für Kunden (Dropshipping) sind es fremde Adressen.
+// Eigene Adressen trägt man selbst unter Einstellungen → Firefox-Einstellungen → Datenschutz → Adressen ein; nur diese werden angeboten.
+user_pref("extensions.formautofill.addresses.capture.enabled", false);
+user_pref("extensions.formautofill.addresses.enabled", true);
