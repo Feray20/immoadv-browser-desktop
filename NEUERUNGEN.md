@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.21 – Mac-Bau erneut
+- Enthält alles aus 4.1.18–4.1.20 (Mac: ein Dock-Symbol, Kamera, Mikrofon, Mitteilungen, stille Updates)
+
 ImmoAdv Browser 4.1.20 – Mac mit Apple-Zertifikat
 - Mac: Browser und Motor mit deinem Apple-Zertifikat signiert – Kamera, Mikrofon und Mitteilungen funktionieren, keine Schlüsselbund-Abfrage nach Updates
 
