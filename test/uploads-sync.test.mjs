@@ -5,10 +5,12 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import Module from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 process.env.IMMOADV_NO_REALTIME = '1';   // Tests ohne Netz
-const launcher = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'launcher');
+// fileURLToPath statt .pathname: unter Windows ergäbe .pathname „/C:/…“ und daraus „C:\C:\…“ (Build brach ab)
+const launcher = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'launcher');
 
 // ---------- nachgebauter Server (PostgREST-artig, nur was sync.js nutzt) ----------
 const rows = new Map();   // rid → row
