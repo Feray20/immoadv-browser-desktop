@@ -276,6 +276,7 @@ browser.runtime.onMessage.addListener((m, sender) => {
     // Geräte-Abgleich
     case 'sync:state': return Native.call('sync.state').catch((e) => ({ status: 'error', message: e.message }));
     case 'sync:login': return Native.call('sync.login', { email: m.email, password: m.password }, 30000).catch((e) => ({ status: 'needLogin', message: e.message }));
+    case 'sync:google': return Native.call('sync.google', {}, 15000).then((r) => { if (r && r.url) browser.tabs.create({ url: r.url }); return { status: 'waitGoogle' }; }).catch((e) => ({ status: 'needLogin', message: e.message }));
     case 'sync:mfa': return Native.call('sync.mfa', { code: m.code }, 30000).catch((e) => ({ status: 'needMfa', message: e.message }));
     case 'sync:pass': return Native.call('sync.pass', { pass: m.pass }, 120000).catch((e) => ({ status: 'needPassphrase', message: e.message }));
     case 'sync:logout': return Native.call('sync.logout').catch((e) => ({ status: 'error', message: e.message }));

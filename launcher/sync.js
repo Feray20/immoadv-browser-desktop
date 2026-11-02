@@ -77,6 +77,54 @@ async function login(email, password) {
     return state;
   }
 }
+// Mit Google anmelden (Wunsch Feray 02.11.2026) – gleiches ImmoAdv-Konto wie auf immoadv.de, auf Windows, Mac und iPhone.
+// Ablauf wie bei Desktop-Apps üblich: kurzer Empfänger nur auf 127.0.0.1 (zufälliger Port), Anmeldung im normalen Tab
+// über immoadv.de/auth/app (Google), die Seite reicht die Anmeldedaten im #-Teil nur an diesen lokalen Empfänger weiter.
+let googleSrv = null;
+function loginGoogle() {
+  const http0 = require('node:http');
+  if (googleSrv) { try { googleSrv.close(); } catch {} googleSrv = null; }
+  const nonce = crypto.randomBytes(16).toString('hex');
+  emit({ message: '' });
+  return new Promise((resolve) => {
+    const srv = http0.createServer((req, res) => {
+      const u = new URL(req.url, 'http://127.0.0.1');
+      if (req.method === 'GET' && u.pathname === '/immoadv-sync') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' });
+        res.end(`<!doctype html><meta charset="utf-8"><title>ImmoAdv Browser</title><body style="font:16px -apple-system,Segoe UI,sans-serif;display:grid;place-items:center;height:90vh;color:#222"><p id="m">Anmeldung wird übernommen …</p><script>
+          var h=location.hash.slice(1);history.replaceState(null,'',location.pathname);
+          fetch('/immoadv-sync/t?n=${nonce}',{method:'POST',body:h}).then(function(r){return r.text()}).then(function(t){document.getElementById('m').textContent=t;setTimeout(function(){window.close()},1500)}).catch(function(){document.getElementById('m').textContent='Fehler – bitte erneut versuchen.'});
+        </script>`);
+        return;
+      }
+      if (req.method === 'POST' && u.pathname === '/immoadv-sync/t' && u.searchParams.get('n') === nonce) {
+        let b = ''; req.on('data', (c) => { b += c; if (b.length > 20000) req.destroy(); });
+        req.on('end', async () => {
+          const q = new URLSearchParams(b);
+          let msg = 'Angemeldet – du kannst diesen Tab schließen.';
+          try {
+            if (!q.get('access_token') || !q.get('refresh_token')) throw new Error(q.get('error_description') || 'Anmeldung abgebrochen');
+            takeSession({ access_token: q.get('access_token'), refresh_token: q.get('refresh_token') });
+            const me = await http('/auth/v1/user').catch(() => null);
+            if (me && me.email) { session.email = me.email; state.email = me.email; }
+            const factors = ((me && me.factors) || []).filter((f) => f.status === 'verified' && f.factor_type === 'totp');
+            if (factors.length && session.aal !== 'aal2') { pendingMfa = { factorId: factors[0].id }; emit({ status: 'needMfa', message: '' }); msg = 'Fast fertig – bitte im ImmoAdv Browser den 2-Faktor-Code eingeben.'; }
+            else await afterLogin();
+          } catch (e) { msg = 'Anmeldung nicht möglich: ' + String(e.message || e).slice(0, 120); emit({ status: 'needLogin', message: msg }); }
+          res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' }); res.end(msg);
+          setTimeout(() => { try { srv.close(); } catch {} if (googleSrv === srv) googleSrv = null; }, 500);
+        });
+        return;
+      }
+      res.writeHead(404); res.end();
+    });
+    srv.listen(0, '127.0.0.1', () => {
+      googleSrv = srv;
+      setTimeout(() => { try { srv.close(); } catch {} if (googleSrv === srv) googleSrv = null; }, 10 * 60_000);
+      resolve({ url: `https://immoadv.de/auth/app?provider=google&loopback=${srv.address().port}` });
+    });
+  });
+}
 async function mfa(code) {
   if (!pendingMfa) return state;
   try {
@@ -301,6 +349,6 @@ function keepRecent(list) {
 
 module.exports = {
   keepRecent,
-  init, login, mfa, setPassphrase, logout, runNow, tabsChanged: () => { if (state.status === 'on') { clearTimeout(pushTimer); pushTimer = setTimeout(runNow, 15000); } },
+  init, login, loginGoogle, mfa, setPassphrase, logout, runNow, tabsChanged: () => { if (state.status === 'on') { clearTimeout(pushTimer); pushTimer = setTimeout(runNow, 15000); } },
   state: () => ({ ...state, remoteTabs }), forSite: (u) => siteOf(u)
 };

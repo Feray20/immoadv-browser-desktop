@@ -131,7 +131,17 @@ async function sync() {
     body(`<div class="group"><h3>Geräte abgleichen</h3><p class="small">Passwörter, Lesezeichen, Einstellungen und offene Tabs zwischen deinem Windows-PC und Mac – Ende-zu-Ende-verschlüsselt. Anmelden mit deinem ImmoAdv-Konto.</p>
       <input type="email" id="syE" placeholder="E-Mail" autocomplete="username" value="${esc(z.email || '')}" style="width:100%;margin-top:8px">
       <input type="password" id="syP" placeholder="Passwort" autocomplete="current-password" style="width:100%;margin-top:8px">
-      <button class="primary" id="syGo">Anmelden</button>${msg}</div>`);
+      <button class="primary" id="syGo">Anmelden</button>
+      <div class="small" style="margin:12px 0 6px;opacity:.7;text-align:center">oder</div>
+      <button id="syG" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.7 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.2-13.5-9.9l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>Mit Google anmelden</button>${msg}</div>`);
+    // Google (02.11.2026): Anmeldung im neuen Tab, danach geht es hier von selbst weiter.
+    $('syG').onclick = async () => {
+      $('syG').disabled = true; $('syG').lastChild.textContent = 'Anmeldung im neuen Tab …';
+      await send({ type: 'sync:google' });
+      const t0 = Date.now();
+      const poll = async () => { const z2 = await send({ type: 'sync:state' }).catch(() => null); if (z2 && z2.status !== 'needLogin' && z2.status !== 'off') return sync(); if (z2 && z2.message && z2.status === 'needLogin' && Date.now() - t0 > 3000) return sync(); if (Date.now() - t0 < 600000) setTimeout(poll, 1500); };
+      setTimeout(poll, 1500);
+    };
     const go = async () => { $('syGo').disabled = true; await send({ type: 'sync:login', email: $('syE').value, password: $('syP').value }); sync(); };
     $('syGo').onclick = go; $('syP').onkeydown = (e) => { if (e.key === 'Enter') go(); };
     return;

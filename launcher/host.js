@@ -151,6 +151,7 @@ const handlers = {
   // Geräte-Abgleich Windows ⇄ Mac (⇄ iPhone): Passwörter, Lesezeichen, Einstellungen, offene Tabs – Ende-zu-Ende-verschlüsselt
   'sync.state': () => sync.state(),
   'sync.login': ({ email, password }) => sync.login(email, password),
+  'sync.google': () => sync.loginGoogle(),
   'sync.mfa': ({ code }) => sync.mfa(code),
   'sync.pass': ({ pass }) => sync.setPassphrase(pass),
   'sync.logout': () => { sync.logout(); return sync.state(); },

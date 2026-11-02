@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.17 – Mit Google anmelden
+- Geräte abgleichen: Anmeldung jetzt auch mit Google (gleiches ImmoAdv-Konto) – auf Windows, Mac und iPhone
+
 ImmoAdv Browser 4.1.16 – ziehen statt scrollen
 - Seitlich scrollbare Bereiche auf Webseiten (breite Tabellen, Produktreihen) einfach mit der Maus nach links/rechts ziehen
 - Druckfenster und andere Fenster im Tab schließen mit einem Klick ins Leere daneben
