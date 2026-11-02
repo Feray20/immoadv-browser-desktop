@@ -346,6 +346,10 @@ function userJs() {
   // (neue ImmoAdv-Anordnung ⇒ höhere immoadv.ui.version ⇒ einmal neu gesetzt)
   const UI_VERSION = 2;
   if (readPref('browser.uiCustomization.state') && Number(readNumPref('immoadv.ui.version')) >= UI_VERSION) txt = txt.replace(/^user_pref\("browser\.uiCustomization\.state".*$/m, '');
+  // Mac (02.11.2026, Feray: „am Mac kommen keine Benachrichtigungen“): Der Motor ist nach dem ImmoAdv-Umbenennen nur
+  // ad-hoc signiert – macOS stellt seine Mitteilungen dann nicht zu. Darum zeigt der Browser Mitteilungen selbst an
+  // (eigene Einblendung oben rechts, funktioniert immer).
+  if (isMac) txt += '\nuser_pref("alerts.useSystemBackend", false);\n';
   return txt;
 }
 

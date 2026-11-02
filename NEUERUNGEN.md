@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.19 – ruhiger und vollständig am Mac
+- Updates installieren sich still im Hintergrund – kein Fenster „Neue Version“ mehr
+- Mac: nur noch ein Symbol im Dock, Mitteilungen kommen an, Arbeitsspeicher wird richtig angezeigt
+- Bilder vom Schreibtisch öffnen mit allen Bearbeitungs-Werkzeugen (wie unter Windows)
+
 ImmoAdv Browser 4.1.18 – Kamera und Mikrofon am Mac
 - Google Meet, Teams & Co.: macOS fragt jetzt nach Kamera und Mikrofon – der Browser erscheint in Systemeinstellungen → Datenschutz
 

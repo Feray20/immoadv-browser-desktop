@@ -58,6 +58,9 @@ Native.on((ev, d) => {
 // ---------- Neue ImmoAdv-Version: Fenster wie in Version 3 (einmal je Version, „Später“ merkt sich das) ----------
 let updateWin = null;
 async function offerUpdate() {
+  // Still (02.11.2026, Feray: „ohne nervige Updates“): kein Fenster mehr – das Update installiert sich beim nächsten
+  // Schließen/Start bzw. im Leerlauf von selbst; Einstellungen → Updates zeigt den Stand. Nur noch der kleine Punkt am Symbol.
+  if (Date.now() > 0) return;
   const u = updateState || {};
   if (!['available', 'downloading', 'ready'].includes(u.status) || !u.version) return;
   const { updateLater } = await browser.storage.local.get('updateLater');

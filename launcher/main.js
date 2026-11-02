@@ -38,12 +38,15 @@ if (process.argv.includes('--selbsttest')) {
     app.exit(0);
   });
 } else if (process.argv.includes('--host-server')) {
+  // Mac (02.11.2026, Feray: „zwei Symbole im Dock“): der Hintergrund-Dienst zeigt kein eigenes Dock-Symbol.
+  if (process.platform === 'darwin') app.dock?.hide();
   // ---------- Rolle 2: Hintergrund-Dienst für die Erweiterung (Firefox → relay.js → hier) ----------
   app.whenReady().then(() => require('./host').startServer());
   app.on('window-all-closed', () => {});
 } else
 // ---------- Rolle 2b: direkte Gegenstelle über stdin/stdout (nur Entwicklung unter Mac/Linux) ----------
 if (process.argv.some((a) => a === EXT_ID || /NativeMessagingHosts|native-host\.json/i.test(a))) {
+  if (process.platform === 'darwin') app.dock?.hide();
   app.whenReady().then(() => require('./host').start());
   app.on('window-all-closed', () => {});
 } else {
@@ -60,8 +63,10 @@ function starter() {
   const registerHost = () => require('./nativehost').register();
 
   // ---------- Was soll geöffnet werden? ----------
-  const OFFICE = /\.(docx?|xlsx?|xlsm|csv|pptx?|odt|ods|odp|rtf)$/i;
-  const OPENABLE = /\.(pdf|html?|xhtml|svg|txt|png|jpe?g|gif|webp|avif|bmp|json|xml|md)$/i;
+  // Bilder (02.11.2026, Feray: „am Mac fehlen alle Bearbeitungs-Funktionen wie unter Windows“) öffnen ebenfalls im
+  // ImmoAdv-Betrachter – mit Vorschau, Drehen, Zuschneiden, Helligkeit usw. –, nicht als nackte Datei-Seite.
+  const OFFICE = /\.(docx?|xlsx?|xlsm|csv|pptx?|odt|ods|odp|rtf|png|jpe?g|gif|webp|bmp)$/i;
+  const OPENABLE = /\.(pdf|html?|xhtml|svg|txt|avif|json|xml|md)$/i;
   function targets(argv) {
     const out = [];
     for (const a of (argv || []).slice(1)) {

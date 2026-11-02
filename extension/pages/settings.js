@@ -332,7 +332,7 @@ async function leistung() {
       ${row('Offene Tabs', `${p.tabs ?? '–'}${p.discarded ? ` (${p.discarded} schlafen)` : ''}`, amp((p.tabs || 0) < 40, (p.tabs || 0) < 80), 'Viele Tabs brauchen Speicher – schlafende Tabs kosten fast nichts')}
       ${row('Blockierte Tracker (offene Tabs)', p.blockedNow ?? '–', '🛡')}
       ${row('Update', esc(u.message || u.status || '–'), amp(['current', 'idle', 'unsupported'].includes(u.status), ['available', 'downloading', 'ready', 'checking'].includes(u.status)), `Version ${esc(p.version || st.version)}`)}
-      ${row('Sync', esc(sy.message || sy.status || 'aus'), amp(sy.status === 'on' || !sy.status, sy.status === 'off'))}
+      ${row('Sync', sy.status === 'off' || !sy.status ? 'Aus (nicht eingerichtet)' : esc(sy.message || sy.status), sy.status === 'off' || !sy.status ? '⚪' : amp(sy.status === 'on', false))}
       ${row('Laufzeit Hintergrund-Dienst', p.uptimeMin != null ? p.uptimeMin + ' Min.' : '–', '⏱', `${esc(p.platform || '')} · ${p.cpus || '–'} Kerne`)}
     </div>
     <div class="group"><h3>Letzte Ereignisse</h3><pre class="small" style="white-space:pre-wrap;margin:0;max-height:220px;overflow:auto">${esc([...(p.updateErrors || []).map((l) => '⚠ ' + l), ...(p.motor || [])].slice(-16).join('\n') || 'Keine Einträge')}</pre>

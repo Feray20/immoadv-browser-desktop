@@ -139,7 +139,7 @@ const handlers = {
     return {
       version: app.getVersion(), platform: process.platform, arch: process.arch, os: os.release(),
       uptimeMin: Math.round(process.uptime() / 60), hostMb: Math.round(mem.rss / 1048576),
-      sysFreeMb: Math.round(os.freemem() / 1048576), sysTotalMb: Math.round(os.totalmem() / 1048576), cpus: os.cpus().length, load: os.loadavg ? os.loadavg()[0] : null,
+      sysFreeMb: Math.round(availMem(os) / 1048576), sysTotalMb: Math.round(os.totalmem() / 1048576), cpus: os.cpus().length, load: os.loadavg ? os.loadavg()[0] : null,
       browsers: Math.max(0, outputs.size - 1), engineRunning: (() => { try { return engine.running(); } catch { return null; } })(),
       update: updater.state(), sync: (() => { try { const s = sync.state(); return { status: s.status, message: s.message }; } catch { return null; } })(),
       motor: tail('motor.log', 12), updateErrors: tail('update.log', 8, /error|Fehler|warn/i)
@@ -265,3 +265,16 @@ async function handle(msg, out) {
 }
 
 module.exports = { start, startServer };
+
+// Verfügbarer Speicher (02.11.2026: am Mac stand immer „95 % belegt“ in Rot): macOS nutzt freien Speicher als Cache –
+// os.freemem() zählt den nicht mit. Verfügbar = frei + inaktiv + spekulativ + bereinigbar (wie die Aktivitätsanzeige).
+function availMem(os) {
+  if (process.platform !== 'darwin') return os.freemem();
+  try {
+    const t = require('node:child_process').execFileSync('vm_stat', { encoding: 'utf8', timeout: 1500 });
+    const ps = Number((/page size of (\d+)/.exec(t) || [])[1]) || 16384;
+    const pg = (k) => Number((new RegExp(`Pages ${k}:\\s+(\\d+)`).exec(t) || [])[1]) || 0;
+    const v = (pg('free') + pg('inactive') + pg('speculative') + pg('purgeable')) * ps;
+    return v > 0 ? Math.min(v, os.totalmem()) : os.freemem();
+  } catch { return os.freemem(); }
+}
