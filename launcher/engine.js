@@ -205,10 +205,51 @@ async function brandStrings() {
  *  Cmd+Tab stand „Firefox“ – der Name kommt aus dem Programmpaket des Motors. Die lokale Kopie im ImmoAdv-Ordner bekommt
  *  Name und Logo von ImmoAdv und wird danach neu (ad-hoc) signiert, damit macOS sie weiter startet. Nach jedem
  *  Mozilla-Update erneut (Merker: Größe + Zeit der Info.plist). Nur wenn der Motor gerade nicht läuft. */
+// Motor am Mac signieren (02.11.2026, Feray: Kamera/Mikrofon/Mitteilungen gehen nicht): Nach dem Umbenennen gilt Mozillas
+// Signatur nicht mehr. Bisher wurde ad-hoc OHNE Rechte signiert – macOS kannte dann weder Kamera noch Mikrofon für den
+// Browser, Mitteilungen wurden nicht zugestellt. Jetzt: mit den Rechten, die Firefox braucht (wie bei Mozilla), und mit
+// Ferays Apple-Zertifikat („Developer ID Application“), wenn es im Schlüsselbund liegt – sonst ad-hoc.
+const ENGINE_ENTITLEMENTS = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>com.apple.security.cs.allow-jit</key><true/>
+<key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>
+<key>com.apple.security.cs.disable-library-validation</key><true/>
+<key>com.apple.security.device.audio-input</key><true/>
+<key>com.apple.security.device.camera</key><true/>
+<key>com.apple.security.personal-information.location</key><true/>
+<key>com.apple.security.smartcard</key><true/>
+</dict></plist>`;
+async function macIdentity() {
+  try {
+    const kc = path.join(require('node:os').homedir(), 'Library', 'Keychains', 'login.keychain-db');
+    const out = String(await run('security', ['find-identity', '-v', '-p', 'codesigning', kc]).catch(() => '')) + String(await run('security', ['find-identity', '-v', '-p', 'codesigning']).catch(() => ''));
+    const m = /"(Developer ID Application:[^"]+)"/.exec(out) || /"(Apple Development:[^"]+)"/.exec(out);
+    return m ? m[1] : null;
+  } catch { return null; }
+}
+async function signEngineMac(appPath) {
+  const ent = path.join(require('node:os').tmpdir(), 'immoadv-engine.entitlements');
+  fs.writeFileSync(ent, ENGINE_ENTITLEMENTS);
+  const id = await macIdentity();
+  if (id) {
+    try {
+      await run('codesign', ['--force', '--deep', '--options', 'runtime', '--entitlements', ent, '--sign', id, appPath], { timeout: 180000 });
+      await run('codesign', ['--verify', '--deep', '--strict', appPath], { timeout: 120000 });
+      log('Mac: Motor signiert mit ' + id.replace(/\s*\(.*\)$/, ''));
+      return;
+    } catch (e) { log('Signieren mit Zertifikat fehlgeschlagen, ad-hoc: ' + (e.message || e)); }
+  }
+  // ad-hoc: ohne „Hardened Runtime“ (sonst wären die Rechte nötig, die Apple ad-hoc nicht garantiert) – mit Rechte-Datei,
+  // damit macOS Kamera/Mikrofon zuordnet.
+  await run('codesign', ['--force', '--deep', '--entitlements', ent, '--sign', '-', appPath], { timeout: 120000 });
+}
+
 async function brandMac() {
   const appPath = path.join(paths.engine(), 'Firefox.app');
   const plist = path.join(appPath, 'Contents', 'Info.plist');
-  const mark = path.join(paths.engine(), '.immoadv-name');
+  // Merker v2 (02.11.2026): neu signieren mit Kamera-/Mikrofon-Rechten und – wenn vorhanden – Ferays Apple-Zertifikat.
+  const mark = path.join(paths.engine(), '.immoadv-name2');
   let st; try { st = fs.statSync(plist); } catch { return false; }
   const key = `${st.size}:${st.mtimeMs}`;
   try { if (fs.readFileSync(mark, 'utf8') === key) return false; } catch { /* noch nie */ }
@@ -237,7 +278,7 @@ async function brandMac() {
       try { await run('plutil', ['-remove', 'CFBundleIconName', plist]); } catch { /* nicht vorhanden */ }
     }
     try { await brandStrings(); } catch (e) { log('Name: ' + (e.message || e)); }
-    await run('codesign', ['--force', '--deep', '--sign', '-', appPath], { timeout: 120000 });
+    await signEngineMac(appPath);
     try { await run('xattr', ['-cr', appPath]); } catch { /* egal */ }
     try { const now = new Date(); fs.utimesSync(appPath, now, now); } catch { /* egal */ }
     const st2 = fs.statSync(plist);

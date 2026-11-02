@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.20 – Mac mit Apple-Zertifikat
+- Mac: Browser und Motor mit deinem Apple-Zertifikat signiert – Kamera, Mikrofon und Mitteilungen funktionieren, keine Schlüsselbund-Abfrage nach Updates
+
 ImmoAdv Browser 4.1.19 – ruhiger und vollständig am Mac
 - Updates installieren sich still im Hintergrund – kein Fenster „Neue Version“ mehr
 - Mac: nur noch ein Symbol im Dock, Mitteilungen kommen an, Arbeitsspeicher wird richtig angezeigt

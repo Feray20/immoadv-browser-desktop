@@ -12,7 +12,13 @@ if [ "$P" = "windows" ]; then
   export CSC_IDENTITY_AUTO_DISCOVERY=false
 else
   # Mac: ausdrücklich Ferays „Developer ID Application“ (sonst „Apple Development“) – nicht dem Zufall überlassen.
-  IDS=$(security find-identity -v -p codesigning 2>/dev/null || true)
+  # Auch direkt im Anmelde-Schlüsselbund suchen (02.11.2026): Der Bau-Dienst läuft im Hintergrund – dort ist er nicht
+  # immer in der Suchliste, das Zertifikat würde sonst übersehen.
+  LOGIN_KC="$HOME/Library/Keychains/login.keychain-db"
+  IDS=$( { security find-identity -v -p codesigning 2>/dev/null; [ -f "$LOGIN_KC" ] && security find-identity -v -p codesigning "$LOGIN_KC" 2>/dev/null; } || true)
+  if [ -f "$LOGIN_KC" ] && ! security list-keychains -d user 2>/dev/null | grep -q "login.keychain"; then
+    security list-keychains -d user -s "$LOGIN_KC" $(security list-keychains -d user 2>/dev/null | tr -d '"') 2>/dev/null || true
+  fi
   MACID=$(printf '%s\n' "$IDS" | grep -E '"Developer ID Application:' | head -1 | sed -E 's/.*"(.*)"/\1/' || true)
   [ -n "$MACID" ] || MACID=$(printf '%s\n' "$IDS" | grep -E '"Apple Development:' | head -1 | sed -E 's/.*"(.*)"/\1/' || true)
   if [ -n "$MACID" ]; then
