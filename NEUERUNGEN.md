@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.3 – öffnet am Mac wieder
+- Mac: Die Meldung „ImmoAdv Browser ist beschädigt“ kommt nicht mehr – das Programm ist jetzt durchgehend gültig signiert
+
 ImmoAdv Browser 4.1.2 – Löschen funktioniert
 - Passwörter, KI-Gespräche, Sync- und NordVPN-Abmeldung: ✕ einmal tippen → „Löschen?“, nochmal tippen → erledigt (vorher passierte beim Tippen auf ✕ nichts)
 

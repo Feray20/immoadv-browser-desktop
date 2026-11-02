@@ -38,6 +38,21 @@ if [ "$P" = "windows" ]; then
   node scripts/store-package.mjs                 # dann das Store-Paket (.appx) – liegt in Azure unter „Artefakte“
   rm -rf store && mkdir -p store && cp dist/*.appx store/ 2>/dev/null || true
 else
-  npx electron-builder --mac --arm64 --publish never
+  if [ -n "${CSC_NAME:-}" ]; then
+    npx electron-builder --mac --arm64 --publish never
+  else
+    # Ohne Apple-Zertifikat (02.11.2026, Feray: „ImmoAdv Browser ist beschädigt“): electron-builder überspringt dann das
+    # Signieren – die Signatur des Programms passte nicht mehr zum Inhalt, macOS meldete „beschädigt“. Darum erst das
+    # Programm bauen, dann vollständig ad-hoc signieren (gültige Signatur, gleiche Rechte) und daraus dmg + zip packen.
+    npx electron-builder --mac dir --arm64 --publish never
+    SRC=$(ls -d dist/mac-arm64/*.app | head -1)
+    PRE="$(mktemp -d)"; cp -R "$SRC" "$PRE/"; APP="$PRE/$(basename "$SRC")"; rm -rf dist
+    find "$APP/Contents" -type f \( -perm -u+x -o -name "*.dylib" -o -name "*.so" \) -print0 | while IFS= read -r -d '' f; do
+      if file "$f" | grep -q "Mach-O"; then codesign --force --sign - --options runtime --entitlements build/entitlements.mac.plist "$f" 2>/dev/null || true; fi
+    done
+    codesign --force --deep --sign - --options runtime --entitlements build/entitlements.mac.plist "$APP"
+    codesign --verify --deep --strict "$APP" && echo "Signatur geprüft: ad-hoc, gültig"
+    npx electron-builder --mac --arm64 --publish never --prepackaged "$APP"
+  fi
   node scripts/publish-immoadv.mjs mac
 fi
