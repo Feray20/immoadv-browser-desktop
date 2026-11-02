@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.11 – schöner und griffiger
+- Aktiver Tab wie bei Chrome: geht nahtlos in die Leiste darunter über, mit ImmoAdv-Fade-Linie oben
+- Rechtsklick-Menü deckend dunkel statt durchsichtig grau (Windows 11); kürzer ohne Link-Vorschau und geteilte Ansicht
+- Doppelklick zum Markieren zuverlässig wie in Chrome (Link-Vorschau beim Gedrückthalten aus, nur das Wort wird markiert)
+
 ImmoAdv Browser 4.1.10 – Webseiten wie im Original
 - Webseiten erscheinen wieder in ihren echten Farben (hell oder dunkel je nach Windows-/Mac-Einstellung) statt zwangsweise dunkel
 

@@ -171,3 +171,13 @@ user_pref("browser.newtabpage.activity-stream.widgets.system.enabled", false);
 // Favicons der Lesezeichen behalten (auch wenn der Verlauf kurz gehalten wird)
 user_pref("browser.chrome.site_icons", true);
 user_pref("browser.chrome.favicons", true);
+
+// ---------- 02.11.2026 (Feray): Rechtsklick-Menü dunkel statt durchsichtig, Doppelklick wie in Chrome ----------
+user_pref("widget.windows.mica.popups", 0);                      // Windows 11: kein durchscheinender „Mica“-Hintergrund in Menüs
+user_pref("widget.windows.mica", false);
+user_pref("browser.ml.linkPreview.enabled", false);              // Link-Vorschau beim Gedrückthalten aus – störte Doppelklick/Markieren
+user_pref("browser.ml.linkPreview.longPress", false);
+user_pref("browser.ml.linkPreview.shift", false);
+user_pref("ui.click_hold_context_menus", false);
+user_pref("browser.tabs.splitView.enabled", false);              // „Link in geteilter Ansicht“ ausblenden (Menü kürzer)
+user_pref("layout.word_select.eat_space_to_next_word", false);   // Doppelklick markiert nur das Wort (wie Chrome), ohne Leerzeichen dahinter
