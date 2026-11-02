@@ -29,7 +29,7 @@ async function upload(filename) {
     headers: { Authorization: `Bearer ${token}`, 'X-Azure-Build-Id': buildId, 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'upload', version, filename })
   });
-  if (r.status === 409 && filename !== feed) { console.log(`${filename}: gibt es schon – nichts überschrieben.`); return; }
+  if (r.status === 409 && filename !== feed) { console.log(`${filename}: gibt es schon – nichts überschrieben.`); return 'skip'; }
   if (!r.ok) throw new Error(`${filename}: Upload-Link fehlgeschlagen (${r.status}) ${await r.text()}`);
   const { url } = await r.json();
   const body = fs.readFileSync(path.join(dist, filename));
@@ -38,6 +38,12 @@ async function upload(filename) {
   console.log(`${filename} hochgeladen (${(body.length / 1048576).toFixed(1)} MB)`);
 }
 
-for (const f of files) await upload(f);
+// Doppelter Bau derselben Version (02.11.2026, Fehler „Update lädt immer wieder“): Die Dateien des ersten Baus blieben
+// liegen, die Versionsangabe (mit Prüfsumme) kam aber vom zweiten Bau – Datei und Prüfsumme passten nicht zusammen, jedes
+// Update wurde verworfen und neu geladen. Gibt es die Dateien dieser Version schon, bleibt auch die Versionsangabe des
+// ersten Baus stehen – beides stammt dann immer aus demselben Bau.
+let skipped = 0;
+for (const f of files) if ((await upload(f)) === 'skip') skipped++;
+if (skipped) { console.log(`Version ${version} ist schon veröffentlicht – ${feed} bleibt unverändert (passt zu den vorhandenen Dateien).`); process.exit(0); }
 await upload(feed);
 console.log(`ImmoAdv Browser ${version} (${platform}) auf immoadv.de veröffentlicht.`);

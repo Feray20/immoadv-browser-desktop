@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.5 – Updates laufen sauber durch
+- Behoben: Update wurde immer wieder geladen und nicht installiert (Prüfsumme passte nach doppeltem Bau nicht)
+- Enthält alles aus 4.1.4: Installation im Hintergrund, Mac-Name „ImmoAdv Browser“
+
 ImmoAdv Browser 4.1.4 – Updates installieren sich wirklich
 - Fertig geladene Updates installieren sich jetzt still im Hintergrund – der Browser bleibt offen, Tabs und Anmeldungen bleiben erhalten
 - Mac: In Menüleiste, Dock und bei Cmd+Tab steht jetzt „ImmoAdv Browser“ mit ImmoAdv-Logo statt „Firefox“
