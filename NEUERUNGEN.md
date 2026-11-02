@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.16 – ziehen statt scrollen
+- Seitlich scrollbare Bereiche auf Webseiten (breite Tabellen, Produktreihen) einfach mit der Maus nach links/rechts ziehen
+- Druckfenster und andere Fenster im Tab schließen mit einem Klick ins Leere daneben
+
 ImmoAdv Browser 4.1.15 – Leistung sichtbar
 - Neuer Bereich „Leistung“ in den Einstellungen: Ampeln für Verbindung, Arbeitsspeicher, Tabs, Update und Sync plus die letzten Ereignisse – so siehst du sofort, wo es hakt
 
