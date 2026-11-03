@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.37 – KI-Knopf öffnet zuverlässig
+- Der ✦-Knopf öffnet den KI-Assistenten immer: Bleibt die Seitenleiste zu, öffnet er sich als Tab
+- Enthält alles aus 4.1.36 (Passwörter genau nach Link, Mac mit Apple-Zertifikat, PDFs und Bilder, schneller)
+
 ImmoAdv Browser 4.1.36 – Passwörter zuverlässig, PDFs und Bilder, schneller
 - Passwörter: Vorschläge genau nach Link – Einträge der gleichen Adresse (z. B. developer.ebay.com) stehen zuerst; die Anmeldeseite wird mitgespeichert und auf allen Geräten abgeglichen
 - Zweistufige Anmeldungen (Google, Microsoft, eBay, Amazon): das Passwort wird mit dem richtigen Benutzernamen gespeichert
