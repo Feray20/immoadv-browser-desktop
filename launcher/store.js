@@ -66,7 +66,7 @@ const defaults = {
   // Verlauf (nur lokal): Tage aufbewahren, 0 = kein Verlauf
   historyDays: 30,
   // KI-Assistent (eigener Schlüssel oder lokal mit Ollama)
-  aiProvider: 'immoadv',
+  aiProvider: 'ollama',   // kostenlose ImmoAdv KI lokal (03.11.2026)
   aiKeys: {},
   aiModels: {},
   aiInstructions: '',

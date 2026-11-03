@@ -21,14 +21,22 @@ const SETTABLE = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'al
   'keepSignedIn', 'traceless', 'vpnCountry', 'vpnServers', 'stats', 'autoUpdate', 'bookmarkBar', 'tabLayout', 'suspendMinutes', 'historyDays',
   'restoreSession', 'searchEngine', 'watchlist', 'uploadHistory', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'listsInfo'];
 const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine', 'downloadDir'];
+// KI (Feray 03.11.2026: „ImmoAdv (empfohlen) nein, keine Kosten – ersetz das mit einer KI, die kostenlos ist, aber höchstes
+// Niveau“): Standard ist jetzt die ImmoAdv KI lokal über Ollama – kostenlos, ohne Konto, nichts verlässt den Computer.
+// Das Modell richtet sich nach dem Arbeitsspeicher (stärkstes, das flüssig läuft). Claude/ChatGPT bleiben nur mit eigenem
+// Schlüssel wählbar; der kostenpflichtige Weg über immoadv.de ist entfernt.
 const PROVIDERS = {
-  // ImmoAdv (03.11.2026, Standard): KI über immoadv.de mit dem Browser-Schlüssel aus dem Web-Admin – kein eigener
-  // Anbieter-Schlüssel nötig („KI-Assistent geht nicht wie gehabt“).
-  immoadv: { name: 'ImmoAdv (empfohlen)', model: 'claude-haiku-5-5', needsKey: true },
-  anthropic: { name: 'Claude (Anthropic)', model: 'claude-sonnet-5-5', needsKey: true },
-  openai: { name: 'ChatGPT (OpenAI)', model: 'gpt-5-mini', needsKey: true },
-  ollama: { name: 'Ollama – lokal auf diesem Computer', model: 'llama3.2', needsKey: false }
+  ollama: { name: 'ImmoAdv KI – kostenlos auf diesem Computer', model: '', needsKey: false },
+  anthropic: { name: 'Claude (eigener Schlüssel, kostenpflichtig)', model: 'claude-sonnet-5-5', needsKey: true },
+  openai: { name: 'ChatGPT (eigener Schlüssel, kostenpflichtig)', model: 'gpt-5-mini', needsKey: true }
 };
+/** Stärkstes lokales Modell, das mit diesem Arbeitsspeicher flüssig läuft (Qwen 3: sehr gutes Deutsch, frei nutzbar) */
+function localModel() {
+  const gb = require('node:os').totalmem() / 1073741824;
+  if (gb >= 30) return { model: 'qwen3:30b', size: '19 GB' };
+  if (gb >= 15) return { model: 'qwen3:14b', size: '9 GB' };
+  return { model: 'qwen3:8b', size: '5 GB' };
+}
 
 // ---------- Nachrichtenrahmen: 4 Byte Länge (Little Endian) + JSON ----------
 function frame(obj) {
@@ -123,14 +131,17 @@ const handlers = {
   'vault.testUnlock': () => vault.unlock(),
   // KI: Schlüssel verschlüsselt; die Erweiterung fragt damit direkt beim Anbieter an (über NordVPN, falls an)
   'ai.config': () => {
-    // Ohne eigenen Anbieter-Schlüssel automatisch ImmoAdv (vorher blieb der Assistent ohne Schlüssel stumm).
+    // Ohne eigenen Anbieter-Schlüssel automatisch die kostenlose ImmoAdv KI (auch für alte Einstellung „immoadv“).
     const keys0 = store.get('aiKeys') || {};
-    let provider = PROVIDERS[store.get('aiProvider')] ? store.get('aiProvider') : 'immoadv';
-    if (PROVIDERS[provider].needsKey && !keys0[provider] && provider !== 'immoadv') provider = 'immoadv';
+    let provider = PROVIDERS[store.get('aiProvider')] ? store.get('aiProvider') : 'ollama';
+    if (PROVIDERS[provider].needsKey && !keys0[provider]) provider = 'ollama';
     const p = PROVIDERS[provider];
-    const box = (store.get('aiKeys') || {})[provider];
+    const box = keys0[provider];
     const key = box ? dec(box) : null;
-    return { provider, name: p.name, model: (store.get('aiModels') || {})[provider] || p.model, needsKey: p.needsKey, hasKey: !p.needsKey || !!key, key: key || '' };
+    const rec = localModel();
+    const fallback = provider === 'ollama' ? rec.model : p.model;
+    return { provider, name: p.name, model: (store.get('aiModels') || {})[provider] || fallback, needsKey: p.needsKey, hasKey: !p.needsKey || !!key, key: key || '',
+      local: { model: rec.model, size: rec.size, ramGb: Math.round(require('node:os').totalmem() / 1073741824) } };
   },
   'ai.setKey': ({ provider, key }) => {
     if (!PROVIDERS[provider]) throw new Error('Unbekannter Anbieter');

@@ -306,35 +306,91 @@ function vpn() {
   $('vOut').onclick = async (e) => { if (sure(e.currentTarget, 'Wirklich abmelden? (ohne VPN)')) { st.vpn = await send({ type: 'vpn:logout' }); vpn(); } };
 }
 
+// KI (Feray 03.11.2026: „keine Kosten – eine KI, die kostenlos ist, aber höchstes Niveau“): Standard ist die ImmoAdv KI
+// lokal über Ollama. Einrichten mit einem Klick: Status prüfen, Modell einmalig laden (Fortschritt), fertig.
 const AI_PROVIDERS = [
-  { id: 'immoadv', name: 'ImmoAdv (empfohlen)', model: 'claude-haiku-5-5', needsKey: true, keyUrl: 'https://immoadv.de/intern/web-admin/#set_konten', keyHint: 'Schlüssel im Web-Admin: Einstellungen → Konten → „ImmoAdv Browser · KI-Assistent“ → Verbinden. Einmal je Gerät.' },
-  { id: 'anthropic', name: 'Claude (Anthropic)', model: 'claude-sonnet-5-5', needsKey: true, keyUrl: 'https://console.anthropic.com/settings/keys' },
-  { id: 'openai', name: 'ChatGPT (OpenAI)', model: 'gpt-5-mini', needsKey: true, keyUrl: 'https://platform.openai.com/api-keys' },
-  { id: 'ollama', name: 'Ollama (lokal, offline)', model: 'llama3.2', needsKey: false, keyUrl: '' }
+  { id: 'ollama', name: 'ImmoAdv KI – kostenlos auf diesem Computer', model: '', needsKey: false, keyUrl: '' },
+  { id: 'anthropic', name: 'Claude (eigener Schlüssel, kostenpflichtig)', model: 'claude-sonnet-5-5', needsKey: true, keyUrl: 'https://console.anthropic.com/settings/keys' },
+  { id: 'openai', name: 'ChatGPT (eigener Schlüssel, kostenpflichtig)', model: 'gpt-5-mini', needsKey: true, keyUrl: 'https://platform.openai.com/api-keys' }
 ];
+const OLLAMA = 'http://127.0.0.1:11434';
+async function ollamaStatus(model) {
+  try {
+    const r = await fetch(OLLAMA + '/api/tags', { signal: AbortSignal.timeout(2500) });
+    if (!r.ok) return { running: false };
+    const j = await r.json();
+    const names = (j.models || []).map((m) => m.name);
+    const base = (n) => n.replace(/:latest$/, '');
+    return { running: true, hasModel: names.some((n) => base(n) === base(model)) };
+  } catch (e) { return { running: false }; }
+}
+async function ollamaPull(model, onProgress) {
+  const r = await fetch(OLLAMA + '/api/pull', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, stream: true }) });
+  if (!r.ok || !r.body) throw new Error('Laden nicht möglich (' + r.status + ')');
+  const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = '';
+  for (;;) {
+    const { value, done } = await reader.read(); if (done) break;
+    buf += dec.decode(value, { stream: true }); let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (!line) continue;
+      let d; try { d = JSON.parse(line); } catch (e) { continue; }
+      if (d.error) throw new Error(d.error);
+      if (d.total && d.completed != null) onProgress(Math.min(100, Math.round(100 * d.completed / d.total)));
+      if (d.status === 'success') return true;
+    }
+  }
+  return true;
+}
 async function ki() {
   const info = await send({ type: 'ai:config' }).catch(() => ({}));
   const s = st.settings, models = s.aiModels || {};
-  const prov = info.provider || s.aiProvider || 'immoadv';
-  const p = AI_PROVIDERS.find((x) => x.id === prov) || AI_PROVIDERS[0];
-  body(`<div class="group"><h3>Anbieter</h3>
-      <div class="row"><span>KI-Anbieter</span><select id="aProv">${AI_PROVIDERS.map((x) => `<option value="${x.id}" ${x.id === p.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-      <div class="row"><span>Modell</span><input type="text" id="aModel" value="${esc(models[p.id] || p.model)}" style="width:200px"></div>
-      ${p.needsKey ? `<div class="row"><span>Schlüssel<span class="desc">${info.hasKey ? 'gespeichert ✓' : 'noch keiner'}</span></span></div>
-        <p><input type="password" id="aKey" placeholder="${info.hasKey ? '•••••••• (neu eingeben zum Ändern)' : 'API-Schlüssel einfügen'}" autocomplete="off" style="width:100%"></p>
-        <p class="hint">${p.keyHint ? esc(p.keyHint) : `Schlüssel erstellen: <a href="${esc(p.keyUrl)}" target="_blank" rel="noopener">${esc(p.keyUrl.replace('https://', ''))}</a>.`} Gespeichert verschlüsselt, nie im Klartext.</p>`
-      : '<p class="small">Ollama läuft komplett auf deinem Computer – keine Daten gehen ins Internet.</p>'}
+  const prov = AI_PROVIDERS.some((x) => x.id === info.provider) ? info.provider : 'ollama';
+  const p = AI_PROVIDERS.find((x) => x.id === prov);
+  const local = info.local || { model: 'qwen3:8b', size: '5 GB' };
+  const model = models[p.id] || (p.id === 'ollama' ? local.model : p.model);
+  body(`<div class="group"><h3>KI-Assistent</h3>
+      <div class="row"><span>Anbieter</span><select id="aProv">${AI_PROVIDERS.map((x) => `<option value="${x.id}" ${x.id === p.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+      ${p.id === 'ollama' ? `<div id="aLocal" class="row"><span>Status<span class="desc">Prüft …</span></span></div>
+        <p class="small">Kostenlos, ohne Konto und ohne Abo. Die KI läuft komplett auf deinem Computer – keine Daten gehen ins Internet. Modell passend zu deinem Arbeitsspeicher${local.ramGb ? ` (${local.ramGb} GB)` : ''}: <b>${esc(local.model)}</b> (einmalig ${esc(local.size)}).</p>` : ''}
+      <div class="row"><span>Modell<span class="desc">${p.id === 'ollama' ? 'leer lassen = automatisch das passende' : ''}</span></span><input type="text" id="aModel" value="${esc(models[p.id] || '')}" placeholder="${esc(p.id === 'ollama' ? local.model : p.model)}" style="width:200px"></div>
+      ${p.needsKey ? `<div class="row"><span>Schlüssel<span class="desc">${info.hasKey && info.provider === p.id ? 'gespeichert ✓' : 'noch keiner'}</span></span></div>
+        <p><input type="password" id="aKey" placeholder="API-Schlüssel einfügen" autocomplete="off" style="width:100%"></p>
+        <p class="hint">Kostet beim Anbieter pro Nutzung. Schlüssel erstellen: <a href="${esc(p.keyUrl)}" target="_blank" rel="noopener">${esc(p.keyUrl.replace('https://', ''))}</a>. Gespeichert verschlüsselt, nie im Klartext.</p>` : ''}
       <button class="primary" id="aSave">Speichern</button></div>
     <div class="group"><h3>Eigene Vorgaben</h3><textarea id="aInstr" rows="4" style="width:100%" placeholder="z. B. Ich bin Immobilien-Investorin, rechne in Euro, antworte kurz.">${esc(s.aiInstructions || '')}</textarea>
       <p class="hint">Gilt für jede Antwort. Seiteninhalte können diese Vorgaben nicht ändern.</p></div>
-    <div class="group"><h3>Datenschutz</h3>${sw('aHist', s.aiKeepHistory !== false, 'KI-Gespräche speichern', 'nur lokal')}<p class="small">Seiteninhalte gehen nur an den Anbieter, wenn „Seite einbeziehen“ an ist. Passwörter, Formulareingaben und Verlauf nie.</p></div>`);
+    <div class="group"><h3>Datenschutz</h3>${sw('aHist', s.aiKeepHistory !== false, 'KI-Gespräche speichern', 'nur lokal')}<p class="small">Seiteninhalte gehen nur an die KI, wenn „Seite einbeziehen“ an ist. Passwörter, Formulareingaben und Verlauf nie.</p></div>`);
   bindSwitch('aHist', 'aiKeepHistory');
   $('aProv').onchange = async () => { await setS({ aiProvider: $('aProv').value }); ki(); };
   $('aSave').onclick = async () => {
-    await setS({ aiModels: { ...models, [p.id]: $('aModel').value.trim() || p.model }, aiInstructions: $('aInstr').value.slice(0, 2000) });
+    const m = $('aModel').value.trim(); const next = { ...models }; if (m) next[p.id] = m; else delete next[p.id];
+    await setS({ aiModels: next, aiInstructions: $('aInstr').value.slice(0, 2000) });
     if ($('aKey') && $('aKey').value.trim()) await send({ type: 'ai:setKey', provider: p.id, key: $('aKey').value.trim() });
     toast('KI gespeichert'); ki();
   };
+  if (p.id !== 'ollama') return;
+  const box = $('aLocal');
+  const show = async () => {
+    if (tab !== 'ki' || !document.body.contains(box)) return;
+    const o = await ollamaStatus(model);
+    if (!o.running) {
+      box.innerHTML = `<span>🔴 Noch nicht eingerichtet<span class="desc">Einmalig das kostenlose Programm Ollama installieren und öffnen – danach hier „Prüfen“.</span></span>
+        <span style="display:flex;gap:8px"><button class="primary" id="aGet">Ollama laden</button><button class="secondary" id="aCheck">Prüfen</button></span>`;
+      $('aGet').onclick = () => browser.tabs.create({ url: 'https://ollama.com/download' });
+      $('aCheck').onclick = show; return;
+    }
+    if (!o.hasModel) {
+      box.innerHTML = `<span>🟡 Fast fertig<span class="desc">Ollama läuft. Jetzt einmalig das Modell ${esc(model)} laden.</span></span><button class="primary" id="aPull">Modell laden</button>`;
+      $('aPull').onclick = async () => {
+        const btn = $('aPull'); btn.disabled = true; btn.textContent = 'Lädt … 0 %';
+        try { await ollamaPull(model, (pct) => { btn.textContent = `Lädt … ${pct} %`; }); toast('ImmoAdv KI ist bereit'); show(); }
+        catch (e) { btn.disabled = false; btn.textContent = 'Erneut versuchen'; toast(String(e.message || e)); }
+      };
+      return;
+    }
+    box.innerHTML = `<span>🟢 Bereit<span class="desc">${esc(model)} läuft auf diesem Computer – kostenlos und offline.</span></span>`;
+  };
+  show();
 }
 
 function merkliste() {

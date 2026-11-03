@@ -1,3 +1,9 @@
+ImmoAdv Browser 4.1.35 – ImmoAdv KI kostenlos auf deinem Computer
+- KI-Assistent ohne Kosten: Die neue ImmoAdv KI läuft komplett auf deinem Computer – kein Konto, kein Abo, keine Daten ins Internet
+- Automatisch das stärkste Modell, das zu deinem Arbeitsspeicher passt (Qwen 3, sehr gutes Deutsch)
+- Einrichten unter Einstellungen → KI: einmal Ollama laden, dann „Modell laden“ – fertig
+- Der kostenpflichtige Weg über ImmoAdv entfällt; Claude oder ChatGPT gehen weiter mit eigenem Schlüssel
+
 ImmoAdv Browser 4.1.34 – „ImmoAdv Browser“ im Dock, saubere Updates am Mac
 - Mac: Dock, Cmd+Tab, Finder und „Sofort beenden“ zeigen „ImmoAdv Browser“ statt „Firefox“ – auch bei englischer Systemsprache
 - Mac: Beim Update schließt sich der Browser zuerst sauber, dann wird ausgetauscht und neu gestartet – kein halb neues Design mehr, alle Tabs kommen wieder

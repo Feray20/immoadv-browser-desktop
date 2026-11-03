@@ -43,8 +43,8 @@ function render() {
   $('convs').innerHTML = `<option value="">Neues Gespräch</option>` + convs.map((c) => `<option value="${esc(c.id)}" ${conv && c.id === conv.id ? 'selected' : ''}>${esc(c.title)}</option>`).join('');
   $('model').textContent = cfg && cfg.hasKey ? `${cfg.name} · ${cfg.model}` : '';
   if (!cfg || !cfg.hasKey) {
-    $('log').innerHTML = `<div class="group"><h3>Einrichten</h3><p>Der Assistent fasst Seiten zusammen, erklärt, übersetzt und beantwortet Fragen zur geöffneten Seite. Dafür brauchst du einen eigenen Zugang:</p>
-      <ul><li><b>Claude</b> oder <b>ChatGPT</b> – Schlüssel beim Anbieter erstellen.</li><li><b>Ollama</b> – kostenlos und komplett lokal.</li></ul><button class="primary" id="setup">Jetzt einrichten</button></div>`;
+    $('log').innerHTML = `<div class="group"><h3>Einrichten</h3><p>Der Assistent fasst Seiten zusammen, erklärt, übersetzt und beantwortet Fragen zur geöffneten Seite. </p>
+      <ul><li><b>ImmoAdv KI</b> – kostenlos, ohne Konto, läuft komplett auf deinem Computer (einmal einrichten).</li><li>Wahlweise <b>Claude</b> oder <b>ChatGPT</b> mit eigenem, kostenpflichtigem Schlüssel.</li></ul><button class="primary" id="setup">Jetzt einrichten</button></div>`;
     $('setup').onclick = () => browser.tabs.create({ url: browser.runtime.getURL('pages/settings.html#ki') });
     $('compose').classList.add('hidden');
     return;
@@ -71,12 +71,11 @@ async function errorText(res) {
   return `Der KI-Anbieter meldet einen Fehler (${res.status}). ${typeof msg === 'string' ? msg : ''}`.trim();
 }
 async function call(sys, messages, signal, onText) {
-  if (!cfg || (cfg.needsKey && !cfg.key)) throw new Error(cfg && cfg.provider === 'immoadv' ? 'Noch nicht verbunden: Im Web-Admin unter Einstellungen → Konten „ImmoAdv Browser · KI-Assistent“ → Verbinden, dann den Schlüssel hier unter Einstellungen → KI-Assistent einfügen.' : 'Kein Schlüssel hinterlegt – bitte unter Einstellungen → KI-Assistent eintragen.');
-  if (cfg.provider === 'anthropic' || cfg.provider === 'immoadv') {
-    const viaImmo = cfg.provider === 'immoadv';
-    const res = await fetch(viaImmo ? 'https://immoadv.de/api/browser/ki' : 'https://api.anthropic.com/v1/messages', { method: 'POST', signal, credentials: 'omit',
-      headers: viaImmo ? { 'content-type': 'application/json', authorization: `Bearer ${cfg.key}` } : { 'content-type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify(viaImmo ? { system: sys, messages } : { model: cfg.model, max_tokens: 4096, system: sys, messages, stream: true }) });
+  if (!cfg || (cfg.needsKey && !cfg.key)) throw new Error('Kein Schlüssel hinterlegt – bitte unter Einstellungen → KI eintragen oder die kostenlose ImmoAdv KI wählen.');
+  if (cfg.provider === 'anthropic') {
+    const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal, credentials: 'omit',
+      headers: { 'content-type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: cfg.model, max_tokens: 4096, system: sys, messages, stream: true }) });
     if (!res.ok) throw new Error(await errorText(res));
     for await (const line of sse(res)) { if (!line.startsWith('data:')) continue; let d; try { d = JSON.parse(line.slice(5)); } catch (e) { continue; } if (d.type === 'content_block_delta' && d.delta && d.delta.text) onText(d.delta.text); if (d.type === 'error') throw new Error((d.error && d.error.message) || 'Fehler'); }
   } else if (cfg.provider === 'openai') {
@@ -86,9 +85,21 @@ async function call(sys, messages, signal, onText) {
     if (!res.ok) throw new Error(await errorText(res));
     for await (const line of sse(res)) { if (!line.startsWith('data:') || line.includes('[DONE]')) continue; try { const c = JSON.parse(line.slice(5)).choices; const t = c && c[0] && c[0].delta && c[0].delta.content; if (t) onText(t); } catch (e) {} }
   } else {
-    const res = await fetch('http://127.0.0.1:11434/api/chat', { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, stream: true, messages: [{ role: 'system', content: sys }, ...messages] }) });
+    // Qwen 3 denkt sonst erst lange „laut“ – für schnelle Antworten aus (Ollama „think“), Reste von <think> werden entfernt.
+    const think = /^qwen3/i.test(cfg.model) ? { think: false } : {};
+    const res = await fetch('http://127.0.0.1:11434/api/chat', { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, stream: true, ...think, messages: [{ role: 'system', content: sys }, ...messages] }) });
+    if (res.status === 404) throw new Error('Das Modell ist noch nicht geladen – in Einstellungen → KI auf „Modell laden“ tippen (einmalig).');
     if (!res.ok) throw new Error(await errorText(res));
-    for await (const line of sse(res)) { try { const m = JSON.parse(line).message; if (m && m.content) onText(m.content); } catch (e) {} }
+    let inThink = false;
+    for await (const line of sse(res)) {
+      let m; try { m = JSON.parse(line).message; } catch (e) { continue; }
+      let t = (m && m.content) || '', out = '';
+      while (t) {
+        if (inThink) { const e = t.indexOf('</think>'); if (e < 0) { t = ''; break; } inThink = false; t = t.slice(e + 8); }
+        else { const b = t.indexOf('<think>'); if (b < 0) { out += t; t = ''; break; } out += t.slice(0, b); inThink = true; t = t.slice(b + 7); }
+      }
+      if (out) onText(out);
+    }
   }
 }
 
@@ -121,7 +132,7 @@ async function ask(question, selection = '') {
   } catch (e) {
     const aborted = ctrl.signal.aborted;
     if (!answer.content) conv.messages.splice(-2, 2);
-    const msg = aborted ? 'Abgebrochen' : cfg.provider === 'ollama' && /fetch|NetworkError/i.test(String(e.message)) ? 'Ollama läuft nicht. Bitte Ollama starten (ollama.com) und das Modell laden.' : String(e.message || 'Keine Verbindung zum KI-Anbieter');
+    const msg = aborted ? 'Abgebrochen' : cfg.provider === 'ollama' && /fetch|NetworkError/i.test(String(e.message)) ? 'Die kostenlose ImmoAdv KI ist noch nicht bereit: Ollama öffnen (bzw. einmalig von ollama.com installieren) – Einrichtung unter Einstellungen → KI.' : String(e.message || 'Keine Verbindung zum KI-Anbieter');
     render(); $('log').insertAdjacentHTML('beforeend', `<p class="err">${esc(msg)}</p>`);
   } finally { ctrl = null; $('send').textContent = 'Senden'; render(); }
 }
