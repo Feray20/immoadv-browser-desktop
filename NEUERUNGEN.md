@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.39 – Passwörter und Passkeys wie am Mac
+- Vorschlagsliste am Anmeldefeld wie am Mac: gleiche Symbole für Passwort und Passkey, alle Zeilen exakt auf einer Linie, darunter die Adresse
+- „Mit Passkey anmelden“ zeigt, womit es weitergeht (Touch ID/iPhone bzw. Windows Hello/Handy)
+- Beim Ausfüllen bleibt die Zeile stehen – nur der Hinweis darunter wechselt
+
 ImmoAdv Browser 4.1.38 – Sieben neue Werkzeuge, angemeldet bleiben nach Updates
 - Seite als PDF speichern (⋯-Menü oder Rechtsklick)
 - Bildschirmfoto der ganzen Seite – mit Markieren, Stift, Textmarker und Schwärzen; Speichern oder Kopieren

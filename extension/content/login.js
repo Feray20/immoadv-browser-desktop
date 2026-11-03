@@ -99,6 +99,9 @@
     if (a && isLoginField(a)) return a;
     return [...document.querySelectorAll('input[type="password"]')].find(isLoginField) || null;
   }
+  // Gleiche Symbole wie am Mac (Schlüssel bzw. Person mit Schlüssel) – SVG statt Emoji, damit alle Zeilen exakt auf einer Linie stehen.
+  const ICON_KEY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3M18 5l2 2"/></svg>';
+  const ICON_PK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-1a6 6 0 0 1 9.5-4.9"/><circle cx="17" cy="16" r="2.5"/><path d="M18.8 17.8 22 21M20.5 19.5l-1 1"/></svg>';
   function placeChip() {
     if (!chip || !chipFor || !chipFor.isConnected) return;
     const r = chipFor.getBoundingClientRect();
@@ -111,12 +114,12 @@
     chip.style.top = (r.bottom + 4 + h <= window.innerHeight - 4 ? r.bottom + 4 : Math.max(4, r.top - h - 4)) + 'px';
   }
   async function fillWith(e, b) {
-    if (b) b.textContent = 'Wird übernommen …';
+    const sm = b && b.querySelector('small'); if (sm) sm.textContent = 'Wird übernommen …';
     // Wartet die Freigabe länger (Mac: Schlüsselbund-Abfrage nach einem Update), sagen, was zu tun ist – statt still zu hängen.
-    const slow = setTimeout(() => { if (b && b.isConnected) b.textContent = navigator.platform.startsWith('Mac') ? 'Bitte die Mac-Abfrage „Schlüsselbund“ mit „Immer erlauben“ bestätigen …' : 'Bitte die Windows-Abfrage bestätigen …'; }, 4000);
+    const slow = setTimeout(() => { if (sm && sm.isConnected) sm.textContent = navigator.platform.startsWith('Mac') ? 'Bitte die Mac-Abfrage „Schlüsselbund“ mit „Immer erlauben“ bestätigen …' : 'Bitte die Windows-Abfrage bestätigen …'; }, 4000);
     const r = await send({ type: 'pw:fill', id: e.id, url: location.href });
     clearTimeout(slow);
-    if (!r || !r.pass) { if (b) b.textContent = 'Nicht möglich – Freigabe abgelehnt oder abgelaufen. Erneut tippen.'; return; }
+    if (!r || !r.pass) { if (sm) sm.textContent = 'Nicht möglich – Freigabe abgelehnt oder abgelaufen. Erneut tippen.'; return; }
     const pw = [...document.querySelectorAll('input[type="password"]')].find(vis);
     const u = pw ? userFieldFor(pw) : anchorField();
     if (vis(u) && r.user) setVal(u, r.user);
@@ -140,12 +143,14 @@
       .h{display:flex;justify-content:space-between;align-items:center;padding:4px 8px 6px;color:#a7b4c8;font-size:11.5px}
       .r{display:flex;gap:10px;align-items:center;width:100%;min-height:40px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
       .r:hover,.r:focus-visible{background:linear-gradient(120deg,#2A5BD7,#3a6cf0 45%,#19C2B0);color:#fff;outline:none}
-      .i{flex:none;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:rgba(255,255,255,.1)}
+      .i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.12);color:#cfe0ff}
+      .i svg{width:15px;height:15px;display:block}.r:hover .i,.r:focus-visible .i{background:rgba(255,255,255,.22);color:#fff}
+      .t{flex:1}
       .t{min-width:0}.t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.t small{display:block;color:#a7b4c8;font-size:11.5px}
       .r:hover small{color:#e5edff}.x{border:0;background:transparent;color:#a7b4c8;cursor:pointer;font:inherit;padding:0 2px}.x:hover{color:#fff}
     </style><div class="c" role="listbox" aria-label="Gespeicherte Anmeldung"><div class="h"><span>${pk ? 'Passkey oder Passwort' : 'Gespeichertes Passwort'} · ${esc(host0)}</span><button class="x" data-x aria-label="Schließen">✕</button></div>
-      ${pk ? '<div class="r" style="cursor:default"><span class="i">🔐</span><span class="t"><b>Passkey</b><small>Die Seite fragt selbst per Windows Hello / Touch ID</small></span></div>' : ''}
-      ${entries.slice(0, 6).map((e, i) => `<button class="r" role="option" data-i="${i}"><span class="i">🔑</span><span class="t"><b>${esc(e.user || 'Ohne Benutzername')}</b><small>Passwort übernehmen</small></span></button>`).join('')}</div>`;
+      ${pk ? `<div class="r" style="cursor:default"><span class="i">${ICON_PK}</span><span class="t"><b>Mit Passkey anmelden</b><small>${navigator.platform.startsWith('Mac') ? 'Touch ID oder iPhone – die Seite fragt gleich selbst' : 'Windows Hello oder Handy – die Seite fragt gleich selbst'}</small></span></div>` : ''}
+      ${entries.slice(0, 6).map((e, i) => `<button class="r" role="option" data-i="${i}"><span class="i">${ICON_KEY}</span><span class="t"><b>${esc(e.user || 'Ohne Benutzername')}</b><small>${esc(e.host || host0)}</small></span></button>`).join('')}</div>`;
     sr.querySelectorAll('[data-i]').forEach((b) => b.addEventListener('mousedown', (ev) => { ev.preventDefault(); fillWith(entries[b.dataset.i], b); }));
     sr.querySelector('[data-x]').addEventListener('mousedown', (ev) => { ev.preventDefault(); closeChip(); });
     chipFor = f;
