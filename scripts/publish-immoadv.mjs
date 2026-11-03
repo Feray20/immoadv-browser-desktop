@@ -66,7 +66,7 @@ async function upload(filename) {
 // ersten Baus stehen – beides stammt dann immer aus demselben Bau.
 let skipped = 0;
 for (const f of files) if ((await upload(f)) === 'skip') skipped++;
-if (skipped) { fs.mkdirSync('feed', { recursive: true }); console.log(`Version ${version} ist schon veröffentlicht – ${feed} bleibt unverändert (passt zu den vorhandenen Dateien).`); process.exit(0); }
+if (skipped) { fs.mkdirSync('feed', { recursive: true }); fs.writeFileSync(path.join('feed', 'LEER.txt'), 'Version schon veröffentlicht – nichts freizugeben.'); console.log(`Version ${version} ist schon veröffentlicht – ${feed} bleibt unverändert (passt zu den vorhandenen Dateien).`); process.exit(0); }
 // Versionsangabe nicht sofort veröffentlichen, sondern für die gemeinsame Freigabe bereitlegen.
 fs.mkdirSync('feed', { recursive: true });
 fs.copyFileSync(path.join(dist, feed), path.join('feed', feed));
