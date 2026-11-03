@@ -249,7 +249,9 @@ async function brandMac() {
   const appPath = path.join(paths.engine(), 'Firefox.app');
   const plist = path.join(appPath, 'Contents', 'Info.plist');
   // Merker v2 (02.11.2026): neu signieren mit Kamera-/Mikrofon-Rechten und – wenn vorhanden – Ferays Apple-Zertifikat.
-  const mark = path.join(paths.engine(), '.immoadv-name2');
+  // Merker v3 (03.11.2026): zusätzlich festes ImmoAdv-Profil im Programmpaket (LSEnvironment), damit der Browser auch
+  // direkt vom Dock-Symbol mit Profil, Passwörtern und Erweiterung startet – es gibt nur noch dieses eine Dock-Symbol.
+  const mark = path.join(paths.engine(), '.immoadv-name3');
   let st; try { st = fs.statSync(plist); } catch { return false; }
   const key = `${st.size}:${st.mtimeMs}`;
   try { if (fs.readFileSync(mark, 'utf8') === key) return false; } catch { /* noch nie */ }
@@ -258,6 +260,7 @@ async function brandMac() {
   try {
     await run('plutil', ['-replace', 'CFBundleName', '-string', NAME, plist]);
     await run('plutil', ['-replace', 'CFBundleDisplayName', '-string', NAME, plist]);
+    await run('plutil', ['-replace', 'LSEnvironment', '-json', JSON.stringify({ XRE_PROFILE_PATH: paths.profile() }), plist]);
     // Übersetzte Namen (de.lproj usw.) haben Vorrang vor der Info.plist – überall ersetzen.
     const res = path.join(appPath, 'Contents', 'Resources');
     for (const d of fs.readdirSync(res).filter((x) => x.endsWith('.lproj'))) {
@@ -281,6 +284,7 @@ async function brandMac() {
     await signEngineMac(appPath);
     try { await run('xattr', ['-cr', appPath]); } catch { /* egal */ }
     try { const now = new Date(); fs.utimesSync(appPath, now, now); } catch { /* egal */ }
+    try { await run('/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister', ['-f', appPath]); } catch { /* egal */ }
     const st2 = fs.statSync(plist);
     fs.writeFileSync(mark, `${st2.size}:${st2.mtimeMs}`);
     log('Mac: Name und Logo ImmoAdv Browser gesetzt');
@@ -468,4 +472,13 @@ async function version() {
   } catch { return null; }
 }
 
-module.exports = { brandIcon, EXT_ID, EXT_UUID, paths, installed, install, running, waitClosed, deploy, writeProfile, writeEngineConfig, launch, extUrl, version, log, needsRestart: () => pendingRestart };
+/** Mac: Hat der Motor das feste ImmoAdv-Profil im Programmpaket? (Voraussetzung, damit er selbst ins Dock darf) */
+async function macProfileReady() {
+  if (!isMac) return false;
+  try {
+    const v = String(await run('plutil', ['-extract', 'LSEnvironment.XRE_PROFILE_PATH', 'raw', path.join(paths.engine(), 'Firefox.app', 'Contents', 'Info.plist')])).trim();
+    return v === paths.profile();
+  } catch { return false; }
+}
+
+module.exports = { macProfileReady, brandIcon, EXT_ID, EXT_UUID, paths, installed, install, running, waitClosed, deploy, writeProfile, writeEngineConfig, launch, extUrl, version, log, needsRestart: () => pendingRestart };

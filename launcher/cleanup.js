@@ -78,26 +78,70 @@ async function runMac(store, log) {
       try { if (altApp) await sh(LSR, ['-u', full]); await shell.trashItem(full); log(`Aufräumen (Mac): in den Papierkorb – ${full}`); } catch (e) { log(`Aufräumen (Mac): ${full} – ${e.message}`); }
     }
   }
-  // Dock: Einträge auf Motor oder alte Kopien entfernen, die richtige App sicherstellen.
+  // Dock: Einträge auf alte Kopien entfernen. Welches Symbol bleibt, regelt dockMac() (nur noch der Browser selbst).
   const PB = '/usr/libexec/PlistBuddy', plist = path.join(home, 'Library', 'Preferences', 'com.apple.dock.plist');
   try {
-    let changed = false, has = false;
+    let changed = false;
     for (let i = 60; i >= 0; i--) {
       const u = decodeURIComponent((await sh(PB, ['-c', `Print :persistent-apps:${i}:tile-data:file-data:_CFURLString`, plist])).trim());
       if (!u) continue;
       const p0 = u.replace(/^file:\/\//, '').replace(/\/$/, '');
-      const motorApp = motor && p0.startsWith(motor);
-      const alt = /ImmoAdv[ -]?Browser[^/]*\.app$/i.test(p0) && p0 !== self;
-      if (p0 === self) has = true;
-      if (motorApp || alt) { await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]); changed = true; log(`Aufräumen (Mac): Dock-Eintrag entfernt – ${p0}`); }
-    }
-    if (changed && !has && self.endsWith('.app')) {
-      await sh('defaults', ['write', 'com.apple.dock', 'persistent-apps', '-array-add', `<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>file://${encodeURI(self)}/</string><key>_CFURLStringType</key><integer>15</integer></dict></dict></dict>`]);
+      const alt = /ImmoAdv[ -]?Browser[^/]*\.app$/i.test(p0) && p0 !== self && !(motor && p0.startsWith(motor));
+      if (alt) { await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]); changed = true; log(`Aufräumen (Mac): Dock-Eintrag entfernt – ${p0}`); }
     }
     if (changed) await sh('killall', ['cfprefsd']).then(() => sh('killall', ['Dock']));
   } catch (e) { log('Aufräumen (Mac, Dock): ' + e.message); }
   try { await sh(LSR, ['-f', self]); } catch { /* egal */ }
   try { store.setQuiet('cleanupDone', v); } catch { /* egal */ }
+}
+
+// Mac (03.11.2026, Feray: „Dock-Problem noch da“, „Browser steht 3× in Sofort beenden“): Es gibt nur noch EIN Symbol.
+// Der Starter ist ein unsichtbares Hilfsprogramm (LSUIElement). Ins Dock gehört der Browser selbst (Motor mit ImmoAdv-Name,
+// -Logo und festem ImmoAdv-Profil) – dann zeigt das angeheftete Symbol auch den Punkt „läuft“, statt daneben ein zweites.
+// Einmalig: Starter-Eintrag im Dock durch den Browser ersetzen (an derselben Stelle), doppelte Einträge entfernen.
+// Erst wenn der Motor das feste Profil im Programmpaket hat, sonst startete das Dock-Symbol ohne Profil.
+const DOCK_MARK = 'dock-v3';
+async function dockMac(store, engine) {
+  if (process.platform !== 'darwin' || !app.isPackaged) return;
+  try { if (store.get('dockDone') === DOCK_MARK) return; } catch { /* egal */ }
+  if (!(await engine.macProfileReady())) return;           // nächster Start versucht es erneut
+  const os = require('node:os'); const cp = require('node:child_process');
+  const sh = (cmd, args) => new Promise((ok) => cp.execFile(cmd, args, { timeout: 15000 }, (e, out) => ok(e ? '' : String(out))));
+  const log = (m) => engine.log(m);
+  const self = app.getPath('exe').replace(/\/Contents\/MacOS\/[^/]+$/, '');
+  const motorApp = path.join(engine.paths.engine(), 'Firefox.app');
+  const PB = '/usr/libexec/PlistBuddy', plist = path.join(os.homedir(), 'Library', 'Preferences', 'com.apple.dock.plist');
+  const url = `file://${encodeURI(motorApp)}/`;
+  let changed = false, haveMotor = false;
+  for (let i = 60; i >= 0; i--) {
+    const raw = (await sh(PB, ['-c', `Print :persistent-apps:${i}:tile-data:file-data:_CFURLString`, plist])).trim();
+    if (!raw) continue;
+    const p0 = decodeURIComponent(raw).replace(/^file:\/\//, '').replace(/\/$/, '');
+    if (p0 === motorApp) {
+      if (haveMotor) { await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]); changed = true; } else haveMotor = true;
+    }
+  }
+  for (let i = 60; i >= 0; i--) {
+    const raw = (await sh(PB, ['-c', `Print :persistent-apps:${i}:tile-data:file-data:_CFURLString`, plist])).trim();
+    if (!raw) continue;
+    const p0 = decodeURIComponent(raw).replace(/^file:\/\//, '').replace(/\/$/, '');
+    if (p0 !== self) continue;
+    if (!haveMotor) {
+      // gleiche Stelle im Dock: Ziel auf den Browser umstellen, Name/Kennung leeren (macOS liest sie neu)
+      await sh(PB, ['-c', `Set :persistent-apps:${i}:tile-data:file-data:_CFURLString ${url}`, plist]);
+      await sh(PB, ['-c', `Delete :persistent-apps:${i}:tile-data:bundle-identifier`, plist]);
+      await sh(PB, ['-c', `Delete :persistent-apps:${i}:tile-data:file-label`, plist]);
+      await sh(PB, ['-c', `Delete :persistent-apps:${i}:tile-data:book`, plist]);
+      await sh(PB, ['-c', `Delete :persistent-apps:${i}:tile-data:file-mod-date`, plist]);
+      haveMotor = true;
+    } else {
+      await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]);
+    }
+    changed = true;
+    log('Dock: Starter-Symbol durch den Browser ersetzt');
+  }
+  if (changed) await sh('killall', ['cfprefsd']).then(() => sh('killall', ['Dock']));
+  try { store.setQuiet('dockDone', DOCK_MARK); } catch { /* egal */ }
 }
 
 function run(store, log) {
@@ -117,4 +161,4 @@ function run(store, log) {
   } catch (e) { log('Aufräumen: ' + e.message); }
 }
 
-module.exports = { run, script };
+module.exports = { run, script, dockMac };

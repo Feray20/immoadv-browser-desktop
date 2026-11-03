@@ -1,3 +1,10 @@
+ImmoAdv Browser 4.1.30 – klare Symbole, ein Browser im Dock
+- Symbole oben (Zurück, Vor, Neu laden, Stern, Download, Menü) und die Lesezeichenleiste sind jetzt dunkel und gut lesbar statt fast weiß
+- Grüner Hinweis „Geschützt“ in der Adresszeile ist wieder lesbar
+- Einstellungen → Updates: Der Hinweis zu „Update jetzt installieren“ erscheint nur noch, wenn auch ein Update bereitsteht
+- Mac: Der ImmoAdv Browser steht nur noch einmal in „Sofort beenden“, im Dock und bei Cmd+Tab – Starter und Hintergrund-Dienst laufen unsichtbar
+- Mac: Das Dock-Symbol ist jetzt der Browser selbst (an derselben Stelle wie bisher) – kein zweites Symbol daneben, der Punkt „läuft“ erscheint direkt darunter
+
 ImmoAdv Browser 4.1.29 (gleich wie 4.1.28, Freigabe für Mac und Windows repariert) · 4.1.28 – immer hell, KI-Assistent, gleicher Stand auf Mac und Windows
 - Immer helles Design – Leisten, Menüs, eigene Seiten und Webseiten
 - KI-Assistent (✦) läuft wieder ohne eigenen Anbieter-Schlüssel: einmal im Web-Admin unter Einstellungen → Konten „ImmoAdv Browser · KI-Assistent“ verbinden

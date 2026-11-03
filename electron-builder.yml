@@ -78,6 +78,9 @@ mac:
   icon: build/icon.png
   # Texte für die macOS-Abfrage von Kamera und Mikrofon (z. B. Google Meet, Teams) – ohne sie stürzt der Zugriff ab bzw. wird verweigert.
   extendInfo:
+    # 03.11.2026 (Feray: „Browser steht 3× in Sofort beenden“, Dock-Problem): Starter und Hintergrund-Dienst sind
+    # unsichtbare Hilfsprogramme – kein Dock-Symbol, kein Eintrag in „Sofort beenden“/Cmd+Tab. Sichtbar ist nur der Browser.
+    LSUIElement: true
     NSCameraUsageDescription: Der ImmoAdv Browser braucht die Kamera für Videoanrufe auf Webseiten (z. B. Google Meet, Teams) – nur wenn du es auf der Seite erlaubst.
     NSMicrophoneUsageDescription: Der ImmoAdv Browser braucht das Mikrofon für Anrufe auf Webseiten (z. B. Google Meet, Teams) – nur wenn du es auf der Seite erlaubst.
   # 7-Zip wird nur unter Windows gebraucht (Firefox-Installer entpacken) – am Mac nicht mitliefern

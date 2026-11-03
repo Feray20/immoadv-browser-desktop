@@ -382,7 +382,9 @@ function updates() {
       <div class="row"><span>Status</span><b>${esc(line)}</b></div>
       ${['available', 'ready', 'downloading'].includes(u.status) ? '<button class="primary" id="uNow">Update jetzt installieren</button>' : '<button class="secondary" id="uCheck">Nach Updates suchen</button>'}
       ${sw('uAuto', st.settings.autoUpdate !== false, 'Updates automatisch laden', 'werden beim nächsten Beenden still installiert')}</div>
-    <p class="small">„Update jetzt installieren“ lädt die neue Version, installiert sie ohne weitere Fragen und startet den Browser neu. Tabs, Lesezeichen, Passwörter und Einstellungen bleiben erhalten. Den Firefox-Motor hält Mozilla automatisch aktuell.</p>`);
+    ${['available', 'ready', 'downloading'].includes(u.status)
+      ? '<p class="small">„Update jetzt installieren“ lädt die neue Version, installiert sie ohne weitere Fragen und startet den Browser neu. Tabs, Lesezeichen, Passwörter und Einstellungen bleiben erhalten.</p>'
+      : '<p class="small">Neue Versionen werden automatisch gefunden. Tabs, Lesezeichen, Passwörter und Einstellungen bleiben bei jedem Update erhalten.</p>'}`);
   if ($('uNow')) $('uNow').onclick = async () => { $('uNow').disabled = true; $('uNow').textContent = 'Wird installiert …'; await send({ type: 'update:now' }); };
   if ($('uCheck')) $('uCheck').onclick = async () => { st.update = await send({ type: 'update:check' }); updates(); };
   bindSwitch('uAuto', 'autoUpdate');

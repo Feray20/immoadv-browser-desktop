@@ -57,7 +57,7 @@
   --menu-color: var(--immo-text) !important;
   --menu-border-color: var(--immo-line-2) !important;
   --menuitem-hover-background-color: var(--immo-surface-2) !important;
-  --menu-disabled-color: rgba(167,180,200,.5) !important;
+  --menu-disabled-color: #94A3B8 !important;
   --menuitem-border-radius: 8px !important;
   --menuitem-padding: 6px 10px !important;
   --panel-background: #FFFFFF !important;
@@ -219,7 +219,7 @@ findbar { background: var(--immo-bg-1) !important; border-top: 1px solid var(--i
 /* grüner „Geschützt“-Hinweis wie in Version 3 (nur auf verschlüsselten Webseiten) */
 #urlbar:not([focused]) #identity-box[pageproxystate="valid"]:is(.verifiedDomain, .mixedDisplayContentLoadedActiveBlocked)::after {
   content: "Geschützt"; margin-inline: 4px 2px; padding: 0 10px 0 22px; height: 24px; line-height: 24px; border-radius: 999px; align-self: center;
-  font-size: 12px; color: #c9f5e0; background: rgba(47,207,138,.12) radial-gradient(circle at 11px 50%, #2fcf8a 0 4px, transparent 4.5px) no-repeat;
+  font-size: 12px; color: #0B7A4B; font-weight: 600; background: rgba(47,207,138,.12) radial-gradient(circle at 11px 50%, #2fcf8a 0 4px, transparent 4.5px) no-repeat;
   border: 1px solid rgba(47,207,138,.28); white-space: nowrap;
 }
 #identity-box { display: flex !important; align-items: center; }
@@ -227,7 +227,7 @@ findbar { background: var(--immo-bg-1) !important; border-top: 1px solid var(--i
 /* ===================== Lesbarkeit (Feray 02.11.2026: „ich erkenne Tabs nicht, Knöpfe nicht, Symbole nicht“) =====================
    Kräftigere Kontraste: aktiver Tab hell und deutlich abgesetzt, inaktive Tabs ruhig, Symbole fast weiß, Menüs deckend und dicht. */
 :root {
-  --immo-text-2: #c9d5e6 !important;        /* Zweittext/Symbole heller (vorher #a7b4c8 – zu schwach auf Dunkelblau) */
+  --immo-text-2: #334155 !important;        /* Zweittext/Symbole dunkel auf hellem Grund (03.11.2026: vorher fast weiß, kaum sichtbar) */
   --menu-background-color: #FFFFFF !important;
   --panel-background: #FFFFFF !important;
   --arrowpanel-background: #FFFFFF !important;
@@ -248,16 +248,16 @@ findbar { background: var(--immo-bg-1) !important; border-top: 1px solid var(--i
 .tabbrowser-tab:not([selected]) > .tab-stack > .tab-background { background: rgba(15,44,89,.03) !important; }
 .tabbrowser-tab:not([selected]):hover > .tab-stack > .tab-background { background: rgba(15,44,89,.07) !important; }
 .tabbrowser-tab[selected] .tab-close-button { opacity: 1 !important; fill: #334155 !important; }
-/* Symbole in den Leisten: fast weiß, beim Zeigen ganz weiß mit Fläche */
-toolbar .toolbarbutton-1, #nav-bar toolbarbutton, #TabsToolbar toolbarbutton { fill: #dbe5f3 !important; color: #dbe5f3 !important; }
+/* Symbole in den Leisten (03.11.2026, Feray: „Farbe“): dunkles Schiefergrau auf hellem Grund, beim Zeigen fast schwarz mit Fläche */
+toolbar .toolbarbutton-1, #nav-bar toolbarbutton, #TabsToolbar toolbarbutton { fill: #334155 !important; color: #334155 !important; }
 toolbar .toolbarbutton-1:hover, #nav-bar toolbarbutton:hover { fill: #0F172A !important; color: #0F172A !important; }
 toolbar .toolbarbutton-1:not([disabled]):hover > .toolbarbutton-icon,
 toolbar .toolbarbutton-1:not([disabled]):hover > .toolbarbutton-badge-stack { background-color: rgba(15,44,89,.08) !important; }
-toolbar .toolbarbutton-1[disabled] { fill: rgba(219,229,243,.35) !important; }
-#PersonalToolbar toolbarbutton.bookmark-item { color: #d6e0ee !important; }
-#PersonalToolbar toolbarbutton.bookmark-item .toolbarbutton-icon { fill: #d6e0ee !important; }
+toolbar .toolbarbutton-1[disabled] { fill: rgba(51,65,85,.38) !important; }
+#PersonalToolbar toolbarbutton.bookmark-item { color: #1E293B !important; font-weight: 500 !important; }
+#PersonalToolbar toolbarbutton.bookmark-item .toolbarbutton-icon { fill: #334155 !important; }
 #urlbar-input::placeholder { color: #64748B !important; }
-#identity-box image, #tracking-protection-icon, #star-button, #page-action-buttons image { fill: #dbe5f3 !important; }
+#identity-box image, #tracking-protection-icon, #star-button, #page-action-buttons image { fill: #334155 !important; }
 /* „Erweiterung (ImmoAdv Browser)“ auf eigenen Seiten (Startseite, Einstellungen) ausblenden – alle Varianten */
 #identity-box.extensionPage #identity-icon-label, #identity-box.extensionPage > #identity-icon-box > #identity-icon-label,
 #identity-icon-box.extensionPage #identity-icon-label, #identity-box[pageproxystate] .extensionPage #identity-icon-label,
@@ -268,7 +268,7 @@ menupopup, panel[type="arrow"], #contentAreaContextMenu, #tabContextMenu, #toolb
   --panel-padding: 4px !important;
 }
 menupopup > menuitem, menupopup > menu { min-height: 26px !important; padding-block: 2px !important; font-size: 13px !important; color: #0F172A !important; }
-menupopup > menuitem[disabled], menupopup > menu[disabled] { color: rgba(201,213,230,.45) !important; }
+menupopup > menuitem[disabled], menupopup > menu[disabled] { color: #94A3B8 !important; }
 menupopup > menuitem[_moz-menuactive], menupopup > menu[_moz-menuactive] { background-color: #2A5BD7 !important; color: #fff !important; }
 menuseparator { padding-block: 2px !important; }
 menuseparator::before { border-top-color: rgba(140,175,255,.22) !important; }

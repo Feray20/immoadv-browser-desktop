@@ -104,7 +104,7 @@ function starter() {
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.webContents.on('will-navigate', (e) => e.preventDefault());
     win.loadFile(path.join(__dirname, 'ui', 'setup.html'));
-    win.once('ready-to-show', () => win.show());
+    win.once('ready-to-show', () => { win.show(); if (process.platform === 'darwin') app.focus({ steal: true }); });
     win.on('closed', () => { win = null; });
   }
   const progress = (p) => { if (win && !win.isDestroyed()) win.webContents.send('progress', p); };
@@ -196,12 +196,14 @@ function starter() {
     if (!(await ensureEngine())) return false;
     if (wait) await engine.waitClosed();
     try { if (!engine.running()) await engine.brandIcon(); engine.deploy(); } catch (e) { engine.log('Einrichten: ' + (e && e.stack || e)); }
+    if (process.platform === 'darwin' && app.isPackaged) require('./cleanup').dockMac(store, engine).catch((e) => engine.log('Dock: ' + e.message));
     engine.launch(urls);
     if (win && !win.isDestroyed()) { progress({ step: 'done' }); setTimeout(() => win && win.close(), 900); }
     return true;
   }
 
-  function finish() { setTimeout(() => { if (!win && !installing) app.quit(); }, 1500); }
+  // Starter beendet sich, sobald der Browser offen ist (Dock-Umstellung bekommt kurz Zeit) – bleibt nicht im Hintergrund hängen.
+  function finish() { setTimeout(() => { if (!win && !installing) app.quit(); }, 4000); }
 
   ipcMain.handle('retry', async () => { await open(pending); finish(); });
   ipcMain.handle('info', () => ({ version: app.getVersion(), platform: process.platform }));
