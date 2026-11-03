@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.32 – nach dem Update bleibt nur die neueste Version
+- Nach jedem Update werden alte Update-Dateien automatisch entfernt: alte Installer und Archive in „Downloads“ kommen in den Papierkorb, der Update-Zwischenspeicher älterer Versionen wird gelöscht (Mac und Windows)
+- Anmeldungen, Passwörter, Lesezeichen, Tabs und eigene Downloads bleiben unverändert
+- Ein schon geladenes neueres Update bleibt liegen und wird normal installiert
+
 ImmoAdv Browser 4.1.31 – überall „ImmoAdv Browser“ statt „Firefox“
 - Mac: Finder, „Öffnen mit“, Dock und Menüleiste zeigen „ImmoAdv Browser“; der Motor erscheint nicht mehr als eigener Browser in „Öffnen mit“
 - Windows: von früher gemerkte Namen („Öffnen mit“, Taskleiste, Mitteilungen) zeigen „ImmoAdv Browser“

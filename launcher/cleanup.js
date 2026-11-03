@@ -144,13 +144,33 @@ async function dockMac(store, engine) {
   try { store.setQuiet('dockDone', DOCK_MARK); } catch { /* egal */ }
 }
 
+// Alte Update-Dateien (Installer, Archive, Zwischenspeicher) älterer Versionen – siehe launcher/altdaten.js.
+function altdaten(motor, log) {
+  const os = require('node:os'); const { shell } = require('electron');
+  const ordner = [{ pfad: path.join(os.homedir(), 'Downloads'), art: 'papierkorb' }];
+  if (process.platform === 'darwin') ordner.push({ pfad: path.join(app.getPath('userData'), 'update'), art: 'loeschen' });
+  if (process.platform === 'win32') {
+    let dir = 'immoadv-browser-updater';
+    try { const y = fs.readFileSync(path.join(process.resourcesPath, 'app-update.yml'), 'utf8'); const m = /updaterCacheDirName:\s*(\S+)/.exec(y); if (m) dir = m[1].replace(/['"]/g, ''); } catch { /* Standard */ }
+    const cache = path.join(process.env.LOCALAPPDATA || app.getPath('appData'), dir);
+    ordner.push({ pfad: path.join(cache, 'pending'), art: 'loeschen' }, { pfad: cache, art: 'loeschen' });
+  }
+  return require('./altdaten').aufraeumen({ aktuell: app.getVersion(), ordner, motorNeu: motor ? motor + '.neu' : '', papierkorb: (p) => shell.trashItem(p), log });
+}
+
 function run(store, log) {
-  if (process.platform === 'darwin' && app.isPackaged) { runMac(store, log).catch((e) => log('Aufräumen (Mac): ' + e.message)); return; }
+  if (process.platform === 'darwin' && app.isPackaged) {
+    runMac(store, log).catch((e) => log('Aufräumen (Mac): ' + e.message))
+      .then(() => { let m = ''; try { m = require('./engine').paths.engine(); } catch { /* egal */ } return altdaten(m, log); })
+      .catch((e) => log('Aufräumen (alte Dateien): ' + e.message));
+    return;
+  }
   if (process.platform !== 'win32' || !app.isPackaged) return;
   const v = app.getVersion();
   try { if (store.get('cleanupDone') === v) return; } catch { /* egal */ }
   let motor = '';
   try { motor = require('./engine').paths.engine(); } catch { motor = path.join(app.getPath('userData'), 'Motor'); }
+  altdaten(motor, log).catch((e) => log('Aufräumen (alte Dateien): ' + e.message));
   const file = path.join(app.getPath('temp'), `immoadv-aufraeumen-${Date.now()}.ps1`);
   try {
     fs.writeFileSync(file, '﻿' + script({ exe: app.getPath('exe'), inst: path.dirname(app.getPath('exe')), motor, log: path.join(app.getPath('userData'), 'update.log') }), 'utf8');
