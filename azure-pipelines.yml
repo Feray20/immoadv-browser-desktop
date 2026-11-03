@@ -84,7 +84,9 @@ stages:
           - checkout: self
             fetchDepth: 1
           - download: current
-            patterns: 'feed-*/**'
+            artifact: feed-windows
+          - download: current
+            artifact: feed-mac
           - task: NodeTool@0
             inputs: { versionSpec: '22.x' }
           - script: node scripts/publish-immoadv.mjs feed "$(Pipeline.Workspace)"

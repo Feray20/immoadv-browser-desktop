@@ -24,15 +24,24 @@ async function link(filename) {
   return (await r.json()).url;
 }
 if (platform === 'feed') {
-  // Beide Versionsangaben aus den Artefakten der zwei Bau-Stufen; fehlt eine (Version schon veröffentlicht), bleibt sie.
+  // Beide Versionsangaben aus den Artefakten der zwei Bau-Stufen – überall unterhalb des Ordners suchen (03.11.2026: 4.1.28
+  // wurde gebaut, aber die Freigabe fand die Dateien nicht und veröffentlichte still nichts).
   const dir = process.argv[3] || 'feeds';
-  const L = [['windows', 'latest.yml'], ['mac', 'latest-mac.yml']].map(([p0, f]) => [path.join(dir, `feed-${p0}`, f), f]).filter(([fp]) => fs.existsSync(fp));
-  for (const [fp, f] of L) {
-    const put = await fetch(await link(f), { method: 'PUT', headers: { 'Content-Type': 'text/yaml', 'x-upsert': 'true' }, body: fs.readFileSync(fp) });
+  const found = {};
+  const walk = (d, depth = 0) => { if (depth > 6) return; let L = []; try { L = fs.readdirSync(d, { withFileTypes: true }); } catch { return; } for (const e of L) { const f = path.join(d, e.name); if (e.isDirectory()) walk(f, depth + 1); else if (e.name === 'latest.yml' || e.name === 'latest-mac.yml') found[e.name] ||= f; } };
+  walk(dir);
+  console.log(`Gesucht in ${dir}: ${Object.keys(found).length ? Object.entries(found).map(([k, v]) => `${k} → ${v}`).join(', ') : 'nichts gefunden'}`);
+  for (const [f, fp] of Object.entries(found)) {
+    const y = fs.readFileSync(fp, 'utf8');
+    if (!y.includes(version)) { console.log(`${f}: gehört nicht zu ${version} – übersprungen`); continue; }
+    const put = await fetch(await link(f), { method: 'PUT', headers: { 'Content-Type': 'text/yaml', 'x-upsert': 'true' }, body: y });
     if (!put.ok) throw new Error(`${f}: Hochladen fehlgeschlagen (${put.status})`);
     console.log(`${f} freigegeben (${version})`);
   }
-  console.log(L.length ? `ImmoAdv Browser ${version} für ${L.length === 2 ? 'Windows und Mac' : 'eine Plattform'} freigegeben.` : 'Nichts freizugeben.');
+  // Fehlt eine Angabe, obwohl gebaut wurde, ist das ein Fehler – nicht still durchlaufen.
+  const leer = (() => { let x = false; const w2 = (d, depth = 0) => { if (depth > 6) return; let L = []; try { L = fs.readdirSync(d, { withFileTypes: true }); } catch { return; } for (const e of L) { if (e.isDirectory()) w2(path.join(d, e.name), depth + 1); else if (e.name === 'LEER.txt') x = true; } }; w2(dir); return x; })();
+  if (!leer && (!found['latest.yml'] || !found['latest-mac.yml'])) { console.error('Versionsangabe fehlt – Freigabe nicht vollständig.'); process.exit(1); }
+  console.log(`ImmoAdv Browser ${version} freigegeben.`);
   process.exit(0);
 }
 

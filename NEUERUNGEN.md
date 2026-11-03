@@ -1,4 +1,4 @@
-ImmoAdv Browser 4.1.28 – immer hell, KI-Assistent, gleicher Stand auf Mac und Windows
+ImmoAdv Browser 4.1.29 (gleich wie 4.1.28, Freigabe für Mac und Windows repariert) · 4.1.28 – immer hell, KI-Assistent, gleicher Stand auf Mac und Windows
 - Immer helles Design – Leisten, Menüs, eigene Seiten und Webseiten
 - KI-Assistent (✦) läuft wieder ohne eigenen Anbieter-Schlüssel: einmal im Web-Admin unter Einstellungen → Konten „ImmoAdv Browser · KI-Assistent“ verbinden
 - „Mit Google anmelden“ klappt auf allen Seiten (Anmeldedienste werden nie blockiert)
