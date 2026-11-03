@@ -4,8 +4,8 @@
 
 // ---------- Aussehen: ImmoAdv-Fade-Oberfläche ----------
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);   // userChrome.css / userContent.css
-user_pref("browser.theme.content-theme", 1);                               // hell (Feray 03.11.2026: „immer hell“)
-user_pref("browser.theme.toolbar-theme", 1);
+user_pref("browser.theme.content-theme", 1);                               // Inhalt hell (Feray 03.11.2026: „hell Inhalt, nicht ImmoAdv-Fade weg“)
+user_pref("browser.theme.toolbar-theme", 0);                               // Oberfläche (Leisten, Tabs, Menüs) im dunklen ImmoAdv-Fade
 user_pref("layout.css.prefers-color-scheme.content-override", 1);   // Webseiten immer hell (Feray 03.11.2026: „Browser bitte immer hell lassen“)
 user_pref("browser.tabs.inTitlebar", 1);                                   // Tabs in der Titelleiste (kein Extra-Rahmen)
 user_pref("browser.compactmode.show", true);

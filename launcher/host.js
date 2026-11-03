@@ -287,6 +287,12 @@ function startServer() {
     clearTimeout(idle);
     if (outputs.size) return;
     updater.backgroundInstall();   // kein Browserfenster verbunden → fertiges Update jetzt still einspielen
+    // Mac (03.11.2026, Feray: „im Dock steht Firefox statt ImmoAdv Browser“): Das Dock startet den Motor direkt, ohne
+    // Starter. Spielt Mozilla ein Motor-Update ein, ist das Programmpaket wieder „Firefox“ (Name, Logo, festes Profil weg).
+    // Sobald der Browser zu ist, hier sofort neu beschriften – beim nächsten Klick aufs Dock steht wieder „ImmoAdv Browser“.
+    if (process.platform === 'darwin') {
+      setTimeout(() => { try { if (!outputs.size && !engine.running()) engine.brandIcon().then((r) => r && engine.log('Mac: nach Motor-Update neu beschriftet')).catch((e) => engine.log('Mac-Name: ' + e.message)); } catch (e) { engine.log('Mac-Name: ' + e.message); } }, 5000);
+    }
     idle = setTimeout(() => { if (!outputs.size && updater.state().status !== 'installing' && updater.state().status !== 'downloading') { store.flush(); app.quit(); } }, 90 * 1000);
   };
   const server = net.createServer((conn) => { clearTimeout(idle); attach(conn, conn, checkIdle); });

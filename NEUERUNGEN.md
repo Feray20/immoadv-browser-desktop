@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.33 – ImmoAdv-Fade zurück, Webseiten hell
+- Oberfläche wieder im ImmoAdv-Fade wie gewohnt: Tabs, Adressleiste, Menüs, Startseite und Einstellungen in Dunkelblau mit Fade, helle Symbole
+- Webseiten selbst bleiben immer hell
+- Mac: Nach einem Motor-Update von Mozilla steht im Dock wieder „ImmoAdv Browser“ statt „Firefox“ – wird beim Beenden des Browsers automatisch neu beschriftet (Name, Logo, festes Profil)
+
 ImmoAdv Browser 4.1.32 – nach dem Update bleibt nur die neueste Version
 - Nach jedem Update werden alte Update-Dateien automatisch entfernt: alte Installer und Archive in „Downloads“ kommen in den Papierkorb, der Update-Zwischenspeicher älterer Versionen wird gelöscht (Mac und Windows)
 - Anmeldungen, Passwörter, Lesezeichen, Tabs und eigene Downloads bleiben unverändert
