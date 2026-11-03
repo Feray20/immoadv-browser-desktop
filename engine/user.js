@@ -114,8 +114,8 @@ user_pref("browser.safebrowsing.downloads.remote.enabled", false);
 user_pref("network.trr.mode", {{trrMode}});                    // 2 = verschlüsseltes DNS, 0 = aus (über NordVPN löst der Server auf)
 user_pref("network.trr.uri", "{{trrUri}}");
 user_pref("network.trr.custom_uri", "{{trrUri}}");
-user_pref("network.dns.disablePrefetch", true);
-user_pref("network.prefetch-next", false);
+user_pref("network.dns.disablePrefetch", false);          // 03.11.2026 (Feray: „Ladezeiten langsamer“): Adressen von Links vorab auflösen – über das verschlüsselte DNS
+user_pref("network.prefetch-next", true);                   // nächste Seite (rel=next) vorab laden – Vorhersage-Dienst bleibt aus
 user_pref("network.predictor.enabled", false);
 user_pref("media.peerconnection.ice.default_address_only", true);   // WebRTC verrät die echte IP nicht am VPN vorbei
 user_pref("media.peerconnection.ice.no_host", true);

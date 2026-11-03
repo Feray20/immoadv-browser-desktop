@@ -1,5 +1,5 @@
 // „Dateien immer mit ImmoAdv Browser öffnen“ (Wunsch Feray 02.11.2026: aus der ImmoAdv-Software in den Browser umgezogen).
-// PDF, Word, Excel, PowerPoint und Bilder öffnen per Doppelklick im ImmoAdv Browser (Office-Betrachter bzw. Bild-Werkzeuge).
+// PDF und Bilder öffnen per Doppelklick im ImmoAdv Browser (PDF-Werkzeuge bzw. Bild-Bearbeitung).
 // status(): welche Endungen öffnen noch NICHT mit dem Browser (leer = fertig) – nur lesen.
 // makeDefault(): Mac → sofort für alle Typen gesetzt („fertig“); Windows → Standard-Apps-Seite des Browsers geöffnet
 // („einstellungen“), weil Windows Programme den Standard nicht selbst umstellen lässt.
@@ -7,15 +7,11 @@ const { execFile, spawn } = require('node:child_process');
 
 const BUNDLE_ID = 'de.immoadv.browser.desktop';
 // Endung → Dateityp (UTI) am Mac. Gleiche Liste wie die Anmeldung im Installer (Windows) bzw. electron-builder (Mac).
+// Nur PDF und Bilder (03.11.2026, Feray: „Office-Dokumente auf ImmoAdv Admin, Bilder und PDFs auf den Browser“) – Word,
+// Excel, PowerPoint und CSV öffnet die ImmoAdv-Software. Vorher standen sie hier mit drin: macOS nahm sie nicht an (der
+// Browser meldet sie seit 4.1.28 nicht mehr an), deshalb blieb „Als Standard festlegen“ nie auf „Fertig“.
 const TYPES = [
   ['pdf', 'com.adobe.pdf'],
-  ['docx', 'org.openxmlformats.wordprocessingml.document'],
-  ['doc', 'com.microsoft.word.doc'],
-  ['xlsx', 'org.openxmlformats.spreadsheetml.sheet'],
-  ['xls', 'com.microsoft.excel.xls'],
-  ['csv', 'public.comma-separated-values-text'],
-  ['pptx', 'org.openxmlformats.presentationml.presentation'],
-  ['ppt', 'com.microsoft.powerpoint.ppt'],
   ['png', 'public.png'],
   ['jpg', 'public.jpeg'],
   ['gif', 'com.compuserve.gif'],

@@ -56,7 +56,7 @@ button:disabled { opacity: .45; pointer-events: none; }
 .row + .row { border-top: 1px solid var(--line); }
 .row > span:first-child { color: var(--text); }
 .row .sub { display: block; color: var(--text-3); font-size: 12px; }
-input[type=text], input[type=password], input[type=number], input[type=email], input[type=search], select, textarea {
+input:not([type]), input[type=text], input[type=url], input[type=tel], input[type=password], input[type=number], input[type=email], input[type=search], select, textarea {
   height: 34px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line-2); background: rgba(255,255,255,.05); outline: none; min-width: 0;
 }
 textarea { height: auto; padding: 8px 10px; resize: vertical; }
@@ -94,3 +94,6 @@ button, .pill, .primary, .secondary, .danger { box-sizing: border-box; max-width
 .row > span { min-width: 0; }
 .row > button, .row > select { flex-shrink: 0; }
 .addrow input { min-width: 0; }
+
+/* Passwort hinzufügen (03.11.2026, Feray: Felder verrutscht/unterschiedlich): alle Felder und der Knopf gleich hoch, auf einer Linie */
+.pw-add > input, .pw-add > button { height: 40px; min-height: 40px; margin: 0; }
