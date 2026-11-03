@@ -33,43 +33,29 @@
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
   ; Symbol-Zwischenspeicher von Windows auffrischen – sonst zeigt die Taskleiste noch das alte Programm-Symbol
   ExecWait '"$SYSDIR\ie4uinit.exe" -show'
-  ; Word, Excel, PowerPoint und Bilder (01.11.2026): eigene Klasse je Endung mit dem Symbol des Dateityps –
-  ; erscheint unter „Öffnen mit“; der Standard wird nie ungefragt umgestellt.
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.docx" "" "Word-Dokument"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.docx\DefaultIcon" "" "$INSTDIR\resources\dateisymbole\docx.ico"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.docx\shell\open\command" "" '"${IA_EXE}" -- "%1"'
-  WriteRegStr SHCTX "Software\Classes\.docx\OpenWithProgids" "ImmoAdvBrowser.docx" ""
-  WriteRegStr SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".docx" "ImmoAdvBrowser.docx"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.doc" "" "Word-Dokument"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.doc\DefaultIcon" "" "$INSTDIR\resources\dateisymbole\doc.ico"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.doc\shell\open\command" "" '"${IA_EXE}" -- "%1"'
-  WriteRegStr SHCTX "Software\Classes\.doc\OpenWithProgids" "ImmoAdvBrowser.doc" ""
-  WriteRegStr SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".doc" "ImmoAdvBrowser.doc"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.xlsx" "" "Excel-Tabelle"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.xlsx\DefaultIcon" "" "$INSTDIR\resources\dateisymbole\xlsx.ico"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.xlsx\shell\open\command" "" '"${IA_EXE}" -- "%1"'
-  WriteRegStr SHCTX "Software\Classes\.xlsx\OpenWithProgids" "ImmoAdvBrowser.xlsx" ""
-  WriteRegStr SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".xlsx" "ImmoAdvBrowser.xlsx"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.xls" "" "Excel-Tabelle"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.xls\DefaultIcon" "" "$INSTDIR\resources\dateisymbole\xls.ico"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.xls\shell\open\command" "" '"${IA_EXE}" -- "%1"'
-  WriteRegStr SHCTX "Software\Classes\.xls\OpenWithProgids" "ImmoAdvBrowser.xls" ""
-  WriteRegStr SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".xls" "ImmoAdvBrowser.xls"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.csv" "" "CSV-Tabelle"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.csv\DefaultIcon" "" "$INSTDIR\resources\dateisymbole\csv.ico"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.csv\shell\open\command" "" '"${IA_EXE}" -- "%1"'
-  WriteRegStr SHCTX "Software\Classes\.csv\OpenWithProgids" "ImmoAdvBrowser.csv" ""
-  WriteRegStr SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".csv" "ImmoAdvBrowser.csv"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.pptx" "" "PowerPoint-Präsentation"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.pptx\DefaultIcon" "" "$INSTDIR\resources\dateisymbole\pptx.ico"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.pptx\shell\open\command" "" '"${IA_EXE}" -- "%1"'
-  WriteRegStr SHCTX "Software\Classes\.pptx\OpenWithProgids" "ImmoAdvBrowser.pptx" ""
-  WriteRegStr SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".pptx" "ImmoAdvBrowser.pptx"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.ppt" "" "PowerPoint-Präsentation"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.ppt\DefaultIcon" "" "$INSTDIR\resources\dateisymbole\ppt.ico"
-  WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.ppt\shell\open\command" "" '"${IA_EXE}" -- "%1"'
-  WriteRegStr SHCTX "Software\Classes\.ppt\OpenWithProgids" "ImmoAdvBrowser.ppt" ""
-  WriteRegStr SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".ppt" "ImmoAdvBrowser.ppt"
+  ; Office-Dateien öffnet die ImmoAdv-Software (Wunsch Feray 03.11.2026: „Browser nur Bilder und PDFs“) – frühere
+  ; Anmeldungen des Browsers für Word/Excel/PowerPoint werden bei jedem Update entfernt. Bilder bleiben (Bild-Werkzeuge).
+  DeleteRegKey SHCTX "Software\Classes\ImmoAdvBrowser.docx"
+  DeleteRegValue SHCTX "Software\Classes\.docx\OpenWithProgids" "ImmoAdvBrowser.docx"
+  DeleteRegValue SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".docx"
+  DeleteRegKey SHCTX "Software\Classes\ImmoAdvBrowser.doc"
+  DeleteRegValue SHCTX "Software\Classes\.doc\OpenWithProgids" "ImmoAdvBrowser.doc"
+  DeleteRegValue SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".doc"
+  DeleteRegKey SHCTX "Software\Classes\ImmoAdvBrowser.xlsx"
+  DeleteRegValue SHCTX "Software\Classes\.xlsx\OpenWithProgids" "ImmoAdvBrowser.xlsx"
+  DeleteRegValue SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".xlsx"
+  DeleteRegKey SHCTX "Software\Classes\ImmoAdvBrowser.xls"
+  DeleteRegValue SHCTX "Software\Classes\.xls\OpenWithProgids" "ImmoAdvBrowser.xls"
+  DeleteRegValue SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".xls"
+  DeleteRegKey SHCTX "Software\Classes\ImmoAdvBrowser.csv"
+  DeleteRegValue SHCTX "Software\Classes\.csv\OpenWithProgids" "ImmoAdvBrowser.csv"
+  DeleteRegValue SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".csv"
+  DeleteRegKey SHCTX "Software\Classes\ImmoAdvBrowser.pptx"
+  DeleteRegValue SHCTX "Software\Classes\.pptx\OpenWithProgids" "ImmoAdvBrowser.pptx"
+  DeleteRegValue SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".pptx"
+  DeleteRegKey SHCTX "Software\Classes\ImmoAdvBrowser.ppt"
+  DeleteRegValue SHCTX "Software\Classes\.ppt\OpenWithProgids" "ImmoAdvBrowser.ppt"
+  DeleteRegValue SHCTX "${IA_KEY}\Capabilities\FileAssociations" ".ppt"
   WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.png" "" "PNG-Bild"
   WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.png\DefaultIcon" "" "$INSTDIR\resources\dateisymbole\png.ico"
   WriteRegStr SHCTX "Software\Classes\ImmoAdvBrowser.png\shell\open\command" "" '"${IA_EXE}" -- "%1"'

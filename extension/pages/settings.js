@@ -307,6 +307,7 @@ function vpn() {
 }
 
 const AI_PROVIDERS = [
+  { id: 'immoadv', name: 'ImmoAdv (empfohlen)', model: 'claude-haiku-5-5', needsKey: true, keyUrl: 'https://immoadv.de/intern/web-admin/#set_konten', keyHint: 'Schlüssel im Web-Admin: Einstellungen → Konten → „ImmoAdv Browser · KI-Assistent“ → Verbinden. Einmal je Gerät.' },
   { id: 'anthropic', name: 'Claude (Anthropic)', model: 'claude-sonnet-5-5', needsKey: true, keyUrl: 'https://console.anthropic.com/settings/keys' },
   { id: 'openai', name: 'ChatGPT (OpenAI)', model: 'gpt-5-mini', needsKey: true, keyUrl: 'https://platform.openai.com/api-keys' },
   { id: 'ollama', name: 'Ollama (lokal, offline)', model: 'llama3.2', needsKey: false, keyUrl: '' }
@@ -314,14 +315,14 @@ const AI_PROVIDERS = [
 async function ki() {
   const info = await send({ type: 'ai:config' }).catch(() => ({}));
   const s = st.settings, models = s.aiModels || {};
-  const prov = info.provider || s.aiProvider || 'anthropic';
+  const prov = info.provider || s.aiProvider || 'immoadv';
   const p = AI_PROVIDERS.find((x) => x.id === prov) || AI_PROVIDERS[0];
   body(`<div class="group"><h3>Anbieter</h3>
       <div class="row"><span>KI-Anbieter</span><select id="aProv">${AI_PROVIDERS.map((x) => `<option value="${x.id}" ${x.id === p.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
       <div class="row"><span>Modell</span><input type="text" id="aModel" value="${esc(models[p.id] || p.model)}" style="width:200px"></div>
       ${p.needsKey ? `<div class="row"><span>Schlüssel<span class="desc">${info.hasKey ? 'gespeichert ✓' : 'noch keiner'}</span></span></div>
         <p><input type="password" id="aKey" placeholder="${info.hasKey ? '•••••••• (neu eingeben zum Ändern)' : 'API-Schlüssel einfügen'}" autocomplete="off" style="width:100%"></p>
-        <p class="hint">Schlüssel erstellen: <a href="${esc(p.keyUrl)}" target="_blank" rel="noopener">${esc(p.keyUrl.replace('https://', ''))}</a>. Gespeichert verschlüsselt, nie im Klartext.</p>`
+        <p class="hint">${p.keyHint ? esc(p.keyHint) : `Schlüssel erstellen: <a href="${esc(p.keyUrl)}" target="_blank" rel="noopener">${esc(p.keyUrl.replace('https://', ''))}</a>.`} Gespeichert verschlüsselt, nie im Klartext.</p>`
       : '<p class="small">Ollama läuft komplett auf deinem Computer – keine Daten gehen ins Internet.</p>'}
       <button class="primary" id="aSave">Speichern</button></div>
     <div class="group"><h3>Eigene Vorgaben</h3><textarea id="aInstr" rows="4" style="width:100%" placeholder="z. B. Ich bin Immobilien-Investorin, rechne in Euro, antworte kurz.">${esc(s.aiInstructions || '')}</textarea>

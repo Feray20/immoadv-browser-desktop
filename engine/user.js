@@ -4,9 +4,9 @@
 
 // ---------- Aussehen: ImmoAdv-Fade-Oberfläche ----------
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);   // userChrome.css / userContent.css
-user_pref("browser.theme.content-theme", 0);                               // dunkel
-user_pref("browser.theme.toolbar-theme", 0);
-user_pref("layout.css.prefers-color-scheme.content-override", 2);   // Webseiten wie im Original: hell/dunkel nach Windows-/Mac-Einstellung (Feray 02.11.2026: „nichts customized“)
+user_pref("browser.theme.content-theme", 1);                               // hell (Feray 03.11.2026: „immer hell“)
+user_pref("browser.theme.toolbar-theme", 1);
+user_pref("layout.css.prefers-color-scheme.content-override", 1);   // Webseiten immer hell (Feray 03.11.2026: „Browser bitte immer hell lassen“)
 user_pref("browser.tabs.inTitlebar", 1);                                   // Tabs in der Titelleiste (kein Extra-Rahmen)
 user_pref("browser.compactmode.show", true);
 user_pref("browser.uidensity", 0);
@@ -88,14 +88,22 @@ user_pref("browser.ml.chat.sidebar", false);
 // ---------- Datenschutz & Sicherheit ----------
 user_pref("dom.security.https_only_mode", {{httpsOnly}});
 user_pref("dom.security.https_only_mode_send_http_background_request", false);
-user_pref("browser.contentblocking.category", "strict");      // Tracker, Fingerprinter, Kryptominer, Cross-Site-Cookies
+user_pref("browser.contentblocking.category", "standard");    // Google-Anmeldung überall (03.11.2026): „streng“ brach „Mit Google anmelden“ auf vielen Seiten – Tracker-Schutz und Cookie-Trennung bleiben an
 user_pref("privacy.trackingprotection.enabled", true);
 user_pref("privacy.trackingprotection.socialtracking.enabled", true);
 user_pref("privacy.query_stripping.enabled", true);
 user_pref("privacy.query_stripping.enabled.pbmode", true);
 user_pref("privacy.globalprivacycontrol.enabled", true);
 user_pref("privacy.donottrackheader.enabled", true);
-user_pref("privacy.fingerprintingProtection", true);
+user_pref("privacy.fingerprintingProtection", false);         // verfälschte Werte ließ Googles Anmeldung scheitern („Browser nicht sicher“) – bekannte Fingerprinter blockt der Tracker-Schutz weiter
+user_pref("privacy.trackingprotection.fingerprinting.enabled", true);
+user_pref("privacy.trackingprotection.cryptomining.enabled", true);
+// Anmelde-Fenster („Mit Google/Apple/Microsoft anmelden“) dürfen ihre Anmeldung an die Seite übergeben (Standard von Firefox).
+user_pref("privacy.restrict3rdpartystorage.heuristic.opened_window_after_interaction", true);
+user_pref("privacy.restrict3rdpartystorage.heuristic.redirect", true);
+user_pref("privacy.restrict3rdpartystorage.heuristic.recently_visited", true);
+user_pref("dom.storage_access.enabled", true);
+user_pref("dom.storage_access.auto_grants", true);
 user_pref("network.cookie.cookieBehavior", 5);                 // vollständiger Cookie-Schutz (jede Seite eigene Keksdose)
 // Anmelde-Weiterleitungen (Google → ChatGPT usw.) nicht als „Bounce-Tracker“ löschen (02.11.2026).
 user_pref("privacy.bounceTrackingProtection.mode", 3);   // 3 = nur erkennen, nichts löschen

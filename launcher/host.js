@@ -22,6 +22,9 @@ const SETTABLE = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'al
   'restoreSession', 'searchEngine', 'watchlist', 'uploadHistory', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'listsInfo'];
 const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine', 'downloadDir'];
 const PROVIDERS = {
+  // ImmoAdv (03.11.2026, Standard): KI über immoadv.de mit dem Browser-Schlüssel aus dem Web-Admin – kein eigener
+  // Anbieter-Schlüssel nötig („KI-Assistent geht nicht wie gehabt“).
+  immoadv: { name: 'ImmoAdv (empfohlen)', model: 'claude-haiku-5-5', needsKey: true },
   anthropic: { name: 'Claude (Anthropic)', model: 'claude-sonnet-5-5', needsKey: true },
   openai: { name: 'ChatGPT (OpenAI)', model: 'gpt-5-mini', needsKey: true },
   ollama: { name: 'Ollama – lokal auf diesem Computer', model: 'llama3.2', needsKey: false }
@@ -120,7 +123,10 @@ const handlers = {
   'vault.testUnlock': () => vault.unlock(),
   // KI: Schlüssel verschlüsselt; die Erweiterung fragt damit direkt beim Anbieter an (über NordVPN, falls an)
   'ai.config': () => {
-    const provider = PROVIDERS[store.get('aiProvider')] ? store.get('aiProvider') : 'anthropic';
+    // Ohne eigenen Anbieter-Schlüssel automatisch ImmoAdv (vorher blieb der Assistent ohne Schlüssel stumm).
+    const keys0 = store.get('aiKeys') || {};
+    let provider = PROVIDERS[store.get('aiProvider')] ? store.get('aiProvider') : 'immoadv';
+    if (PROVIDERS[provider].needsKey && !keys0[provider] && provider !== 'immoadv') provider = 'immoadv';
     const p = PROVIDERS[provider];
     const box = (store.get('aiKeys') || {})[provider];
     const key = box ? dec(box) : null;

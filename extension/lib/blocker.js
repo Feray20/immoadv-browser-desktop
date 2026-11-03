@@ -77,6 +77,9 @@ const Blocker = (() => {
     const allow = (Settings.get('allowlist') || []).concat(WORK_SITES);
     if (allow.some((d) => pageSite === d || pageSite.endsWith('.' + d) || topSite === d || topSite.endsWith('.' + d))) return null;
     // eBay-eigene Hilfsdomains (Bilder, Skripte, Sicherheitsprüfung) nie blockieren – sonst hängen Knöpfe und Fenster.
+    // Anmeldedienste nie blockieren (03.11.2026: „Google-Anmeldung darf nirgends nicht klappen“) – „Mit Google/Apple/
+    // Microsoft anmelden“ lädt Skripte und Fenster von diesen Adressen auf beliebigen Seiten.
+    if (/(^|\.)(accounts\.google\.com|apis\.google\.com|gstatic\.com|googleusercontent\.com|appleid\.apple\.com|appleid\.cdn-apple\.com|idmsa\.apple\.com|login\.microsoftonline\.com|login\.live\.com|aadcdn\.msauth\.net|aadcdn\.msftauth\.net|recaptcha\.net|hcaptcha\.com|challenges\.cloudflare\.com)$/.test(host) || /^www\.google\.com$/.test(host) && /\/recaptcha\//.test(details.url)) return null;
     if (/(^|\.)(ebay\.[a-z.]+|ebaystatic\.com|ebayimg\.com|ebaydesc\.com|ebay-us\.com|ebayrtm\.com|paypal\.com|paypalobjects\.com)$/.test(host)) return null;
     const site = siteOf(host);
     if (sessionAllow.has(site)) return null;

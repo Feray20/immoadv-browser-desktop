@@ -1,23 +1,24 @@
 // ImmoAdv-Fade-Farben für den ganzen Browser (offizielle Design-Schnittstelle von Firefox).
 'use strict';
 const Theme = (() => {
+  // Immer hell (Feray 03.11.2026: „Browser bitte immer hell lassen“) – ImmoAdv-Blau als Akzent, unabhängig vom System.
   const FADE = {
     colors: {
-      frame: '#0f2240', frame_inactive: '#0f2240',
-      tab_background_text: '#a7b4c8', tab_text: '#eef3fb', tab_selected: 'rgba(255,255,255,0.11)',
-      tab_line: '#19C2B0', tab_loading: '#19C2B0', tab_background_separator: 'rgba(0,0,0,0)',
-      toolbar: 'rgba(0,0,0,0)', toolbar_text: '#eef3fb', toolbar_top_separator: 'rgba(0,0,0,0)', toolbar_bottom_separator: 'rgba(255,255,255,0.08)',
-      toolbar_vertical_separator: 'rgba(255,255,255,0.08)',
-      toolbar_field: 'rgba(255,255,255,0.07)', toolbar_field_text: '#eef3fb', toolbar_field_border: 'rgba(255,255,255,0.14)',
-      toolbar_field_focus: '#183863', toolbar_field_text_focus: '#eef3fb', toolbar_field_border_focus: '#4b7bff',
-      toolbar_field_highlight: 'rgba(75,123,255,0.45)', toolbar_field_highlight_text: '#ffffff',
-      button_background_hover: 'rgba(255,255,255,0.11)', button_background_active: 'rgba(255,255,255,0.16)',
-      icons: '#a7b4c8', icons_attention: '#19C2B0', bookmark_text: '#a7b4c8',
-      popup: '#183863', popup_text: '#eef3fb', popup_border: 'rgba(255,255,255,0.14)', popup_highlight: 'rgba(255,255,255,0.08)', popup_highlight_text: '#ffffff',
-      sidebar: '#14305a', sidebar_text: '#eef3fb', sidebar_border: 'rgba(255,255,255,0.08)', sidebar_highlight: 'rgba(75,123,255,0.35)', sidebar_highlight_text: '#ffffff',
-      ntp_background: '#0f2240', ntp_text: '#eef3fb'
+      frame: '#E9EFF8', frame_inactive: '#EEF2F8',
+      tab_background_text: '#475569', tab_text: '#0F172A', tab_selected: '#FFFFFF',
+      tab_line: '#1E6FD9', tab_loading: '#1E6FD9', tab_background_separator: 'rgba(0,0,0,0)',
+      toolbar: '#FFFFFF', toolbar_text: '#0F172A', toolbar_top_separator: 'rgba(0,0,0,0)', toolbar_bottom_separator: '#E2E8F0',
+      toolbar_vertical_separator: '#E2E8F0',
+      toolbar_field: '#F1F5F9', toolbar_field_text: '#0F172A', toolbar_field_border: '#E2E8F0',
+      toolbar_field_focus: '#FFFFFF', toolbar_field_text_focus: '#0F172A', toolbar_field_border_focus: '#1E6FD9',
+      toolbar_field_highlight: 'rgba(30,111,217,0.25)', toolbar_field_highlight_text: '#0F172A',
+      button_background_hover: 'rgba(15,44,89,0.07)', button_background_active: 'rgba(15,44,89,0.12)',
+      icons: '#334155', icons_attention: '#1E6FD9', bookmark_text: '#334155',
+      popup: '#FFFFFF', popup_text: '#0F172A', popup_border: '#E2E8F0', popup_highlight: '#EEF3FA', popup_highlight_text: '#0F172A',
+      sidebar: '#F8FAFC', sidebar_text: '#0F172A', sidebar_border: '#E2E8F0', sidebar_highlight: 'rgba(30,111,217,0.14)', sidebar_highlight_text: '#0F172A',
+      ntp_background: '#F6F9FE', ntp_text: '#0F172A'
     },
-    properties: { color_scheme: 'dark', content_color_scheme: 'dark' }
+    properties: { color_scheme: 'light', content_color_scheme: 'light' }
   };
   async function apply() { try { await browser.theme.update(FADE); } catch (e) { console.warn('Design', e); } }
   return { apply };

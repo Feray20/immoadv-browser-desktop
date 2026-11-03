@@ -34,6 +34,10 @@ stages:
             displayName: Bauen, Store-Paket, Veröffentlichen
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          - publish: feed
+            artifact: feed-windows
+            displayName: Versionsangabe Windows bereitlegen
+            condition: succeeded()
           - publish: store
             artifact: microsoft-store-paket
             displayName: Store-Paket bereitlegen
@@ -58,5 +62,32 @@ stages:
             inputs: { versionSpec: '22.x' }
           - bash: bash scripts/azure-build.sh mac
             displayName: Bauen und Veröffentlichen
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          - publish: feed
+            artifact: feed-mac
+            displayName: Versionsangabe Mac bereitlegen
+            condition: succeeded()
+
+  # Gemeinsame Freigabe (03.11.2026): erst wenn Windows UND Mac gebaut sind, sehen die installierten Browser die neue
+  # Version – so laufen beide Geräte immer auf demselben Stand.
+  - stage: freigabe
+    displayName: Freigabe Windows + Mac
+    dependsOn: [windows, mac]
+    condition: succeeded()
+    jobs:
+      - job: feed
+        displayName: Update für beide Systeme freigeben
+        pool:
+          name: ImmoAdv
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - download: current
+            patterns: 'feed-*/**'
+          - task: NodeTool@0
+            inputs: { versionSpec: '22.x' }
+          - script: node scripts/publish-immoadv.mjs feed "$(Pipeline.Workspace)"
+            displayName: Freigeben
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)

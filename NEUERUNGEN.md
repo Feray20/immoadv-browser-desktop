@@ -1,3 +1,12 @@
+ImmoAdv Browser 4.1.28 – immer hell, KI-Assistent, gleicher Stand auf Mac und Windows
+- Immer helles Design – Leisten, Menüs, eigene Seiten und Webseiten
+- KI-Assistent (✦) läuft wieder ohne eigenen Anbieter-Schlüssel: einmal im Web-Admin unter Einstellungen → Konten „ImmoAdv Browser · KI-Assistent“ verbinden
+- „Mit Google anmelden“ klappt auf allen Seiten (Anmeldedienste werden nie blockiert)
+- Keine Scrollleisten, auch auf den eigenen Seiten; mit der Maus hoch, runter, links und rechts ziehen
+- Mac: Altes wird automatisch entfernt – alte Kopien in den Papierkorb, falsche Dock-Einträge weg; nur noch ein Browser
+- Mac und Windows bekommen neue Versionen nur noch gemeinsam – nie mehr unterschiedliche Stände
+- Office-Dateien öffnet ab jetzt die ImmoAdv-Software, der Browser nur noch Bilder, PDFs und Webseiten
+
 ImmoAdv Browser 4.1.27 – ein Symbol, saubere Anmeldung, keine Scrollleisten
 - Nur noch ein ImmoAdv-Browser-Symbol in der Taskleiste – das angeheftete Symbol bleibt bei jedem Update erhalten
 - Altes wird beim ersten Start automatisch entfernt: doppelte oder tote Verknüpfungen und alte Installationen – Passwörter, Lesezeichen und Profil bleiben

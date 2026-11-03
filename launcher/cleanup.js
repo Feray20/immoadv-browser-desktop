@@ -53,7 +53,55 @@ Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force
 `;
 }
 
+// Mac (03.11.2026, Feray: „zwei Browser, einer mit alter Version“; „Dock fixen“): einmal je Version still aufräumen –
+//  • weitere Kopien „ImmoAdv Browser*.app“ (Downloads, Schreibtisch, ~/Programme, /Programme) und alte DMG-Installer in den
+//    Papierkorb (wiederherstellbar) und bei macOS abmelden, damit „Öffnen mit“/Spotlight nie die alte Kopie starten,
+//  • Dock-Einträge, die auf den Motor (…/Motor/Firefox.app) oder eine alte Kopie zeigen, entfernen – ein angehefteter
+//    Motor startete den Browser ohne Profil und ohne Updates („alte Version“). Die richtige App bleibt bzw. kommt ins Dock.
+// Profil, Passwörter, Lesezeichen und Anmeldungen liegen im Profilordner und bleiben unberührt.
+async function runMac(store, log) {
+  const v = app.getVersion();
+  try { if (store.get('cleanupDone') === v) return; } catch { /* egal */ }
+  const os = require('node:os'); const { shell } = require('electron'); const cp = require('node:child_process');
+  const sh = (cmd, args) => new Promise((ok) => cp.execFile(cmd, args, { timeout: 15000 }, (e, out) => ok(e ? '' : String(out))));
+  const self = app.getPath('exe').replace(/\/Contents\/MacOS\/[^/]+$/, '');
+  let motor = ''; try { motor = require('./engine').paths.engine(); } catch { motor = path.join(app.getPath('userData'), 'Motor'); }
+  const LSR = '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister';
+  const home = os.homedir();
+  for (const dir of [path.join(home, 'Downloads'), path.join(home, 'Desktop'), path.join(home, 'Applications'), '/Applications']) {
+    let names = []; try { names = fs.readdirSync(dir); } catch { continue; }
+    for (const n of names) {
+      const full = path.join(dir, n);
+      const altApp = /^ImmoAdv[ -]?Browser.*\.app$/i.test(n) && full !== self;
+      const altDmg = /^ImmoAdv-Browser-[\d.]+(-arm64)?\.dmg$/i.test(n) && !n.includes(v);
+      if (!altApp && !altDmg) continue;
+      try { if (altApp) await sh(LSR, ['-u', full]); await shell.trashItem(full); log(`Aufräumen (Mac): in den Papierkorb – ${full}`); } catch (e) { log(`Aufräumen (Mac): ${full} – ${e.message}`); }
+    }
+  }
+  // Dock: Einträge auf Motor oder alte Kopien entfernen, die richtige App sicherstellen.
+  const PB = '/usr/libexec/PlistBuddy', plist = path.join(home, 'Library', 'Preferences', 'com.apple.dock.plist');
+  try {
+    let changed = false, has = false;
+    for (let i = 60; i >= 0; i--) {
+      const u = decodeURIComponent((await sh(PB, ['-c', `Print :persistent-apps:${i}:tile-data:file-data:_CFURLString`, plist])).trim());
+      if (!u) continue;
+      const p0 = u.replace(/^file:\/\//, '').replace(/\/$/, '');
+      const motorApp = motor && p0.startsWith(motor);
+      const alt = /ImmoAdv[ -]?Browser[^/]*\.app$/i.test(p0) && p0 !== self;
+      if (p0 === self) has = true;
+      if (motorApp || alt) { await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]); changed = true; log(`Aufräumen (Mac): Dock-Eintrag entfernt – ${p0}`); }
+    }
+    if (changed && !has && self.endsWith('.app')) {
+      await sh('defaults', ['write', 'com.apple.dock', 'persistent-apps', '-array-add', `<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>file://${encodeURI(self)}/</string><key>_CFURLStringType</key><integer>15</integer></dict></dict></dict>`]);
+    }
+    if (changed) await sh('killall', ['cfprefsd']).then(() => sh('killall', ['Dock']));
+  } catch (e) { log('Aufräumen (Mac, Dock): ' + e.message); }
+  try { await sh(LSR, ['-f', self]); } catch { /* egal */ }
+  try { store.setQuiet('cleanupDone', v); } catch { /* egal */ }
+}
+
 function run(store, log) {
+  if (process.platform === 'darwin' && app.isPackaged) { runMac(store, log).catch((e) => log('Aufräumen (Mac): ' + e.message)); return; }
   if (process.platform !== 'win32' || !app.isPackaged) return;
   const v = app.getVersion();
   try { if (store.get('cleanupDone') === v) return; } catch { /* egal */ }

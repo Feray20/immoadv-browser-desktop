@@ -95,15 +95,8 @@ mac:
     - ext: pdf
       name: PDF-Dokument
       role: Viewer
-    - ext: [docx, doc]
-      name: Word-Dokument
-      role: Viewer
-    - ext: [xlsx, xls, csv]
-      name: Excel-Tabelle
-      role: Viewer
-    - ext: [pptx, ppt]
-      name: PowerPoint-Präsentation
-      role: Viewer
+    # Office-Dateien öffnet die ImmoAdv-Software (Wunsch Feray 03.11.2026: „Browser nur Bilder und PDFs mit Bearbeiten,
+    # Office bei ImmoAdv“) – der Browser meldet sich dafür nicht mehr an.
     # Bilder (02.11.2026): öffnen per Doppelklick mit den Bild-Werkzeugen des Browsers – wie unter Windows
     - ext: [png, jpg, jpeg, gif, webp, bmp]
       name: Bild

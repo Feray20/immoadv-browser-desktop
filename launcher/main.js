@@ -96,7 +96,7 @@ function starter() {
     if (win && !win.isDestroyed()) { win.show(); win.focus(); return; }
     win = new BrowserWindow({
       width: 560, height: 420, resizable: false, show: false, title: 'ImmoAdv Browser',
-      backgroundColor: '#07111f', titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+      backgroundColor: '#F6F9FE', titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
       ...(process.platform === 'win32' ? { titleBarOverlay: { color: '#00000000', symbolColor: '#ffffff', height: 34 } } : {}),
       autoHideMenuBar: true,
       webPreferences: { preload: path.join(__dirname, 'ui', 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false }

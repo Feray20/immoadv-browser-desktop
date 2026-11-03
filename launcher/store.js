@@ -66,7 +66,7 @@ const defaults = {
   // Verlauf (nur lokal): Tage aufbewahren, 0 = kein Verlauf
   historyDays: 30,
   // KI-Assistent (eigener Schlüssel oder lokal mit Ollama)
-  aiProvider: 'anthropic',
+  aiProvider: 'immoadv',
   aiKeys: {},
   aiModels: {},
   aiInstructions: '',

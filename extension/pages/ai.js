@@ -71,10 +71,12 @@ async function errorText(res) {
   return `Der KI-Anbieter meldet einen Fehler (${res.status}). ${typeof msg === 'string' ? msg : ''}`.trim();
 }
 async function call(sys, messages, signal, onText) {
-  if (cfg.provider === 'anthropic') {
-    const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal, credentials: 'omit',
-      headers: { 'content-type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: cfg.model, max_tokens: 4096, system: sys, messages, stream: true }) });
+  if (!cfg || (cfg.needsKey && !cfg.key)) throw new Error(cfg && cfg.provider === 'immoadv' ? 'Noch nicht verbunden: Im Web-Admin unter Einstellungen → Konten „ImmoAdv Browser · KI-Assistent“ → Verbinden, dann den Schlüssel hier unter Einstellungen → KI-Assistent einfügen.' : 'Kein Schlüssel hinterlegt – bitte unter Einstellungen → KI-Assistent eintragen.');
+  if (cfg.provider === 'anthropic' || cfg.provider === 'immoadv') {
+    const viaImmo = cfg.provider === 'immoadv';
+    const res = await fetch(viaImmo ? 'https://immoadv.de/api/browser/ki' : 'https://api.anthropic.com/v1/messages', { method: 'POST', signal, credentials: 'omit',
+      headers: viaImmo ? { 'content-type': 'application/json', authorization: `Bearer ${cfg.key}` } : { 'content-type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify(viaImmo ? { system: sys, messages } : { model: cfg.model, max_tokens: 4096, system: sys, messages, stream: true }) });
     if (!res.ok) throw new Error(await errorText(res));
     for await (const line of sse(res)) { if (!line.startsWith('data:')) continue; let d; try { d = JSON.parse(line.slice(5)); } catch (e) { continue; } if (d.type === 'content_block_delta' && d.delta && d.delta.text) onText(d.delta.text); if (d.type === 'error') throw new Error((d.error && d.error.message) || 'Fehler'); }
   } else if (cfg.provider === 'openai') {

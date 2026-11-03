@@ -1,11 +1,11 @@
 /* ImmoAdv Fade für Firefox-eigene Seiten (Einstellungen, Downloads, Add-ons, Fehlerseiten) */
 @-moz-document url-prefix("about:") {
   :root {
-    --in-content-page-background: #0f2240 !important;
-    --in-content-box-background: #183863 !important;
-    --in-content-box-border-color: rgba(255,255,255,.14) !important;
-    --in-content-page-color: #eef3fb !important;
-    --in-content-deemphasized-text: #a7b4c8 !important;
+    --in-content-page-background: #F6F9FE !important;
+    --in-content-box-background: #FFFFFF !important;
+    --in-content-box-border-color: #E2E8F0 !important;
+    --in-content-page-color: #0F172A !important;
+    --in-content-deemphasized-text: #475569 !important;
     --in-content-primary-button-background: #2A5BD7 !important;
     --in-content-primary-button-background-hover: #3a6cf0 !important;
     --in-content-accent-color: #4b7bff !important;
@@ -13,7 +13,7 @@
     --in-content-border-radius: 12px !important;
     --border-radius-medium: 10px !important;
   }
-  body { background: #0f2240 radial-gradient(900px 520px at 12% -10%, rgba(42,91,215,.22), transparent 60%) !important; }
+  body { background: #F6F9FE radial-gradient(900px 520px at 12% -10%, rgba(42,91,215,.08), transparent 60%) !important; }
 }
 
 /* Knöpfe passen immer in ihren Rahmen (Feray 02.11.2026: „alle Buttons müssen natürlich passen“) – Firefox-eigene Seiten */

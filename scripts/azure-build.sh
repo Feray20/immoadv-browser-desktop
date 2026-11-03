@@ -44,12 +44,13 @@ if [ "$P" = "windows" ]; then
   node scripts/store-package.mjs                 # dann das Store-Paket (.appx) – liegt in Azure unter „Artefakte“
   rm -rf store && mkdir -p store && cp dist/*.appx store/ 2>/dev/null || true
 else
-  if [ -n "${CSC_NAME:-}" ]; then
-    npx electron-builder --mac --arm64 --publish never
-  else
-    # Ohne Apple-Zertifikat (02.11.2026, Feray: „ImmoAdv Browser ist beschädigt“): electron-builder überspringt dann das
-    # Signieren – die Signatur des Programms passte nicht mehr zum Inhalt, macOS meldete „beschädigt“. Darum erst das
-    # Programm bauen, dann vollständig ad-hoc signieren (gültige Signatur, gleiche Rechte) und daraus dmg + zip packen.
+  # Ohne Apple-Zertifikat – oder wenn Signieren/Beglaubigen mit Zertifikat scheitert (03.11.2026: der Mac-Bau blieb seit
+  # 4.1.17 aus, der Mac bekam keine neuen Versionen mehr) – wird ad-hoc signiert gebaut, damit der Mac nie zurückbleibt.
+  adhoc() {
+    # (02.11.2026, Feray: „ImmoAdv Browser ist beschädigt“): erst das Programm bauen, dann vollständig ad-hoc signieren
+    # (gültige Signatur, gleiche Rechte) und daraus dmg + zip packen.
+    unset CSC_NAME APPLE_KEYCHAIN_PROFILE; export CSC_IDENTITY_AUTO_DISCOVERY=false
+    rm -rf dist
     npx electron-builder --mac dir --arm64 --publish never
     SRC=$(ls -d dist/mac-arm64/*.app | head -1)
     PRE="$(mktemp -d)"; cp -R "$SRC" "$PRE/"; APP="$PRE/$(basename "$SRC")"; rm -rf dist
@@ -59,6 +60,11 @@ else
     codesign --force --deep --sign - --options runtime --entitlements build/entitlements.mac.plist "$APP"
     codesign --verify --deep --strict "$APP" && echo "Signatur geprüft: ad-hoc, gültig"
     npx electron-builder --mac --arm64 --publish never --prepackaged "$APP"
+  }
+  if [ -n "${CSC_NAME:-}" ]; then
+    npx electron-builder --mac --arm64 --publish never || { echo "Signierter Bau fehlgeschlagen – baue ad-hoc signiert weiter."; adhoc; }
+  else
+    adhoc
   fi
   node scripts/publish-immoadv.mjs mac
 fi

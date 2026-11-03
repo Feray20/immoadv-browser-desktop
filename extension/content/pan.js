@@ -14,27 +14,38 @@
     if (root && root.scrollWidth > root.clientWidth + 4 && getComputedStyle(root).overflowX !== 'hidden' && getComputedStyle(document.body || root).overflowX !== 'hidden') return root;
     return null;
   };
-  let on = false, live = false, x0 = 0, y0 = 0, s0 = 0, sc = null, raf = 0, dx = 0, eatUntil = 0;
+  // Hoch/runter (03.11.2026, Feray: „links rechts oben unten mit der Maus schieben“): auf freier Fläche (kein Text direkt
+  // unter der Maus, kein Knopf/Feld) schiebt ein senkrechter Zug den nächsten senkrecht scrollbaren Bereich bzw. die Seite.
+  const scrollerY = (el) => {
+    for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
+      if (e.scrollHeight > e.clientHeight + 4) { const oy = getComputedStyle(e).overflowY; if (oy === 'auto' || oy === 'scroll') return e; }
+    }
+    const root = document.scrollingElement || document.documentElement;
+    return root && root.scrollHeight > root.clientHeight + 4 ? root : null;
+  };
+  const hasText = (el) => { for (const n of el.childNodes) if (n.nodeType === 3 && n.nodeValue.trim()) return true; return false; };
+  let on = false, live = false, x0 = 0, y0 = 0, s0 = 0, sc = null, raf = 0, dx = 0, dy = 0, eatUntil = 0, ysc = null, v0 = 0, vert = false;
   addEventListener('pointerdown', (e) => {
     on = false;
     if (e.pointerType !== 'mouse' || e.button !== 0 || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.detail > 1 || e.defaultPrevented) return;
     const t = e.target; if (!(t instanceof Element) || t.closest(NOGO)) return;
-    sc = scroller(t); if (!sc) return;
-    on = true; live = false; x0 = e.clientX; y0 = e.clientY; s0 = sc.scrollLeft; dx = 0;
+    sc = scroller(t); ysc = hasText(t) || t instanceof HTMLImageElement ? null : scrollerY(t);
+    if (!sc && !ysc) return;
+    on = true; live = false; vert = false; x0 = e.clientX; y0 = e.clientY; s0 = sc ? sc.scrollLeft : 0; v0 = ysc ? ysc.scrollTop : 0; dx = 0; dy = 0;
   }, { passive: true });
   addEventListener('pointermove', (e) => {
     if (!on) return;
     if (!(e.buttons & 1)) { on = false; return; }
-    dx = e.clientX - x0; const dy = e.clientY - y0;
+    dx = e.clientX - x0; dy = e.clientY - y0;
     if (!live) {
-      if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) { on = false; return; }
-      if (Math.abs(dx) < 6) return;
+      if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) { if (!ysc) { on = false; return; } vert = true; }
+      else if (Math.abs(dx) < 6 || !sc) return;
       live = true;
       try { getSelection().removeAllRanges(); } catch (er) { /* egal */ }
       document.documentElement.style.setProperty('cursor', 'grabbing', 'important');
       document.documentElement.style.setProperty('user-select', 'none', 'important');
     }
-    if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (live && sc) sc.scrollLeft = s0 - dx; });
+    if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (!live) return; if (vert && ysc) ysc.scrollTop = v0 - dy; else if (sc) sc.scrollLeft = s0 - dx; });
   }, { passive: true });
   const end = () => {
     if (!on) return; on = false;
