@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.34 – „ImmoAdv Browser“ im Dock, saubere Updates am Mac
+- Mac: Dock, Cmd+Tab, Finder und „Sofort beenden“ zeigen „ImmoAdv Browser“ statt „Firefox“ – auch bei englischer Systemsprache
+- Mac: Beim Update schließt sich der Browser zuerst sauber, dann wird ausgetauscht und neu gestartet – kein halb neues Design mehr, alle Tabs kommen wieder
+
 ImmoAdv Browser 4.1.33 – ImmoAdv-Fade zurück, Webseiten hell
 - Oberfläche wieder im ImmoAdv-Fade wie gewohnt: Tabs, Adressleiste, Menüs, Startseite und Einstellungen in Dunkelblau mit Fade, helle Symbole
 - Webseiten selbst bleiben immer hell

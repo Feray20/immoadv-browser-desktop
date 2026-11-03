@@ -100,7 +100,7 @@ async function runMac(store, log) {
 // -Logo und festem ImmoAdv-Profil) – dann zeigt das angeheftete Symbol auch den Punkt „läuft“, statt daneben ein zweites.
 // Einmalig: Starter-Eintrag im Dock durch den Browser ersetzen (an derselben Stelle), doppelte Einträge entfernen.
 // Erst wenn der Motor das feste Profil im Programmpaket hat, sonst startete das Dock-Symbol ohne Profil.
-const DOCK_MARK = 'dock-v3';
+const DOCK_MARK = 'dock-v4';   // v4 (03.11.2026): gemerkte Beschriftung „Firefox“ am Dock-Symbol durch „ImmoAdv Browser“ ersetzen
 async function dockMac(store, engine) {
   if (process.platform !== 'darwin' || !app.isPackaged) return;
   try { if (store.get('dockDone') === DOCK_MARK) return; } catch { /* egal */ }
@@ -118,7 +118,10 @@ async function dockMac(store, engine) {
     if (!raw) continue;
     const p0 = decodeURIComponent(raw).replace(/^file:\/\//, '').replace(/\/$/, '');
     if (p0 === motorApp) {
-      if (haveMotor) { await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]); changed = true; } else haveMotor = true;
+      if (haveMotor) { await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]); changed = true; continue; }
+      haveMotor = true;
+      const label = (await sh(PB, ['-c', `Print :persistent-apps:${i}:tile-data:file-label`, plist])).trim();
+      if (label && label !== 'ImmoAdv Browser') { await sh(PB, ['-c', `Set :persistent-apps:${i}:tile-data:file-label ImmoAdv Browser`, plist]); changed = true; log('Dock: Beschriftung „' + label + '“ → „ImmoAdv Browser“'); }
     }
   }
   for (let i = 60; i >= 0; i--) {

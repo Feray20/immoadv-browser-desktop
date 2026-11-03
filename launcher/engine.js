@@ -278,7 +278,10 @@ async function brandMac() {
   // Merker v4 (03.11.2026, Feray: „da steht noch Firefox statt ImmoAdv Browser“): Finder/„Öffnen mit“ zeigten den
   // Dateinamen „Firefox“ – jetzt LSHasLocalizedDisplayName (Finder nimmt den Namen ImmoAdv Browser) und der Motor meldet
   // keine Dateitypen mehr an, damit er in „Öffnen mit“ nicht als zweiter Browser erscheint (das macht der Starter).
-  const mark = path.join(paths.engine(), '.immoadv-name4');
+  // Merker v5 (03.11.2026, Feray: Dock zeigt beim Zeigen noch „Firefox“): Gibt es für die Systemsprache (z. B. Englisch)
+  // keine übersetzte Namensdatei im Motor, nimmt macOS den Dateinamen „Firefox“. Jetzt wird sie für Englisch, Deutsch und
+  // Base immer angelegt – Dock, Cmd+Tab, Finder und „Sofort beenden“ zeigen dann in jeder Sprache „ImmoAdv Browser“.
+  const mark = path.join(paths.engine(), '.immoadv-name5');
   let st; try { st = fs.statSync(plist); } catch { return false; }
   const key = `${st.size}:${st.mtimeMs}`;
   try { if (fs.readFileSync(mark, 'utf8') === key) return false; } catch { /* noch nie */ }
@@ -299,6 +302,14 @@ async function brandMac() {
         await run('plutil', ['-convert', 'xml1', f]);
         await run('plutil', ['-replace', 'CFBundleName', '-string', NAME, f]);
         await run('plutil', ['-replace', 'CFBundleDisplayName', '-string', NAME, f]);
+      } catch (e) { log('Name ' + d + ': ' + (e.message || e)); }
+    }
+    for (const d of ['en.lproj', 'English.lproj', 'de.lproj', 'Base.lproj']) {
+      const f = path.join(res, d, 'InfoPlist.strings');
+      if (fs.existsSync(f)) continue;
+      try {
+        fs.mkdirSync(path.join(res, d), { recursive: true });
+        fs.writeFileSync(f, `CFBundleName = "${NAME}";\nCFBundleDisplayName = "${NAME}";\n`, 'utf8');
       } catch (e) { log('Name ' + d + ': ' + (e.message || e)); }
     }
     // Logo: das ImmoAdv-Symbol des Programms statt des Firefox-Symbols (Asset-Katalog-Verweis entfernen, sonst gewinnt er).

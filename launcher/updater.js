@@ -147,12 +147,21 @@ function installMac({ relaunch = true } = {}) {
     // Programme-Ordner nicht beschreibbar → Mac fragt einmal nach dem Passwort
     log('Programme-Ordner schreibgeschützt – Installation mit Admin-Freigabe');
   }
+  let motorApp = ''; try { motorApp = path.join(require('./engine').paths.engine(), 'Firefox.app'); } catch { /* egal */ }
   const script = path.join(path.dirname(macZip), 'install.sh');
   const q = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
   fs.writeFileSync(script, `#!/bin/bash
 PID=${process.pid}; APP=${q(bundle)}; ZIP=${q(macZip)}; TMP="$(mktemp -d)"
 LOG=${q(path.join(app.getPath('userData'), 'update.log'))}
 for i in $(seq 1 60); do kill -0 $PID 2>/dev/null || break; sleep 0.5; done
+# 03.11.2026 (Feray: „jetzt komplett Müll“ nach dem Update): Der Motor lief beim Austausch weiter – die Erweiterung wurde
+# unter dem laufenden Browser ersetzt (Seiten ohne Design, Leisten halb alt/halb neu). Jetzt erst den Motor sauber
+# beenden (Tabs werden gespeichert), dann austauschen, dann neu starten.
+MOTOR=${q(motorApp)}
+if [ -n "$MOTOR" ] && [ -d "$MOTOR" ]; then
+  osascript -e "tell application \"$MOTOR\" to quit" >/dev/null 2>&1
+  for i in $(seq 1 40); do pgrep -f "$MOTOR/Contents/MacOS/" >/dev/null || break; sleep 0.5; done
+fi
 if ditto -x -k "$ZIP" "$TMP" && [ -d "$TMP/ImmoAdv Browser.app" ]; then
   xattr -cr "$TMP/ImmoAdv Browser.app" 2>/dev/null
   if [ -w "$(dirname "$APP")" ]; then
@@ -167,7 +176,7 @@ else
   echo "$(date -u +%FT%TZ) Mac-Update: Entpacken fehlgeschlagen" >> "$LOG"
 fi
 rm -rf "$TMP"
-${relaunch ? 'open "$APP"' : ''}
+${relaunch ? 'open "$APP" --args --updated' : ''}
 `, { mode: 0o755 });
   const ch = require('node:child_process').spawn('/bin/bash', [script], { detached: true, stdio: 'ignore' }); ch.on('error', (e) => log('Installieren nicht gestartet: ' + e.message)); ch.unref();
   if (relaunch) setImmediate(() => app.quit());
