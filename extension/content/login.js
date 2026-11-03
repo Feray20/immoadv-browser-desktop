@@ -17,12 +17,24 @@
     if (!pws.length) return;
     const pass = pws[pws.length - 1].value;   // Registrierung/Passwortwechsel: das letzte Feld ist das neue Passwort
     const u = userFieldFor(pws[0]);
-    const user = u && u.value ? u.value.trim() : '';
+    // Zweistufige Anmeldung (Google, Microsoft, eBay, Amazon: erst E-Mail, dann Passwort auf einer neuen Seite) – den
+    // Benutzernamen aus Schritt 1 nehmen, sonst würde das Passwort ohne Namen gespeichert (03.11.2026).
+    let user = u && u.value ? u.value.trim() : '';
+    if (!user) { try { const m = JSON.parse(sessionStorage.getItem('immoadv-pw-user') || 'null'); if (m && m.h === location.hostname && Date.now() - m.at < 15 * 60000) user = m.u; } catch (e) { /* egal */ } }
     const key = user + '\u0000' + pass;
     if (key === lastSent) return;
     lastSent = key;
     send({ type: 'pw:submitted', url: location.href, user, pass });
   }
+  // Schritt 1 einer zweistufigen Anmeldung merken (nur Name/E-Mail, nur in dieser Seite, 15 Minuten).
+  function rememberUser(scope) {
+    if ((scope || document).querySelector('input[type="password"]')) return;
+    const f = [...(scope || document).querySelectorAll('input[type="email"], input[autocomplete="username"], input[name*="user" i], input[name*="email" i], input[name*="login" i], input[id*="email" i], input[id*="user" i]')].find((i) => vis(i) && i.value && i.value.length < 200);
+    if (f) { try { sessionStorage.setItem('immoadv-pw-user', JSON.stringify({ h: location.hostname, u: f.value.trim(), at: Date.now() })); } catch (e) { /* egal */ } }
+  }
+  window.addEventListener('submit', (e) => rememberUser(e.target), true);
+  window.addEventListener('click', (e) => { const b = e.target && e.target.closest ? e.target.closest('button, input[type="submit"], [role="button"]') : null; if (b) rememberUser(b.form || b.closest('form') || document); }, true);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target && e.target.type !== 'password') rememberUser(e.target.form || document); }, true);
   window.addEventListener('submit', (e) => capture(e.target), true);
   window.addEventListener('click', (e) => {
     const b = e.target && e.target.closest ? e.target.closest('button, input[type="submit"], [role="button"]') : null;
@@ -100,8 +112,11 @@
   }
   async function fillWith(e, b) {
     if (b) b.textContent = 'Wird übernommen …';
+    // Wartet die Freigabe länger (Mac: Schlüsselbund-Abfrage nach einem Update), sagen, was zu tun ist – statt still zu hängen.
+    const slow = setTimeout(() => { if (b && b.isConnected) b.textContent = navigator.platform.startsWith('Mac') ? 'Bitte die Mac-Abfrage „Schlüsselbund“ mit „Immer erlauben“ bestätigen …' : 'Bitte die Windows-Abfrage bestätigen …'; }, 4000);
     const r = await send({ type: 'pw:fill', id: e.id, url: location.href });
-    if (!r || !r.pass) { if (b) b.textContent = 'Nicht möglich'; return; }
+    clearTimeout(slow);
+    if (!r || !r.pass) { if (b) b.textContent = 'Nicht möglich – Freigabe abgelehnt oder abgelaufen. Erneut tippen.'; return; }
     const pw = [...document.querySelectorAll('input[type="password"]')].find(vis);
     const u = pw ? userFieldFor(pw) : anchorField();
     if (vis(u) && r.user) setVal(u, r.user);

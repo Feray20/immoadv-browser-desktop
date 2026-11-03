@@ -1,3 +1,12 @@
+ImmoAdv Browser 4.1.36 – Passwörter zuverlässig, PDFs und Bilder, schneller
+- Passwörter: Vorschläge genau nach Link – Einträge der gleichen Adresse (z. B. developer.ebay.com) stehen zuerst; die Anmeldeseite wird mitgespeichert und auf allen Geräten abgeglichen
+- Zweistufige Anmeldungen (Google, Microsoft, eBay, Amazon): das Passwort wird mit dem richtigen Benutzernamen gespeichert
+- Wartet das Ausfüllen auf eine Freigabe, steht dort jetzt, was zu tun ist – statt „Wird übernommen …“ ohne Ende
+- Mac: Der Browser wird mit deinem Apple-Zertifikat signiert – die Schlüsselbund-Abfrage nach jedem Update entfällt (einmal „Immer erlauben“)
+- Dateien: PDFs und Bilder öffnen im Browser, Word/Excel/PowerPoint in ImmoAdv Admin; „Als Standard festlegen“ meldet ehrlich, was noch fehlt
+- Einstellungen: Felder bei „Passwort hinzufügen“ einheitlich und auf einer Linie
+- Schneller: Adressen werden vorab aufgelöst, die Upload-Erkennung startet erst nach dem Laden der Seite
+
 ImmoAdv Browser 4.1.35 – ImmoAdv KI kostenlos auf deinem Computer
 - KI-Assistent ohne Kosten: Die neue ImmoAdv KI läuft komplett auf deinem Computer – kein Konto, kein Abo, keine Daten ins Internet
 - Automatisch das stärkste Modell, das zu deinem Arbeitsspeicher passt (Qwen 3, sehr gutes Deutsch)

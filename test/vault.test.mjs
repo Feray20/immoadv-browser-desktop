@@ -26,10 +26,21 @@ test('CSV aus Apple „Passwörter“ wird verschlüsselt übernommen', () => {
   assert.equal(stored.site, 'immowelt.de');
   assert.notEqual(stored.pass, 'geh,eim"1');                 // nie im Klartext
   assert.ok(vault.known('https://immowelt.de/x', 'feray@example.de', 'geh,eim"1'));
-  assert.deepEqual(vault.forUrl('https://m.immowelt.de/'), [{ id: stored.id, user: 'feray@example.de', host: 'www.immowelt.de' }]);
+  assert.deepEqual(vault.forUrl('https://m.immowelt.de/'), [{ id: stored.id, user: 'feray@example.de', host: 'www.immowelt.de', url: 'https://www.immowelt.de/login' }]); // genauer Link der Anmeldeseite (03.11.2026)
 });
 
 test('Google-Export (name,url,username,password) und unbekanntes Format', () => {
   assert.equal(vault.importCSV('name,url,username,password\nx,https://a.example.com,u,p\n').added, 1);
   assert.ok(vault.importCSV('foo,bar\n1,2\n').error);
+});
+
+test('genau nach Link: Eintrag vom selben Host steht vorne', async () => {
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const vault = require('../launcher/vault.js');
+  vault.add({ url: 'https://signin.ebay.de/ws/eBayISAPI.dll', user: 'shop@example.de', pass: 'a1' });
+  vault.add({ url: 'https://developer.ebay.com/signin', user: 'dev@example.de', pass: 'b2' });
+  const l = vault.forUrl('https://developer.ebay.com/signin?ru=x');
+  assert.equal(l[0].user, 'dev@example.de');
+  assert.equal(l[0].url, 'https://developer.ebay.com/signin');
 });

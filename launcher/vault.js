@@ -33,8 +33,15 @@ function matches(p, url) {
   return true;
 }
 /** Einträge für eine Seite, ohne Passwörter */
+// Genau nach Link (03.11.2026, Feray: „exakt nach Link“): Einträge vom selben Host (z. B. developer.ebay.com) stehen vor
+// denen der übrigen Seite (signin.ebay.de); mit gleichem Host zuerst der mit derselben Anmeldeseite.
+const pathOf = (u) => { try { return new URL(/^[a-z]+:\/\//i.test(u) ? u : 'https://' + u).pathname; } catch { return ''; } };
+const cleanUrl = (u) => { try { const x = new URL(/^[a-z]+:\/\//i.test(u) ? u : 'https://' + u); return `${x.origin}${x.pathname}`.slice(0, 300); } catch { return ''; } };
 function forUrl(url) {
-  return all().filter((p) => matches(p, url)).map(({ id, user, host }) => ({ id, user, host }));
+  const h = noWww(hostOf(url)), pth = pathOf(url);
+  const rank = (p) => (noWww(p.host) === h ? (p.url && pathOf(p.url) === pth ? 0 : 1) : 2);
+  return all().filter((p) => matches(p, url)).sort((a, b) => rank(a) - rank(b) || (b.used || b.changed || b.added || 0) - (a.used || a.changed || a.added || 0))
+    .map(({ id, user, host, url: u }) => ({ id, user, host, url: u || '' }));
 }
 
 function add({ url, user, pass }) {
@@ -44,8 +51,8 @@ function add({ url, user, pass }) {
   const list = all();
   // Gleicher Eintrag nur bei derselben Seite – bei Hosting-Diensten nur beim selben Host (nichts quer überschreiben)
   const same = list.find((p) => p.site === site && p.user === (user || '') && (!sharedSite(site) || noWww(p.host) === noWww(host)));
-  if (same) { same.pass = enc(pass); same.changed = Date.now(); }
-  else list.push({ id: crypto.randomUUID(), site, host, user: user || '', pass: enc(pass), added: Date.now() });
+  if (same) { same.pass = enc(pass); same.changed = Date.now(); same.host = host; same.url = cleanUrl(url) || same.url; }
+  else list.push({ id: crypto.randomUUID(), site, host, url: cleanUrl(url), user: user || '', pass: enc(pass), added: Date.now() });
   save(list);
   return true;
 }
@@ -156,7 +163,7 @@ function importCSV(text) {
 // Klartext verlässt dieses Programm nur Ende-zu-Ende-verschlüsselt mit dem Sync-Schlüssel (AES-256-GCM).
 function plainEntries() {
   const out = [];
-  for (const p of all()) { const pass = dec(p.pass); if (pass != null) out.push({ id: p.id, site: p.site, host: p.host, user: p.user || '', pass, changed: p.changed || p.added || 0 }); }
+  for (const p of all()) { const pass = dec(p.pass); if (pass != null) out.push({ id: p.id, site: p.site, host: p.host, url: p.url || '', user: p.user || '', pass, changed: p.changed || p.added || 0 }); }
   return out;
 }
 function applySync(b, deleted) {
@@ -165,14 +172,14 @@ function applySync(b, deleted) {
   const i = list.findIndex((p) => p.site === b.site && (p.user || '') === (b.user || '') && (!sharedSite(b.site) || noWww(p.host) === noWww(b.host)));
   if (deleted) { if (i >= 0) { list.splice(i, 1); save(list); } return; }
   if (!b.pass) return;
-  if (i >= 0) { if (dec(list[i].pass) === b.pass) return; list[i] = { ...list[i], pass: enc(b.pass), changed: Number(b.changed) || Date.now() }; }
-  else list.push({ id: crypto.randomUUID(), site: b.site, host: b.host || b.site, user: b.user || '', pass: enc(b.pass), added: Date.now(), changed: Number(b.changed) || Date.now() });
+  if (i >= 0) { if (dec(list[i].pass) === b.pass) return; list[i] = { ...list[i], pass: enc(b.pass), url: b.url || list[i].url, changed: Number(b.changed) || Date.now() }; }
+  else list.push({ id: crypto.randomUUID(), site: b.site, host: b.host || b.site, url: b.url || '', user: b.user || '', pass: enc(b.pass), added: Date.now(), changed: Number(b.changed) || Date.now() });
   save(list);
 }
 
 module.exports = { removeMany, status, update, matches, plainEntries, applySync,
   forUrl, add, known, remove, unlock, reveal, importCSV,
-  list: () => all().map(({ id, site, host, user, added }) => ({ id, site, host, user, added })),
+  list: () => all().map(({ id, site, host, url, user, added }) => ({ id, site, host, url: url || '', user, added })),
   /** Für das Ausfüllen: Passwort erst nach Freigabe */
   // Ausfüllen ohne Windows Hello / Touch ID (Feray 02.11.2026: „nur dort, wo Passkeys sind“) – Anzeigen und Kopieren in
   // den Einstellungen bleiben geschützt. Wer es strenger will: Einstellung „helloForFill“.

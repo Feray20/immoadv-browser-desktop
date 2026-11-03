@@ -62,7 +62,12 @@ else
     npx electron-builder --mac --arm64 --publish never --prepackaged "$APP"
   }
   if [ -n "${CSC_NAME:-}" ]; then
-    npx electron-builder --mac --arm64 --publish never || { echo "Signierter Bau fehlgeschlagen – baue ad-hoc signiert weiter."; adhoc; }
+    # 03.11.2026 (Feray: Schlüsselbund fragt nach jedem Update, Passwort-Ausfüllen hängt): Der signierte Bau scheiterte und
+    # fiel still auf ad-hoc zurück – für macOS ist dann jede Version ein fremdes Programm. Jetzt: zuerst mit Beglaubigung,
+    # dann mit Zertifikat OHNE Beglaubigung (reicht für eigene Updates), erst danach ad-hoc – mit klarer Meldung im Log.
+    npx electron-builder --mac --arm64 --publish never \
+      || { echo "Signierter Bau mit Beglaubigung fehlgeschlagen – versuche mit Zertifikat ohne Beglaubigung."; unset APPLE_KEYCHAIN_PROFILE; rm -rf dist; npx electron-builder --mac --arm64 --publish never -c.mac.notarize=false; } \
+      || { echo "##[warning]Mac-Browser NICHT mit Developer ID signiert (Zertifikat/Schlüssel für codesign im Hintergrund nicht freigegeben) – ad-hoc. Folge: Schlüsselbund fragt nach jedem Update."; adhoc; }
   else
     adhoc
   fi
