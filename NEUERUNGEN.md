@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.31 – überall „ImmoAdv Browser“ statt „Firefox“
+- Mac: Finder, „Öffnen mit“, Dock und Menüleiste zeigen „ImmoAdv Browser“; der Motor erscheint nicht mehr als eigener Browser in „Öffnen mit“
+- Windows: von früher gemerkte Namen („Öffnen mit“, Taskleiste, Mitteilungen) zeigen „ImmoAdv Browser“
+- Einstellungen: kein „Firefox“ mehr in Info, Schutz und Updates
+
 ImmoAdv Browser 4.1.30 – klare Symbole, ein Browser im Dock
 - Symbole oben (Zurück, Vor, Neu laden, Stern, Download, Menü) und die Lesezeichenleiste sind jetzt dunkel und gut lesbar statt fast weiß
 - Grüner Hinweis „Geschützt“ in der Adresszeile ist wieder lesbar

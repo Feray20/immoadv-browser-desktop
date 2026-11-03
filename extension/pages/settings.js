@@ -62,7 +62,7 @@ function allgemein() {
     <div class="group"><h3>Downloads</h3><div class="row"><span>Speichern in<span class="desc" id="dlDir">${esc(s.downloadDir || 'Download-Ordner')}</span></span><button class="pill" id="sDl">Ordner wählen …</button></div></div>
     <div class="group"><h3>Tastenkürzel</h3>${[['Neuer Tab', 'Strg+T'], ['Tab schließen', 'Strg+W'], ['Geschlossenen Tab öffnen', 'Strg+Umschalt+T'], ['Adressleiste', 'Strg+L'], ['Suchen auf der Seite', 'Strg+F'], ['KI-Assistent', 'Strg+Umschalt+A'], ['ImmoAdv-Menü', 'Alt+Umschalt+I'], ['Verlauf', 'Strg+H'], ['Downloads', 'Strg+Umschalt+Y'], ['Lesezeichen setzen', 'Strg+D']].map(([l, k]) => `<div class="row"><span>${l}</span><span class="hint">${isMac ? k.replace('Strg', '⌘') : k}</span></div>`).join('')}</div>
     <div class="group"><h3>Erweitert</h3><p class="small">Selten gebrauchte Motor-Einstellungen (Schriften, Sprachen, Barrierefreiheit): <b>about:preferences?firefox</b> in die Adressleiste eingeben.</p></div>
-    <p class="hint">ImmoAdv Browser ${esc(st.version)} · Motor: Firefox ESR ${esc((navigator.userAgent.match(/Firefox\/([\d.]+)/) || [])[1] || '')} (Mozilla, automatische Sicherheitsupdates)</p>`);
+    <p class="hint">ImmoAdv Browser ${esc(st.version)} · Motor-Version ${esc((navigator.userAgent.match(/rv:([\d.]+)/) || [])[1] || '')} (automatische Sicherheitsupdates)</p>`);
   bindSwitch('sRestore', 'restoreSession'); bindSwitch('sBar', 'bookmarkBar');
   bindSwitch('sUploads', 'uploadHistory', async (on) => { for (const t of await browser.tabs.query({})) browser.tabs.sendMessage(t.id, { type: 'upload:setting', on }).catch(() => {}); });
   $('sUpOpen').onclick = () => browser.tabs.create({ url: browser.runtime.getURL('pages/uploads.html') });
@@ -108,7 +108,7 @@ function datenschutz() {
       <div class="addrow"><input type="text" id="kAdd" placeholder="z. B. amazon.de"><button class="pill" id="kAddBtn">Hinzufügen</button></div></div>
     <div class="group"><h3>Verlauf</h3><div class="row"><span>Verlauf aufbewahren<span class="desc">nur auf diesem Computer</span></span><select id="pHist">${[[0, 'Gar nicht'], [7, '7 Tage'], [30, '30 Tage'], [90, '90 Tage'], [365, '1 Jahr']].map(([v, l]) => `<option value="${v}" ${Number(s.historyDays) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
     <div class="group"><h3>Links</h3>${sw('pClean', s.cleanLinks !== false, 'Tracking aus Links entfernen', 'utm, fbclid, gclid …')}</div>
-    <div class="group"><h3>Firefox-Schutz (zusätzlich)</h3><p class="small">Strenger Tracking-Schutz, vollständiger Cookie-Schutz (jede Seite eigene Keksdose), Fingerprinting-Schutz und „Bitte nicht verkaufen“-Signal sind fest eingeschaltet.</p></div>`);
+    <div class="group"><h3>Zusätzlicher Schutz</h3><p class="small">Strenger Tracking-Schutz, vollständiger Cookie-Schutz (jede Seite eigene Keksdose), Fingerprinting-Schutz und „Bitte nicht verkaufen“-Signal sind fest eingeschaltet.</p></div>`);
   bindSwitch('pTrace', 'traceless'); bindSwitch('pClean', 'cleanLinks');
   $('body').querySelectorAll('[data-k]').forEach((b) => { b.onclick = async () => { const l = [...keep]; l.splice(+b.dataset.k, 1); await setS({ keepSignedIn: l }); datenschutz(); }; });
   $('kAddBtn').onclick = async () => { const d = dom($('kAdd').value); if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(d)) return toast('Bitte eine Domain wie amazon.de eingeben'); await setS({ keepSignedIn: [...new Set([...keep, d])] }); datenschutz(); };

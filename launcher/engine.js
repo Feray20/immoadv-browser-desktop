@@ -137,6 +137,7 @@ async function brandIcon() {
   if (isMac) return brandMac();
   if (!isWin) return false;
   try { await brandStrings(); } catch (e) { log('Name: ' + (e.message || e)); }
+  try { await brandWinCache(); } catch (e) { log('Name (Windows-Speicher): ' + (e.message || e)); }
   const file = exe(), ico = path.join(paths.engineFiles(), 'icons', 'main-window.ico');
   // Merker v2 (02.11.2026): zusätzlich Programmname „ImmoAdv Browser“ (Task-Manager, Taskleiste, Windows-Meldungen).
   const mark = path.join(paths.engine(), '.immoadv-logo2');
@@ -151,6 +152,29 @@ async function brandIcon() {
     log('ImmoAdv-Logo gesetzt');
     return true;
   } catch (e) { log('Logo: ' + (e.message || e)); return false; }
+}
+
+/** Windows (03.11.2026, Feray: „da steht noch Firefox statt ImmoAdv Browser“): Windows merkt sich Programmnamen
+ *  („Öffnen mit“, Taskleisten-Menü, Mitteilungen) – auch noch „Firefox“ von früher. Für den Motor im ImmoAdv-Ordner wird
+ *  dieser gemerkte Name auf „ImmoAdv Browser“ gesetzt; Mitteilungs-Kennungen, die auf den Motor zeigen, ebenso.
+ *  Nur Namen, nur beim Nutzer (HKCU), nichts gelöscht. Ein separat installiertes Firefox bleibt unberührt. */
+async function brandWinCache() {
+  const file = exe(), NAME = 'ImmoAdv Browser';
+  const mark = path.join(paths.engine(), '.immoadv-name-win1');
+  try { if (fs.readFileSync(mark, 'utf8') === file) return; } catch { /* noch nie */ }
+  const q = (x) => "'" + String(x).replace(/'/g, "''") + "'";
+  await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `$ErrorActionPreference='SilentlyContinue'
+$exe=${q(file)}; $motor=${q(paths.engine())}; $n=${q(NAME)}
+$mc='HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache'
+if (-not (Test-Path $mc)) { New-Item -Path $mc -Force | Out-Null }
+Set-ItemProperty -LiteralPath $mc -Name ($exe + '.FriendlyAppName') -Value $n
+Set-ItemProperty -LiteralPath $mc -Name ($exe + '.ApplicationCompany') -Value 'ImmoAdv'
+Get-ChildItem 'HKCU:\\Software\\Classes\\AppUserModelId' | ForEach-Object {
+  $p = Get-ItemProperty -LiteralPath $_.PSPath
+  if (([string]$p.DisplayName -like '*Firefox*') -and (([string]$p.IconUri -like ($motor + '*')) -or ($_.PSChildName -like '*' + (Split-Path $motor -Leaf) + '*'))) { Set-ItemProperty -LiteralPath $_.PSPath -Name DisplayName -Value $n }
+}`], { timeout: 30000 });
+  fs.writeFileSync(mark, file);
+  log('Windows: gemerkter Name ImmoAdv Browser gesetzt');
 }
 
 /** Name „ImmoAdv Browser“ überall im Browser (02.11.2026, Feray: „soll überall ImmoAdv Browser heißen“): Fehlerseiten,
@@ -251,7 +275,10 @@ async function brandMac() {
   // Merker v2 (02.11.2026): neu signieren mit Kamera-/Mikrofon-Rechten und – wenn vorhanden – Ferays Apple-Zertifikat.
   // Merker v3 (03.11.2026): zusätzlich festes ImmoAdv-Profil im Programmpaket (LSEnvironment), damit der Browser auch
   // direkt vom Dock-Symbol mit Profil, Passwörtern und Erweiterung startet – es gibt nur noch dieses eine Dock-Symbol.
-  const mark = path.join(paths.engine(), '.immoadv-name3');
+  // Merker v4 (03.11.2026, Feray: „da steht noch Firefox statt ImmoAdv Browser“): Finder/„Öffnen mit“ zeigten den
+  // Dateinamen „Firefox“ – jetzt LSHasLocalizedDisplayName (Finder nimmt den Namen ImmoAdv Browser) und der Motor meldet
+  // keine Dateitypen mehr an, damit er in „Öffnen mit“ nicht als zweiter Browser erscheint (das macht der Starter).
+  const mark = path.join(paths.engine(), '.immoadv-name4');
   let st; try { st = fs.statSync(plist); } catch { return false; }
   const key = `${st.size}:${st.mtimeMs}`;
   try { if (fs.readFileSync(mark, 'utf8') === key) return false; } catch { /* noch nie */ }
@@ -261,6 +288,8 @@ async function brandMac() {
     await run('plutil', ['-replace', 'CFBundleName', '-string', NAME, plist]);
     await run('plutil', ['-replace', 'CFBundleDisplayName', '-string', NAME, plist]);
     await run('plutil', ['-replace', 'LSEnvironment', '-json', JSON.stringify({ XRE_PROFILE_PATH: paths.profile() }), plist]);
+    await run('plutil', ['-replace', 'LSHasLocalizedDisplayName', '-bool', 'YES', plist]);
+    try { await run('plutil', ['-remove', 'CFBundleDocumentTypes', plist]); } catch { /* nicht vorhanden */ }
     // Übersetzte Namen (de.lproj usw.) haben Vorrang vor der Info.plist – überall ersetzen.
     const res = path.join(appPath, 'Contents', 'Resources');
     for (const d of fs.readdirSync(res).filter((x) => x.endsWith('.lproj'))) {
@@ -284,7 +313,11 @@ async function brandMac() {
     await signEngineMac(appPath);
     try { await run('xattr', ['-cr', appPath]); } catch { /* egal */ }
     try { const now = new Date(); fs.utimesSync(appPath, now, now); } catch { /* egal */ }
-    try { await run('/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister', ['-f', appPath]); } catch { /* egal */ }
+    // macOS den neuen Namen sofort zeigen lassen (alter Eintrag „Firefox“ weg, neu mit ImmoAdv Browser).
+    try {
+      const LSR = '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister';
+      await run(LSR, ['-u', appPath]); await run(LSR, ['-f', appPath]);
+    } catch { /* egal */ }
     const st2 = fs.statSync(plist);
     fs.writeFileSync(mark, `${st2.size}:${st2.mtimeMs}`);
     log('Mac: Name und Logo ImmoAdv Browser gesetzt');
