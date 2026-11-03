@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Werkzeuge – ImmoAdv Browser</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="fade.css">
+  <style>
+    body { min-height: 100vh; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 32px 20px 80px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+    .brand img { width: 28px; height: 28px; }
+    section[hidden] { display: none; }
+    .li { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 2px; border-top: 1px solid var(--line); }
+    .li:first-child { border-top: 0; }
+    .li .t { font-weight: 600; overflow-wrap: anywhere; }
+    .li .s { color: var(--text-3); font-size: 12px; overflow-wrap: anywhere; }
+    .li .act { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .li a { color: inherit; text-decoration: none; }
+    .li a:hover .t { text-decoration: underline; }
+    .new { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .new input { flex: 1; min-width: 200px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+    .grid label { display: grid; gap: 4px; font-size: 12px; color: var(--text-2); }
+    .grid .full { grid-column: 1 / -1; }
+    .empty { color: var(--text-3); padding: 14px 2px; }
+    button, input { min-height: 34px; }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .li { grid-template-columns: 1fr; } .li .act { justify-content: flex-start; } }
+  </style>
+</head>
+<body class="glow">
+  <div class="wrap">
+    <header>
+      <div class="brand"><img src="../icons/icon128.png" alt=""><span>ImmoAdv <b>Browser</b> · Werkzeuge</span></div>
+      <nav class="seg" id="tabs" aria-label="Bereich">
+        <button data-v="bereiche">Arbeitsbereiche</button>
+        <button data-v="spaeter">Später ansehen</button>
+        <button data-v="firma">Firmendaten</button>
+      </nav>
+    </header>
+
+    <section id="bereiche" aria-labelledby="hB">
+      <h2 id="hB">Arbeitsbereiche</h2>
+      <p class="hint">Alle Tabs eines Fensters als Arbeitsbereich merken (z. B. „Steuern“, „eBay“, „Bewerbungen“) und mit einem Klick wieder öffnen. Wird mit deinen anderen Geräten abgeglichen.</p>
+      <div class="group">
+        <form class="new" id="spForm"><input id="spName" type="text" maxlength="60" placeholder="Name, z. B. Steuern" aria-label="Name des Arbeitsbereichs" required><button class="pill accent" type="submit">Dieses Fenster merken</button></form>
+        <div id="spList"></div>
+      </div>
+    </section>
+
+    <section id="spaeter" aria-labelledby="hL" hidden>
+      <h2 id="hL">Später ansehen</h2>
+      <p class="hint">Seiten über das ⋯-Menü oder Rechtsklick → „Später ansehen“ merken. Die Liste liegt im Lesezeichen-Ordner „Später ansehen“ und erscheint auf allen Geräten mit dem ImmoAdv Browser.</p>
+      <div class="group"><div id="laterList"></div></div>
+    </section>
+
+    <section id="firma" aria-labelledby="hF" hidden>
+      <h2 id="hF">Firmendaten für Formulare</h2>
+      <p class="hint">Rechtsklick in ein Formular → „Mit Firmendaten ausfüllen“. Es werden nur leere Felder gefüllt, abgeschickt wird nie automatisch. Die Daten bleiben verschlüsselt in deinem ImmoAdv Browser.</p>
+      <form class="group" id="firmForm">
+        <div class="grid">
+          <label class="full">Firma<input name="company" type="text" autocomplete="off"></label>
+          <label>Ansprechpartner (Vor- und Nachname)<input name="name" type="text" autocomplete="off"></label>
+          <label>E-Mail<input name="email" type="email" autocomplete="off"></label>
+          <label>Telefon<input name="phone" type="tel" autocomplete="off"></label>
+          <label>Website<input name="website" type="url" autocomplete="off" placeholder="https://immoadv.de"></label>
+          <label class="full">Straße und Hausnummer<input name="street" type="text" autocomplete="off"></label>
+          <label>PLZ<input name="zip" type="text" inputmode="numeric" autocomplete="off"></label>
+          <label>Ort<input name="city" type="text" autocomplete="off"></label>
+          <label>Land<input name="country" type="text" autocomplete="off" placeholder="Deutschland"></label>
+          <label>USt-IdNr.<input name="vat" type="text" autocomplete="off"></label>
+          <label>Steuernummer<input name="taxno" type="text" autocomplete="off"></label>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:14px"><button class="pill accent" type="submit">Speichern</button><span id="firmNote" class="hint" role="status" aria-live="polite"></span></div>
+      </form>
+    </section>
+  </div>
+  <script src="tools.js"></script>
+</body>
+</html>

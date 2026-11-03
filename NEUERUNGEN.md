@@ -1,3 +1,15 @@
+ImmoAdv Browser 4.1.38 – Sieben neue Werkzeuge, angemeldet bleiben nach Updates
+- Seite als PDF speichern (⋯-Menü oder Rechtsklick)
+- Bildschirmfoto der ganzen Seite – mit Markieren, Stift, Textmarker und Schwärzen; Speichern oder Kopieren
+- Formulare mit deinen Firmendaten füllen: Rechtsklick ins Formular → „Mit Firmendaten ausfüllen“ (nur leere Felder, nichts wird abgeschickt; Daten unter ⋯ → Werkzeuge)
+- PDF oder Bild als Beleg an ImmoAdv Steuern senden – über dein angemeldetes ImmoAdv-Fenster, wird automatisch erkannt und zugeordnet
+- Arbeitsbereiche: alle Tabs eines Fensters merken und mit einem Klick wieder öffnen oder wechseln – auf allen Geräten
+- „Später ansehen“: Seiten und Links merken, Liste auf allen Geräten mit dem ImmoAdv Browser
+- KI auf jeder Seite: zusammenfassen, übersetzen, Antwort auf markierten Text entwerfen (kostenlos lokal)
+- Updates: Windows schließt den Browser jetzt sauber vor dem Update – Anmeldungen bleiben erhalten
+- Mac: Der Browser wird jetzt wirklich mit deinem Apple-Zertifikat signiert – keine Schlüsselbund-Abfrage mehr nach jedem Update
+- Schnellerer Start über Dock und Taskleiste: Fenster sofort sichtbar, alte Tabs laden erst beim Anklicken
+
 ImmoAdv Browser 4.1.37 – KI-Knopf öffnet zuverlässig
 - Der ✦-Knopf öffnet den KI-Assistenten immer: Bleibt die Seitenleiste zu, öffnet er sich als Tab
 - Enthält alles aus 4.1.36 (Passwörter genau nach Link, Mac mit Apple-Zertifikat, PDFs und Bilder, schneller)

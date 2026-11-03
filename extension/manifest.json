@@ -57,6 +57,7 @@
       "lib/vault.js",
       "lib/uploads-core.js",
       "lib/uploadtrack.js",
+      "lib/tools.js",
       "background.js"
     ],
     "persistent": true

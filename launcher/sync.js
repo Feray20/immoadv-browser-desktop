@@ -12,7 +12,7 @@ const { siteOf } = require('../src/shared/lists');
 
 const URL_BASE = 'https://mieoylqhtvghcnvaxutg.supabase.co';
 const APIKEY = 'sb_publishable_vlerR4aelUQdlXbZV8753w_mgTiWghM';   // öffentlicher Schlüssel (kein Geheimnis); Zugriff regeln die Datenbank-Regeln
-const SETTINGS_SYNCED = ['keepSignedIn', 'allowlist', 'blocklist', 'searchEngine', 'workspaces', 'aiInstructions', 'neverSave', 'googleExternal'];
+const SETTINGS_SYNCED = ['keepSignedIn', 'allowlist', 'blocklist', 'searchEngine', 'workspaces', 'aiInstructions', 'neverSave', 'googleExternal', 'spaces', 'firm'];
 
 let fetcher = null;
 let session = null;          // { access, refresh, exp, userId, email }
@@ -220,7 +220,7 @@ function applyRemote(row, body) {
     } else if (row.kind === 'up') {
       if (uploads.applyRemote(body, row.deleted)) uploadsChanged = true;
     } else if (row.kind === 'settings' && !row.deleted) {
-      for (const k of SETTINGS_SYNCED) if (k in body && body[k] !== undefined) store.set(k, body[k]);
+      for (const k of SETTINGS_SYNCED) if (k in body && body[k] !== undefined && !(body[k] === null && ['spaces', 'firm'].includes(k))) store.set(k, body[k]);   // leere Felder älterer Geräte überschreiben nichts
     }
   } finally { applying = false; }
 }

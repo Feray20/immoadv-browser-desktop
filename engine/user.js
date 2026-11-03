@@ -36,6 +36,11 @@ user_pref("browser.preonboarding.enabled", false);
 user_pref("termsofuse.bypassNotification", true);
 user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
 user_pref("browser.termsofuse.prefMigrationCheck", true);
+// Sofort sichtbar beim Start über Dock/Taskleiste (Feray 03.11.2026): Windows zeigt das Fenstergerüst, bevor alles geladen ist;
+// Tabs der letzten Sitzung laden erst beim Anklicken; das Programm prüft nicht bei jedem Start, ob es Standardbrowser ist.
+user_pref("browser.startup.preXulSkeletonUI", true);
+user_pref("browser.sessionstore.restore_on_demand", true);
+user_pref("browser.sessionstore.restore_pinned_tabs_on_demand", true);
 user_pref("browser.startup.homepage_override.mstone", "ignore");
 user_pref("startup.homepage_welcome_url", "");
 user_pref("startup.homepage_welcome_url.additional", "");

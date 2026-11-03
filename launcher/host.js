@@ -19,7 +19,8 @@ const SECRET = ['vpnCreds', 'passwords', 'aiKeys', 'neverSave', 'lastSession'];
 const INTERNAL = ['uploads', 'syncSeen', 'syncCursor', 'syncAuth', 'syncKey'];
 const SETTABLE = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'allowlist', 'blocklist', 'httpsOnly', 'cleanLinks', 'dnsProvider',
   'keepSignedIn', 'traceless', 'vpnCountry', 'vpnServers', 'stats', 'autoUpdate', 'bookmarkBar', 'tabLayout', 'suspendMinutes', 'historyDays',
-  'restoreSession', 'searchEngine', 'watchlist', 'uploadHistory', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'listsInfo'];
+  'restoreSession', 'searchEngine', 'watchlist', 'uploadHistory', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'listsInfo',
+  'spaces', 'firm'];   // Arbeitsbereiche und Firmendaten für Formulare (Feray 03.11.2026)
 const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine', 'downloadDir'];
 // KI (Feray 03.11.2026: „ImmoAdv (empfohlen) nein, keine Kosten – ersetz das mit einer KI, die kostenlos ist, aber höchstes
 // Niveau“): Standard ist jetzt die ImmoAdv KI lokal über Ollama – kostenlos, ohne Konto, nichts verlässt den Computer.

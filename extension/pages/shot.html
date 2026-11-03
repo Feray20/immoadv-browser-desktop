@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bildschirmfoto – ImmoAdv Browser</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="fade.css">
+  <style>
+    body { min-height: 100vh; }
+    .bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
+    .bar .brand { display: flex; align-items: center; gap: 8px; margin-right: 8px; font-weight: 600; }
+    .bar .brand img { width: 20px; height: 20px; }
+    .bar .sp { flex: 1; }
+    .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+    .colors { display: inline-flex; gap: 6px; }
+    .colors button { width: 22px; height: 22px; border-radius: 999px; border: 2px solid transparent; padding: 0; }
+    .colors button[aria-pressed="true"] { border-color: var(--text); }
+    .stage { padding: 18px; display: flex; justify-content: center; }
+    canvas { max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.35); cursor: crosshair; touch-action: none; background: #fff; }
+    #note { min-height: 18px; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body class="glow">
+  <div class="bar" role="toolbar" aria-label="Bildschirmfoto bearbeiten">
+    <div class="brand"><img src="../icons/icon128.png" alt=""><span>Bildschirmfoto</span></div>
+    <nav class="seg" aria-label="Werkzeug">
+      <button data-tool="box" aria-pressed="true" title="Rahmen ziehen (R)">▭ Markieren</button>
+      <button data-tool="pen" aria-pressed="false" title="Freihand (S)">✎ Stift</button>
+      <button data-tool="hl" aria-pressed="false" title="Textmarker (M)">▬ Marker</button>
+      <button data-tool="redact" aria-pressed="false" title="Bereich schwärzen (X)">■ Schwärzen</button>
+    </nav>
+    <div class="colors" aria-label="Farbe">
+      <button data-c="#ff3b30" aria-pressed="true" style="background:#ff3b30" aria-label="Rot"></button>
+      <button data-c="#19c2b0" aria-pressed="false" style="background:#19c2b0" aria-label="Türkis"></button>
+      <button data-c="#ffcc00" aria-pressed="false" style="background:#ffcc00" aria-label="Gelb"></button>
+      <button data-c="#2a5bd7" aria-pressed="false" style="background:#2a5bd7" aria-label="Blau"></button>
+    </div>
+    <button class="pill" id="undo" title="Rückgängig (Strg+Z)">↶ Rückgängig</button>
+    <span class="sp"></span>
+    <span id="note" class="hint" role="status" aria-live="polite"></span>
+    <button class="pill" id="copy">Kopieren</button>
+    <button class="pill accent" id="save">Speichern</button>
+  </div>
+  <div class="stage"><canvas id="cv" aria-label="Bildschirmfoto – zum Markieren ziehen"></canvas></div>
+  <script src="shot.js"></script>
+</body>
+</html>

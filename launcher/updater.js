@@ -220,7 +220,10 @@ function L($m) { Add-Content -LiteralPath $log -Value ("{0} Update-Helfer: {1}" 
 function Teile($ordner) { Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($ordner + '\\', [StringComparison]::OrdinalIgnoreCase) } }
 ${relaunch ? '' : `if (Teile $motor) { L 'Browser ist offen – Update kommt beim nächsten Start'; Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force; exit }
 `}L 'wartet, bis der Browser geschlossen ist'
-for ($i = 0; $i -lt 40 -and (Teile $motor); $i++) { Start-Sleep -Milliseconds 500 }
+# 03.11.2026 (Feray: „nach jedem Update überall abgemeldet“): Der Browser wurde nach 20 s hart beendet – Anmeldungen, die
+# nur für die laufende Sitzung gelten, gingen verloren. Jetzt wird er höflich geschlossen (wie Klick auf X: Tabs und
+# Anmeldungen werden gespeichert) und bekommt bis zu 45 s; erst danach notfalls hart.
+for ($i = 0; $i -lt 90 -and (Teile $motor); $i++) { if ($i % 6 -eq 0) { Teile $motor | ForEach-Object { try { $null = $_.CloseMainWindow() } catch {} } }; Start-Sleep -Milliseconds 500 }
 if (Teile $motor) { L 'Browser reagiert nicht – wird beendet'; Teile $motor | Stop-Process -Force; Start-Sleep -Milliseconds 800 }
 for ($i = 0; $i -lt 10; $i++) { $t = Teile $inst; if (-not $t) { break }; $t | Stop-Process -Force; Start-Sleep -Milliseconds 600 }
 # Windows-Schutz (SmartScreen) darf die eigene Update-Datei nie anhalten (Feray 02.11.2026: „Installationsdatei startet manchmal nicht“).

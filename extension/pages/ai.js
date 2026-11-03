@@ -151,5 +151,13 @@ $('delConv').onclick = async (e) => { const b = e.currentTarget; if (!conv) retu
   const p = await send({ type: 'ai:prompt' });
   if (p) handlePrompt(p);
 })();
-function handlePrompt(p) { if (p.kind === 'ai-sel') ask('Erkläre bzw. beantworte den markierten Text.', p.sel); else ask('Fasse diese Seite in 5 Stichpunkten zusammen.'); }
+// KI auf jeder Seite (Feray 03.11.2026): zusammenfassen, erklären, übersetzen, Antwort entwerfen – lokal über Ollama
+function handlePrompt(p) {
+  const k = p.kind;
+  if (k === 'ai-sel') ask('Erkläre bzw. beantworte den markierten Text.', p.sel);
+  else if (k === 'ai-translate') ask('Übersetze den markierten Text. Ist er Deutsch, ins Englische, sonst ins Deutsche. Nur die Übersetzung ausgeben, Formatierung beibehalten.', p.sel);
+  else if (k === 'ai-reply') ask('Entwirf eine kurze, freundliche und professionelle Antwort auf diesen Text – in seiner Sprache, per Sie, ohne Platzhalter-Floskeln. Nur den Antworttext ausgeben.', p.sel);
+  else if (k === 'ai-page-translate') ask('Übersetze den Hauptinhalt dieser Seite ins Deutsche. Überschriften behalten, Menüs, Werbung und Fußzeilen weglassen.');
+  else ask('Fasse diese Seite in 5 Stichpunkten zusammen.');
+}
 browser.runtime.onMessage.addListener((m) => { if (m && m.type === 'ai-prompt') send({ type: 'ai:prompt' }).then((p) => p && handlePrompt(p)); });

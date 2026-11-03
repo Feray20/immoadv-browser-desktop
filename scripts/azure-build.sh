@@ -47,27 +47,31 @@ else
   # Ohne Apple-Zertifikat – oder wenn Signieren/Beglaubigen mit Zertifikat scheitert (03.11.2026: der Mac-Bau blieb seit
   # 4.1.17 aus, der Mac bekam keine neuen Versionen mehr) – wird ad-hoc signiert gebaut, damit der Mac nie zurückbleibt.
   adhoc() {
-    # (02.11.2026, Feray: „ImmoAdv Browser ist beschädigt“): erst das Programm bauen, dann vollständig ad-hoc signieren
+    # (02.11.2026, Feray: „ImmoAdv Browser ist beschädigt“): erst das Programm bauen, dann vollständig signieren
     # (gültige Signatur, gleiche Rechte) und daraus dmg + zip packen.
+    # 03.11.2026: SIGN_ID gesetzt → mit Ferays Developer ID direkt per codesign (wie bei ImmoAdv Admin, das so zuverlässig
+    # signiert ist); sonst ad-hoc („-“).
+    local SID="${SIGN_ID:--}" TS=""; [ "$SID" != "-" ] && TS="--timestamp"
     unset CSC_NAME APPLE_KEYCHAIN_PROFILE; export CSC_IDENTITY_AUTO_DISCOVERY=false
     rm -rf dist
     npx electron-builder --mac dir --arm64 --publish never
     SRC=$(ls -d dist/mac-arm64/*.app | head -1)
     PRE="$(mktemp -d)"; cp -R "$SRC" "$PRE/"; APP="$PRE/$(basename "$SRC")"; rm -rf dist
     find "$APP/Contents" -type f \( -perm -u+x -o -name "*.dylib" -o -name "*.so" \) -print0 | while IFS= read -r -d '' f; do
-      if file "$f" | grep -q "Mach-O"; then codesign --force --sign - --options runtime --entitlements build/entitlements.mac.plist "$f" 2>/dev/null || true; fi
+      if file "$f" | grep -q "Mach-O"; then codesign --force $TS --sign "$SID" --options runtime --entitlements build/entitlements.mac.plist "$f" 2>/dev/null || true; fi
     done
-    codesign --force --deep --sign - --options runtime --entitlements build/entitlements.mac.plist "$APP"
-    codesign --verify --deep --strict "$APP" && echo "Signatur geprüft: ad-hoc, gültig"
+    codesign --force --deep $TS --sign "$SID" --options runtime --entitlements build/entitlements.mac.plist "$APP" || return 1
+    codesign --verify --deep --strict "$APP" && echo "Signatur geprüft: ${SID}, gültig"
     npx electron-builder --mac --arm64 --publish never --prepackaged "$APP"
   }
   if [ -n "${CSC_NAME:-}" ]; then
     # 03.11.2026 (Feray: Schlüsselbund fragt nach jedem Update, Passwort-Ausfüllen hängt): Der signierte Bau scheiterte und
     # fiel still auf ad-hoc zurück – für macOS ist dann jede Version ein fremdes Programm. Jetzt: zuerst mit Beglaubigung,
     # dann mit Zertifikat OHNE Beglaubigung (reicht für eigene Updates), erst danach ad-hoc – mit klarer Meldung im Log.
+    SAVED_ID="$CSC_NAME"
     npx electron-builder --mac --arm64 --publish never \
-      || { echo "Signierter Bau mit Beglaubigung fehlgeschlagen – versuche mit Zertifikat ohne Beglaubigung."; unset APPLE_KEYCHAIN_PROFILE; rm -rf dist; npx electron-builder --mac --arm64 --publish never -c.mac.notarize=false; } \
-      || { echo "##[warning]Mac-Browser NICHT mit Developer ID signiert (Zertifikat/Schlüssel für codesign im Hintergrund nicht freigegeben) – ad-hoc. Folge: Schlüsselbund fragt nach jedem Update."; adhoc; }
+      || { echo "Signierter Bau über electron-builder fehlgeschlagen – signiere direkt per codesign mit $SAVED_ID."; SIGN_ID="$SAVED_ID" adhoc; } \
+      || { echo "##[warning]Mac-Browser NICHT mit Developer ID signiert – ad-hoc. Folge: Schlüsselbund fragt nach jedem Update."; SIGN_ID="-" adhoc; }
   else
     adhoc
   fi

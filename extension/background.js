@@ -187,6 +187,15 @@ function menus() {
     browser.menus.create({ id: 'immo-check', title: 'Immobilien-Check', contexts: ['page'] });
     browser.menus.create({ id: 'ai-page', title: 'KI: Seite zusammenfassen', contexts: ['page'] });
     browser.menus.create({ id: 'ai-sel', title: 'KI fragen zu „%s“', contexts: ['selection'] });
+    browser.menus.create({ id: 'ai-translate', title: 'KI: Markierten Text übersetzen', contexts: ['selection'] });
+    browser.menus.create({ id: 'ai-reply', title: 'KI: Antwort darauf entwerfen', contexts: ['selection'] });
+    browser.menus.create({ id: 'ai-page-translate', title: 'KI: Seite auf Deutsch übersetzen', contexts: ['page'] });
+    browser.menus.create({ id: 'sep-tools', type: 'separator', contexts: ['page', 'link', 'editable', 'image'] });
+    browser.menus.create({ id: 'later', title: 'Später ansehen', contexts: ['page', 'link'] });
+    browser.menus.create({ id: 'firm-fill', title: 'Mit Firmendaten ausfüllen', contexts: ['editable'] });
+    browser.menus.create({ id: 'beleg', title: 'Als Beleg an ImmoAdv Steuern senden', contexts: ['page', 'link', 'image'] });
+    browser.menus.create({ id: 'full-shot', title: 'Bildschirmfoto der ganzen Seite …', contexts: ['page'] });
+    browser.menus.create({ id: 'save-pdf', title: 'Seite als PDF speichern …', contexts: ['page'] });
     browser.menus.create({ id: 'clean-link', title: 'Link kopieren (ohne Tracking)', contexts: ['link'] });
     browser.menus.create({ id: 'ocr', title: 'Text erkennen & gerade ausrichten', contexts: ['page'], documentUrlPatterns: ['*://*/*.pdf', '*://*/*.PDF', 'file:///*'] });
   });
@@ -195,7 +204,17 @@ function menus() {
       await navigator.clipboard.writeText(Blocker.cleanURL(info.linkUrl)).catch(() => {});
     } else if (info.menuItemId === 'immo-check') {
       browser.pageAction.openPopup().catch(() => browser.tabs.create({ url: browser.runtime.getURL(`pages/immo.html?tab=${tab.id}`) }));
-    } else if (info.menuItemId === 'ai-page' || info.menuItemId === 'ai-sel') {
+    } else if (info.menuItemId === 'later') {
+      await Tools.laterAdd(info.linkUrl || tab.url, info.linkUrl ? (info.linkText || info.linkUrl) : tab.title);
+    } else if (info.menuItemId === 'firm-fill') {
+      await Tools.fillFirm(tab, info.frameId).catch(() => {});
+    } else if (info.menuItemId === 'beleg') {
+      await Tools.beleg(info.srcUrl || info.linkUrl || tab.url, tab).catch(() => {});
+    } else if (info.menuItemId === 'full-shot') {
+      await Tools.fullShot(tab).catch(() => {});
+    } else if (info.menuItemId === 'save-pdf') {
+      await Tools.savePdf(tab);
+    } else if (/^ai-/.test(info.menuItemId)) {
       await browser.storage.session?.set?.({ aiPrompt: { tabId: tab.id, sel: info.selectionText || '', kind: info.menuItemId } }).catch(() => {});
       aiPrompt = { tabId: tab.id, sel: info.selectionText || '', kind: info.menuItemId };
       browser.sidebarAction.open().catch(() => {});
@@ -245,6 +264,20 @@ browser.runtime.onMessage.addListener((m, sender) => {
       setTimeout(() => URL.revokeObjectURL(url), 60000);
       return true;
     })();
+    case 'tool:pdf': return browser.tabs.get(m.tabId).then((t) => Tools.savePdf(t));
+    case 'tool:fullshot': return browser.tabs.get(m.tabId).then((t) => Tools.fullShot(t));
+    case 'tool:beleg': return browser.tabs.get(m.tabId).then((t) => Tools.beleg(t.url, t));
+    case 'tool:firm': return browser.tabs.get(m.tabId).then((t) => Tools.fillFirm(t));
+    case 'shot:get': return Promise.resolve(Tools.takeShot(m.id));
+    case 'beleg:take': return Promise.resolve(sender.tab && /^https:\/\/(www\.)?immoadv\.de\//.test(sender.tab.url || '') ? Tools.takeBeleg(m.id) : null);
+    case 'beleg:done': if (sender.tab && /^https:\/\/(www\.)?immoadv\.de\//.test(sender.tab.url || '')) Tools.belegDone(m.id, m.ok, m.name); return Promise.resolve(true);
+    case 'spaces:list': return Promise.resolve(Tools.spaces());
+    case 'spaces:save': return Tools.spaceSave(m);
+    case 'spaces:open': return Tools.spaceOpen(m);
+    case 'spaces:remove': return Tools.spaceRemove(m);
+    case 'later:add': return Tools.laterAdd(m.url, m.title);
+    case 'later:list': return Tools.laterList();
+    case 'later:done': return Tools.laterDone(m.id);
     case 'update:later': return browser.storage.local.set({ updateLater: m.version }).then(() => true);
     case 'update:check': return Native.call('update.check').catch((e) => ({ status: 'error', message: e.message }));
     case 'update:now': return Native.call('update.now', {}, 30 * 60000).catch((e) => ({ status: 'error', message: e.message }));
@@ -254,6 +287,7 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'site:clear': return Traceless.wipeNow(m.site).then(() => true);
     case 'page:text': return pageText(m.tabId);
     case 'page:listing': return listing(m.tabId);
+    case 'ai:queue': aiPrompt = { tabId: m.tabId, sel: '', kind: String(m.kind || 'ai-page') }; broadcast('ai-prompt', aiPrompt); return Promise.resolve(true);
     case 'ai:prompt': { const p = aiPrompt; aiPrompt = null; return Promise.resolve(p); }
     case 'ai:ask': return Native.call('ai.ask', { req: m.req }, 180000);
     case 'ai:config': return Native.call('ai.config').catch(() => ({}));
