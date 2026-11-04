@@ -76,7 +76,8 @@ function starter() {
       let f = a; try { if (/^file:/i.test(a)) f = require('node:url').fileURLToPath(a); } catch {}
       if (!path.isAbsolute(f) || !fs.existsSync(f) || !fs.statSync(f).isFile()) continue;
       if (OFFICE.test(f)) out.push(engine.extUrl(`office/index.html?file=${share(f)}&name=${encodeURIComponent(path.basename(f))}`));
-      else if (OPENABLE.test(f)) out.push(pathToFileURL(f).href);
+      // PDFs & Co. als Pfad übergeben (04.11.2026): Der Motor öffnet Pfade direkt; „file://…“ über „open -a“ kam am Mac nicht an.
+      else if (OPENABLE.test(f)) out.push(f);
     }
     return out;
   }
@@ -158,7 +159,7 @@ function starter() {
   // Im Hintergrund öffnen (02.11.2026, Feray: Links aus der ImmoAdv-Software – z. B. „Bei Amazon bestellen“ – sollen
   // im Browser hinten aufgehen, ohne dass das Fenster nach vorne springt). Läuft der Browser schon, gehen die Links über
   // den Hintergrund-Dienst an den Browser (neuer Tab hinten); sonst normaler Start.
-  function openBackground(urls) {
+  function openBackground(urls, cmd = 'tabs.openBg') {
     return new Promise((resolve) => {
       try {
         const os = require('node:os'), net = require('node:net');
@@ -170,7 +171,7 @@ function starter() {
         const t = setTimeout(() => end(false), 3000);
         sock.on('error', () => { clearTimeout(t); end(false); });
         sock.on('connect', () => {
-          const body = Buffer.from(JSON.stringify({ id: 'bg1', cmd: 'tabs.openBg', urls }), 'utf8');
+          const body = Buffer.from(JSON.stringify({ id: 'bg1', cmd, urls }), 'utf8');
           const head = Buffer.alloc(4); head.writeUInt32LE(body.length, 0);
           sock.write(Buffer.concat([head, body]));
         });
@@ -191,6 +192,20 @@ function starter() {
     const urls = targets(argv);
     if ((argv || []).includes('--background') && urls.length && urls.every((u) => /^https?:/i.test(u))) {
       try { if (engine.running() && (await openBackground(urls))) { engine.log(`Hintergrund ${urls.length} Link(s)`); return true; } } catch {}
+    }
+    // Browser läuft schon: Webadressen und ImmoAdv-Betrachter (Bilder, Office) über die Erweiterung vorne öffnen,
+    // Dateien (PDF usw.) gehen unten als Pfad an den Motor.
+    if (urls.length && !(argv || []).includes('--background')) {
+      try {
+        const viaExt = urls.filter((u) => /^https?:\/\//i.test(u) || u.startsWith(engine.extUrl('')));
+        if (viaExt.length && engine.running() && (await openBackground(viaExt, 'tabs.open'))) {
+          engine.log(`Vorne geöffnet: ${viaExt.length}`);
+          const rest = urls.filter((u) => !viaExt.includes(u));
+          if (process.platform === 'darwin') { try { const ch = require('node:child_process').spawn('open', ['-a', engine.macApp()], { detached: true, stdio: 'ignore' }); ch.on('error', () => {}); ch.unref(); } catch {} }
+          if (!rest.length) return true;
+          urls.length = 0; urls.push(...rest);
+        }
+      } catch (e) { engine.log('Vorne öffnen: ' + e.message); }
     }
     if (installPending()) return true;
     if (!(await ensureEngine())) return false;

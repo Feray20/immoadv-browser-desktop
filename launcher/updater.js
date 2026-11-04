@@ -47,7 +47,10 @@ async function init(onState) {
   if (process.windowsStore) { emit({ status: 'unsupported', message: 'Updates kommen automatisch über den Microsoft Store' }); return; }
   if (!supported()) { emit({ status: 'unsupported', message: 'Updates nur in der installierten Version' }); return; }
   try { autoUpdater.setFeedURL({ provider: 'generic', url: FEED, channel: 'latest' }); } catch (e) { log('Update-Quelle: ' + e.message); }
-  if (process.platform === 'darwin') macManual = !(await macSigned());
+  // 04.11.2026 (Feray: „drei Mal installieren drücken“): Seit der Browser mit Developer ID signiert ist, lief der Mac über
+  // Squirrel (electron-updater) – das brauchte mehrere Klicks und tauschte die App nicht zuverlässig. Am Mac gilt jetzt immer
+  // der eigene, erprobte Weg: laden, prüfen, Motor sauber schließen, App ersetzen, neu starten – ein Klick.
+  if (process.platform === 'darwin') macManual = true;
   autoUpdater.autoDownload = !macManual && store.get('autoUpdate') !== false;
   autoUpdater.autoInstallOnAppQuit = !macManual && store.get('autoUpdate') !== false;
   autoUpdater.allowPrerelease = false;
@@ -147,7 +150,7 @@ function installMac({ relaunch = true } = {}) {
     // Programme-Ordner nicht beschreibbar → Mac fragt einmal nach dem Passwort
     log('Programme-Ordner schreibgeschützt – Installation mit Admin-Freigabe');
   }
-  let motorApp = ''; try { motorApp = path.join(require('./engine').paths.engine(), 'Firefox.app'); } catch { /* egal */ }
+  let motorApp = ''; try { motorApp = require('./engine').macApp(); } catch { /* egal */ }
   const script = path.join(path.dirname(macZip), 'install.sh');
   const q = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
   fs.writeFileSync(script, `#!/bin/bash

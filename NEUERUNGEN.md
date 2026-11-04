@@ -1,3 +1,15 @@
+ImmoAdv Browser 4.1.40 – Dock, KI, Passwörter und Updates repariert
+- Im Dock, bei Cmd+Tab und in den Mitteilungen steht jetzt überall „ImmoAdv Browser“ – nicht mehr „Firefox“ (eigener Name und eigene Kennung, getrennt vom installierten Firefox)
+- Mitteilungen von Webseiten (z. B. Google Meet) kommen nach „Erlauben“ wirklich an; die Abfrage ist übersichtlicher gestaltet
+- Updates: ein Klick genügt – der Knopf zeigt Laden und Installieren bis zum Neustart
+- ImmoAdv KI: „Modell laden“ und Antworten gehen jetzt (Ollama hatte die Anfragen abgelehnt); Einstellungen → KI sauber ausgerichtet
+- Passwörter: Klick auf einen Eintrag füllt sofort aus; die Zeile „Mit Passkey anmelden“ ist weg – Passkeys fragt die Seite selbst
+- Anmeldung mit Google/Apple (z. B. ChatGPT) klappt: Seiten, bei denen du dich anmeldest, bleiben angemeldet
+- Fremdsprachige Seiten werden automatisch ins Deutsche übersetzt (auf deinem Computer, ohne Google); „KI: Seite übersetzen“ entfällt
+- „Später ansehen“ als Uhr-Symbol direkt neben dem Stern – ein Klick merkt die Seite
+- PDFs und Bilder öffnen per Doppelklick zuverlässig im Browser und zeigen im Finder ihr eigenes Symbol statt des Browser-Logos
+- Mac: Signatur mit Developer ID schon im ersten Bauschritt
+
 ImmoAdv Browser 4.1.39 – Passwörter und Passkeys wie am Mac
 - Vorschlagsliste am Anmeldefeld wie am Mac: gleiche Symbole für Passwort und Passkey, alle Zeilen exakt auf einer Linie, darunter die Adresse
 - „Mit Passkey anmelden“ zeigt, womit es weitergeht (Touch ID/iPhone bzw. Windows Hello/Handy)

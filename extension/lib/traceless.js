@@ -10,6 +10,7 @@ const Traceless = (() => {
   const hostOf = (u) => { try { return new URL(u).hostname; } catch (e) { return ''; } };
   function keep(site) {
     if (!site) return true;
+    if (authKeep.has(site)) return true;
     if (Settings.get('traceless') === false) return true;
     const list = [...(Settings.get('keepSignedIn') || []), ...Vault.sites()];
     return list.some((d) => site === d || site.endsWith('.' + d));
@@ -37,9 +38,22 @@ const Traceless = (() => {
       try { await wipe(site); } catch (e) { /* nicht kritisch */ }
     }, 8000));
   }
+  // Anmeldung über Google/Apple/Microsoft & Co. (04.11.2026, Feray: ChatGPT „Wir konnten dich nicht anmelden“,
+  // error=OAuthCallback): Während der Tab bei Google war, wurden die Cookies von chatgpt.com nach 8 Sekunden gelöscht –
+  // darunter das Sicherheits-Cookie der Anmeldung. Wer sich irgendwo anmeldet, will dort angemeldet bleiben: Die Seite
+  // (und der Anmelde-Dienst) kommen automatisch auf die Liste „Angemeldet bleiben“ und werden nie mehr gelöscht.
+  const IDP = /(^|\.)(accounts\.google\.com|appleid\.apple\.com|login\.microsoftonline\.com|login\.live\.com|auth\.openai\.com|github\.com|facebook\.com|auth0\.com|okta\.com|login\.yahoo\.com|id\.atlassian\.com|accounts\.spotify\.com)$/i;
+  const authKeep = new Set();
+  async function keepAfterLogin(...sites) {
+    const add = sites.filter((x) => x && !keep(x) && !authKeep.has(x));
+    if (!add.length) return;
+    add.forEach((x) => { authKeep.add(x); clearTimeout(timers.get(x)); timers.delete(x); });
+    try { await Settings.set({ keepSignedIn: [...new Set([...(Settings.get('keepSignedIn') || []), ...add])] }); } catch (e) { /* nur diese Sitzung */ }
+  }
   function track(tabId, url) {
     const site = siteOf(hostOf(url));
     const before = tabSite.get(tabId);
+    if (before && site && before !== site && IDP.test(hostOf(url))) keepAfterLogin(before, site);
     if (site && /^https?:/.test(url)) { tabSite.set(tabId, site); seen.add(site); } else tabSite.delete(tabId);
     if (before && before !== site) left(before);
   }

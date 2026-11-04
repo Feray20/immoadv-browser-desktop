@@ -114,11 +114,13 @@
     chip.style.top = (r.bottom + 4 + h <= window.innerHeight - 4 ? r.bottom + 4 : Math.max(4, r.top - h - 4)) + 'px';
   }
   async function fillWith(e, b) {
-    const sm = b && b.querySelector('small'); if (sm) sm.textContent = 'Wird übernommen …';
+    const sm = b && b.querySelector('small');
+    // Text erst nach einer halben Sekunde – im Normalfall ist das Feld bis dahin schon ausgefüllt (04.11.2026)
+    const wait0 = setTimeout(() => { if (sm && sm.isConnected) sm.textContent = 'Wird übernommen …'; }, 500);
     // Wartet die Freigabe länger (Mac: Schlüsselbund-Abfrage nach einem Update), sagen, was zu tun ist – statt still zu hängen.
     const slow = setTimeout(() => { if (sm && sm.isConnected) sm.textContent = navigator.platform.startsWith('Mac') ? 'Bitte die Mac-Abfrage „Schlüsselbund“ mit „Immer erlauben“ bestätigen …' : 'Bitte die Windows-Abfrage bestätigen …'; }, 4000);
     const r = await send({ type: 'pw:fill', id: e.id, url: location.href });
-    clearTimeout(slow);
+    clearTimeout(slow); clearTimeout(wait0);
     if (!r || !r.pass) { if (sm) sm.textContent = 'Nicht möglich – Freigabe abgelehnt oder abgelaufen. Erneut tippen.'; return; }
     const pw = [...document.querySelectorAll('input[type="password"]')].find(vis);
     const u = pw ? userFieldFor(pw) : anchorField();
@@ -135,7 +137,6 @@
     chip = document.createElement('immoadv-pw');
     chip.style.cssText = 'all:initial;position:fixed;z-index:2147483647;left:0;top:0;';
     const sr = chip.attachShadow({ mode: 'closed' });
-    const pk = isPasskey(f);
     const host0 = location.hostname.replace(/^www\./, '');
     sr.innerHTML = `<style>
       .c{box-sizing:border-box;width:100%;max-width:min(420px,calc(100vw - 16px));font:13px/1.25 -apple-system,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#eef3fb;
@@ -148,15 +149,16 @@
       .t{flex:1}
       .t{min-width:0}.t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.t small{display:block;color:#a7b4c8;font-size:11.5px}
       .r:hover small{color:#e5edff}.x{border:0;background:transparent;color:#a7b4c8;cursor:pointer;font:inherit;padding:0 2px}.x:hover{color:#fff}
-    </style><div class="c" role="listbox" aria-label="Gespeicherte Anmeldung"><div class="h"><span>${pk ? 'Passkey oder Passwort' : 'Gespeichertes Passwort'} · ${esc(host0)}</span><button class="x" data-x aria-label="Schließen">✕</button></div>
-      ${pk ? `<div class="r" style="cursor:default"><span class="i">${ICON_PK}</span><span class="t"><b>Mit Passkey anmelden</b><small>${navigator.platform.startsWith('Mac') ? 'Touch ID oder iPhone – die Seite fragt gleich selbst' : 'Windows Hello oder Handy – die Seite fragt gleich selbst'}</small></span></div>` : ''}
+    </style><div class="c" role="listbox" aria-label="Gespeicherte Anmeldung"><div class="h"><span>Gespeichertes Passwort · ${esc(host0)}</span><button class="x" data-x aria-label="Schließen">✕</button></div>
       ${entries.slice(0, 6).map((e, i) => `<button class="r" role="option" data-i="${i}"><span class="i">${ICON_KEY}</span><span class="t"><b>${esc(e.user || 'Ohne Benutzername')}</b><small>${esc(e.host || host0)}</small></span></button>`).join('')}</div>`;
     sr.querySelectorAll('[data-i]').forEach((b) => b.addEventListener('mousedown', (ev) => { ev.preventDefault(); fillWith(entries[b.dataset.i], b); }));
     sr.querySelector('[data-x]').addEventListener('mousedown', (ev) => { ev.preventDefault(); closeChip(); });
     chipFor = f;
     document.documentElement.append(chip);
     placeChip();
+    if (!warmed) { warmed = true; send({ type: 'pw:warm' }); }
   }
+  let warmed = false;
   document.addEventListener('focusout', (ev) => { if (chip && ev.target === chipFor) setTimeout(() => { if (chip && document.activeElement !== chipFor) closeChip(); }, 150); }, true);
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && chip) closeChip(); }, true);
   window.addEventListener('scroll', placeChip, { passive: true, capture: true });

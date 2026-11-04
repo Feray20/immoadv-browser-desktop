@@ -11,6 +11,17 @@ const step = (n) => { diag.steps.push(`${new Date().toISOString().slice(11, 19)}
 window.addEventListener('error', (e) => { diag.errors.push(String(e.message)); console.error('[ImmoAdv] Fehler', e.message); });
 window.addEventListener('unhandledrejection', (e) => { diag.errors.push(String(e.reason && e.reason.message || e.reason)); console.error('[ImmoAdv] Fehler', e.reason); });
 
+// ImmoAdv KI lokal (04.11.2026, Feray: „Modell laden geht nicht“, „KI-Knopf geht nicht“): Ollama lehnt Anfragen mit fremder
+// Herkunft („Origin: moz-extension://…“) mit 403 ab – Statusabfragen (GET) gingen, „Modell laden“ und jede Antwort (POST)
+// nicht. Für Anfragen der eigenen Erweiterung an Ollama auf diesem Computer wird die Herkunft entfernt. Webseiten sind nicht
+// betroffen: nur Anfragen ohne Tab (Erweiterungsseiten/Seitenleiste) und nur an 127.0.0.1/localhost:11434.
+try {
+  browser.webRequest.onBeforeSendHeaders.addListener((d) => {
+    if (d.tabId !== -1 && !(d.originUrl || '').startsWith(browser.runtime.getURL(''))) return {};
+    return { requestHeaders: d.requestHeaders.filter((h) => h.name.toLowerCase() !== 'origin') };
+  }, { urls: ['http://127.0.0.1:11434/*', 'http://localhost:11434/*'] }, ['blocking', 'requestHeaders']);
+} catch (e) { console.warn('[ImmoAdv] Ollama-Herkunft', e); }
+
 async function start() {
   step('Start');
   Theme.apply();
@@ -47,6 +58,14 @@ Native.on((ev, d) => {
   if (ev === 'bm.remote') bmChain = bmChain.then(() => applyRemoteBookmark(d)).catch((e) => console.warn('Lesezeichen vom anderen Gerät', e));
   // „Jetzt neu starten“ (Einstellungen, die einen Neustart brauchen): Browser sauber beenden, das Programm startet ihn neu.
   if (ev === 'restart') restartForUpdate();
+  if (ev === 'openFg') {
+    browser.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null).then(async (w) => {
+      let first = true;
+      for (const url of (d && d.urls) || []) { await browser.tabs.create({ url, active: first, ...(w && w.id != null ? { windowId: w.id } : {}) }).catch(() => {}); first = false; }
+      if (w && w.id != null) browser.windows.update(w.id, { focused: true }).catch(() => {});
+    });
+    return;
+  }
   if (ev === 'openBg') {
     // Links aus der ImmoAdv-Software: neuer Tab hinten im zuletzt benutzten Fenster, ohne Fokuswechsel.
     browser.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null).then((w) => {
@@ -189,7 +208,6 @@ function menus() {
     browser.menus.create({ id: 'ai-sel', title: 'KI fragen zu „%s“', contexts: ['selection'] });
     browser.menus.create({ id: 'ai-translate', title: 'KI: Markierten Text übersetzen', contexts: ['selection'] });
     browser.menus.create({ id: 'ai-reply', title: 'KI: Antwort darauf entwerfen', contexts: ['selection'] });
-    browser.menus.create({ id: 'ai-page-translate', title: 'KI: Seite auf Deutsch übersetzen', contexts: ['page'] });
     browser.menus.create({ id: 'sep-tools', type: 'separator', contexts: ['page', 'link', 'editable', 'image'] });
     browser.menus.create({ id: 'later', title: 'Später ansehen', contexts: ['page', 'link'] });
     browser.menus.create({ id: 'firm-fill', title: 'Mit Firmendaten ausfüllen', contexts: ['editable'] });
@@ -297,6 +315,7 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'watch:remove': { const w = (Settings.get('watchlist') || []).filter((x) => x.id !== m.id); return Settings.set({ watchlist: w }).then(() => w); }
     // Passwörter
     case 'pw:forUrl': return Vault.forUrl(m.url);
+    case 'pw:warm': return Native.call('vault.warm', {}, 130000).catch(() => false);
     case 'pw:fill': return Vault.fill(m.id, sender.tab ? sender.tab.url : m.url).catch(() => null);
     case 'pw:submitted': Vault.offer(tabId, m); return Promise.resolve(true);
     case 'pw:pending': return Promise.resolve(Vault.takePending(tabId, m.url));

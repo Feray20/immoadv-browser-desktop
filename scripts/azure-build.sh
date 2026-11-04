@@ -22,7 +22,10 @@ else
   MACID=$(printf '%s\n' "$IDS" | grep -E '"Developer ID Application:' | head -1 | sed -E 's/.*"(.*)"/\1/' || true)
   [ -n "$MACID" ] || MACID=$(printf '%s\n' "$IDS" | grep -E '"Apple Development:' | head -1 | sed -E 's/.*"(.*)"/\1/' || true)
   if [ -n "$MACID" ]; then
-    export CSC_NAME="$MACID"
+    # electron-builder will den Namen OHNE „Developer ID Application:“ (Protokoll 03.11.2026: „Please remove prefix“ –
+    # deshalb scheiterte der erste Weg jedes Mal). Für den codesign-Rückweg bleibt der volle Name in MACID_FULL.
+    export MACID_FULL="$MACID"
+    export CSC_NAME="${MACID#Developer ID Application: }"; CSC_NAME="${CSC_NAME#Apple Development: }"
     echo "Signatur: $MACID"
     # Beglaubigung bei Apple, wenn ein notarytool-Profil „ImmoAdv“ im Schlüsselbund liegt (sonst nur signiert).
     if xcrun notarytool history --keychain-profile "ImmoAdv" >/dev/null 2>&1; then export APPLE_KEYCHAIN_PROFILE="ImmoAdv"; fi
@@ -73,7 +76,7 @@ else
     # 03.11.2026 (Feray: Schlüsselbund fragt nach jedem Update, Passwort-Ausfüllen hängt): Der signierte Bau scheiterte und
     # fiel still auf ad-hoc zurück – für macOS ist dann jede Version ein fremdes Programm. Jetzt: zuerst mit Beglaubigung,
     # dann mit Zertifikat OHNE Beglaubigung (reicht für eigene Updates), erst danach ad-hoc – mit klarer Meldung im Log.
-    SAVED_ID="$CSC_NAME"
+    SAVED_ID="${MACID_FULL:-$CSC_NAME}"
     set +e; npx electron-builder --mac --arm64 --publish never 2>&1 | tee -a "$SIGNLOG"; EB=${PIPESTATUS[0]}; set -e
     if [ "$EB" = "0" ] && ! codesign -dvv dist/mac-arm64/*.app 2>&1 | grep -q "Developer ID Application"; then echo "electron-builder fertig, aber ohne Developer ID – signiere neu" | tee -a "$SIGNLOG"; EB=1; fi
     [ "$EB" = "0" ] \

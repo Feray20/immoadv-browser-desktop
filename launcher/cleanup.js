@@ -100,7 +100,8 @@ async function runMac(store, log) {
 // -Logo und festem ImmoAdv-Profil) – dann zeigt das angeheftete Symbol auch den Punkt „läuft“, statt daneben ein zweites.
 // Einmalig: Starter-Eintrag im Dock durch den Browser ersetzen (an derselben Stelle), doppelte Einträge entfernen.
 // Erst wenn der Motor das feste Profil im Programmpaket hat, sonst startete das Dock-Symbol ohne Profil.
-const DOCK_MARK = 'dock-v4';   // v4 (03.11.2026): gemerkte Beschriftung „Firefox“ am Dock-Symbol durch „ImmoAdv Browser“ ersetzen
+const DOCK_MARK = 'dock-v5';   // v5 (04.11.2026): Motor heißt jetzt „ImmoAdv Browser.app“ mit eigener Kennung – Dock-Eintrag umstellen
+// (v4: gemerkte Beschriftung „Firefox“ am Dock-Symbol durch „ImmoAdv Browser“ ersetzen)   // v4 (03.11.2026): gemerkte Beschriftung „Firefox“ am Dock-Symbol durch „ImmoAdv Browser“ ersetzen
 async function dockMac(store, engine) {
   if (process.platform !== 'darwin' || !app.isPackaged) return;
   try { if (store.get('dockDone') === DOCK_MARK) return; } catch { /* egal */ }
@@ -109,7 +110,8 @@ async function dockMac(store, engine) {
   const sh = (cmd, args) => new Promise((ok) => cp.execFile(cmd, args, { timeout: 15000 }, (e, out) => ok(e ? '' : String(out))));
   const log = (m) => engine.log(m);
   const self = app.getPath('exe').replace(/\/Contents\/MacOS\/[^/]+$/, '');
-  const motorApp = path.join(engine.paths.engine(), 'Firefox.app');
+  const motorApp = engine.macApp();
+  const altMotor = path.join(engine.paths.engine(), 'Firefox.app');
   const PB = '/usr/libexec/PlistBuddy', plist = path.join(os.homedir(), 'Library', 'Preferences', 'com.apple.dock.plist');
   const url = `file://${encodeURI(motorApp)}/`;
   let changed = false, haveMotor = false;
@@ -117,6 +119,16 @@ async function dockMac(store, engine) {
     const raw = (await sh(PB, ['-c', `Print :persistent-apps:${i}:tile-data:file-data:_CFURLString`, plist])).trim();
     if (!raw) continue;
     const p0 = decodeURIComponent(raw).replace(/^file:\/\//, '').replace(/\/$/, '');
+    if (p0 === altMotor && altMotor !== motorApp && fs.existsSync(motorApp)) {
+      // alter Pfad (…/Motor/Firefox.app) → neuer Name, gleiche Stelle im Dock; Kennung und Lesezeichen leeren, macOS liest sie neu
+      if (haveMotor) { await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]); changed = true; continue; }
+      await sh(PB, ['-c', `Set :persistent-apps:${i}:tile-data:file-data:_CFURLString ${url}`, plist]);
+      await sh(PB, ['-c', `Set :persistent-apps:${i}:tile-data:file-label ImmoAdv Browser`, plist]);
+      await sh(PB, ['-c', `Set :persistent-apps:${i}:tile-data:bundle-identifier de.immoadv.browser.engine`, plist]);
+      await sh(PB, ['-c', `Delete :persistent-apps:${i}:tile-data:book`, plist]);
+      await sh(PB, ['-c', `Delete :persistent-apps:${i}:tile-data:file-mod-date`, plist]);
+      haveMotor = true; changed = true; log('Dock: Firefox.app → ImmoAdv Browser.app'); continue;
+    }
     if (p0 === motorApp) {
       if (haveMotor) { await sh(PB, ['-c', `Delete :persistent-apps:${i}`, plist]); changed = true; continue; }
       haveMotor = true;

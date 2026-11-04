@@ -92,18 +92,39 @@ mac:
     - "!node_modules/rcedit/**/*"
   # nur am Mac über electron-builder (Windows: build/installer.nsh, ohne Standard ungefragt umzustellen)
   fileAssociations:
+    # Symbole je Dateityp (04.11.2026, Feray: „hier kein ImmoAdv-Logo, sondern bei PDF das PDF-Symbol“) – vorher fehlte am Mac
+    # das Symbol, macOS zeigte für jede Datei das Browser-Logo. Jetzt wie unter Windows: PDF-, Bild- und HTML-Symbol.
     - ext: [html, htm]
       name: HTML-Dokument
       role: Viewer
+      icon: build/dateisymbole/html.icns
     - ext: pdf
       name: PDF-Dokument
       role: Viewer
+      icon: build/dateisymbole/pdf.icns
     # Office-Dateien öffnet die ImmoAdv-Software (Wunsch Feray 03.11.2026: „Browser nur Bilder und PDFs mit Bearbeiten,
     # Office bei ImmoAdv“) – der Browser meldet sich dafür nicht mehr an.
     # Bilder (02.11.2026): öffnen per Doppelklick mit den Bild-Werkzeugen des Browsers – wie unter Windows
-    - ext: [png, jpg, jpeg, gif, webp, bmp]
-      name: Bild
+    - ext: png
+      name: PNG-Bild
       role: Viewer
+      icon: build/dateisymbole/png.icns
+    - ext: [jpg, jpeg]
+      name: JPEG-Bild
+      role: Viewer
+      icon: build/dateisymbole/jpg.icns
+    - ext: gif
+      name: GIF-Bild
+      role: Viewer
+      icon: build/dateisymbole/gif.icns
+    - ext: webp
+      name: WebP-Bild
+      role: Viewer
+      icon: build/dateisymbole/webp.icns
+    - ext: bmp
+      name: BMP-Bild
+      role: Viewer
+      icon: build/dateisymbole/bmp.icns
   category: public.app-category.productivity
   # Nur Apple-Chip (02.11.2026): Die „universal“-Fassung (Apple-Chip + Intel zusammengefügt) zerstörte ohne
   # Neusignierung die Code-Signatur des Electron-Frameworks – macOS beendete den Browser sofort beim Start

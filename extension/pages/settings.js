@@ -431,21 +431,31 @@ async function leistung() {
   clearInterval(leistung.t); leistung.t = setInterval(() => { if (tab !== 'leistung' || document.hidden) return; draw(); }, 5000);
 }
 
+// Updates (04.11.2026, Feray: „drei Mal installieren drücken“, „Update-Knopf nicht 100 % korrekt“): Nach dem Klick lädt
+// das Update – vorher erschien dann wieder „Update jetzt installieren“ (aktiv) und der Klick wirkte scheinbar nicht.
+// Jetzt: ein Klick, danach ein gesperrter Knopf mit echtem Fortschritt bis zum Neustart; alle Zustände klar benannt.
+let updClicked = false;
 function updates() {
   const u = st.update || {};
-  const line = { checking: 'Sucht nach Updates …', current: 'Aktuell', available: `Version ${u.version} verfügbar`, downloading: `Lädt Version ${u.version} … ${u.progress || 0} %`, ready: `Version ${u.version} bereit`, restarting: 'Wird installiert …', error: u.message || 'Fehler', unsupported: 'Updates nur in der installierten Version' }[u.status] || 'Bereit';
+  const busy = updClicked || ['installing', 'restarting'].includes(u.status);
+  const line = { checking: 'Sucht nach Updates …', current: 'Aktuell – neueste Version', available: `Version ${u.version} verfügbar`,
+    downloading: `Lädt Version ${u.version} … ${u.progress || 0} %`, ready: `Version ${u.version} bereit`, installing: 'Wird installiert – der Browser startet gleich neu',
+    restarting: 'Wird installiert – der Browser startet gleich neu', retry: 'Update-Server gerade nicht erreichbar – neuer Versuch läuft', error: u.message || 'Update nicht möglich – bitte erneut versuchen',
+    unsupported: u.message || 'Updates nur in der installierten Version', idle: 'Prüft …' }[u.status] || 'Prüft …';
+  const hasUpd = ['available', 'ready', 'downloading', 'installing', 'restarting'].includes(u.status);
+  const btnText = !busy ? 'Update jetzt installieren' : u.status === 'downloading' ? `Lädt … ${u.progress || 0} %` : u.status === 'ready' || u.status === 'installing' || u.status === 'restarting' ? 'Wird installiert …' : 'Wird vorbereitet …';
   body(`<div class="group"><h3>ImmoAdv Browser ${esc(st.version)}</h3>
       <div class="row"><span>Status</span><b>${esc(line)}</b></div>
-      ${['available', 'ready', 'downloading'].includes(u.status) ? '<button class="primary" id="uNow">Update jetzt installieren</button>' : '<button class="secondary" id="uCheck">Nach Updates suchen</button>'}
+      ${hasUpd ? `<button class="primary" id="uNow" ${busy ? 'disabled' : ''}>${esc(btnText)}</button>` : `<button class="secondary" id="uCheck" ${u.status === 'checking' ? 'disabled' : ''}>${u.status === 'checking' ? 'Sucht …' : 'Nach Updates suchen'}</button>`}
       ${sw('uAuto', st.settings.autoUpdate !== false, 'Updates automatisch laden', 'werden beim nächsten Beenden still installiert')}</div>
-    ${['available', 'ready', 'downloading'].includes(u.status)
-      ? '<p class="small">„Update jetzt installieren“ lädt die neue Version, installiert sie ohne weitere Fragen und startet den Browser neu. Tabs, Lesezeichen, Passwörter und Einstellungen bleiben erhalten.</p>'
+    ${hasUpd
+      ? '<p class="small">Ein Klick genügt: Die neue Version wird geladen, ohne weitere Fragen installiert und der Browser startet neu. Tabs, Lesezeichen, Passwörter und Einstellungen bleiben erhalten.</p>'
       : '<p class="small">Neue Versionen werden automatisch gefunden. Tabs, Lesezeichen, Passwörter und Einstellungen bleiben bei jedem Update erhalten.</p>'}`);
-  if ($('uNow')) $('uNow').onclick = async () => { $('uNow').disabled = true; $('uNow').textContent = 'Wird installiert …'; await send({ type: 'update:now' }); };
-  if ($('uCheck')) $('uCheck').onclick = async () => { st.update = await send({ type: 'update:check' }); updates(); };
+  if ($('uNow')) $('uNow').onclick = async () => { updClicked = true; updates(); try { st.update = await send({ type: 'update:now' }); } catch (e) { updClicked = false; toast('Update nicht möglich: ' + (e.message || e)); } if (['error', 'retry'].includes((st.update || {}).status)) updClicked = false; updates(); };
+  if ($('uCheck')) $('uCheck').onclick = async () => { st.update = { ...(st.update || {}), status: 'checking' }; updates(); st.update = await send({ type: 'update:check' }); updates(); };
   bindSwitch('uAuto', 'autoUpdate');
 }
 
 $('restartNow').onclick = () => send({ type: 'engine:set', patch: { restart: true } });
-browser.runtime.onMessage.addListener((m) => { if (m && (m.type === 'vpn' || m.type === 'update')) { if (m.type === 'vpn') st.vpn = m.data; else st.update = m.data; if (tab === 'vpn') vpn(); if (tab === 'updates') updates(); } });
+browser.runtime.onMessage.addListener((m) => { if (m && (m.type === 'vpn' || m.type === 'update')) { if (m.type === 'vpn') st.vpn = m.data; else { st.update = m.data; if (['error', 'retry', 'current'].includes(m.data && m.data.status)) updClicked = false; } if (tab === 'vpn') vpn(); if (tab === 'updates') updates(); } });
 render();

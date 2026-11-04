@@ -25,6 +25,16 @@ const DNS = {
 const SEARCH = { google: 'Google', duckduckgo: 'DuckDuckGo', bing: 'Bing', ecosia: 'Ecosia', startpage: 'Startpage' };
 
 const base = () => app.getPath('userData');
+// Mac (04.11.2026, Feray: Dock zeigt „Firefox“): Das Programmpaket des Motors heißt jetzt „ImmoAdv Browser.app“ und hat eine
+// eigene Kennung (de.immoadv.browser.engine). Vorher hieß es „Firefox.app“ mit derselben Kennung wie das echte Firefox in
+// /Programme – macOS nahm dann Name und Mitteilungs-Rechte des echten Firefox. Alte Installationen werden in brandMac() umbenannt.
+const MAC_APP = 'ImmoAdv Browser.app', MAC_APP_OLD = 'Firefox.app', MAC_BUNDLE_ID = 'de.immoadv.browser.engine';
+function macApp() {
+  const neu = path.join(app.getPath('userData'), 'Motor', MAC_APP);
+  if (fs.existsSync(neu)) return neu;
+  const alt = path.join(app.getPath('userData'), 'Motor', MAC_APP_OLD);
+  return fs.existsSync(alt) ? alt : neu;
+}
 const paths = {
   engine: () => path.join(base(), 'Motor'),
   profile: () => path.join(base(), 'Profil'),
@@ -43,12 +53,12 @@ function log(msg) {
 
 /** Ordner, in dem die Motor-Dateien liegen (Windows/Linux: Programmordner, Mac: Firefox.app/Contents/Resources) */
 function appDir() {
-  if (isMac) return path.join(paths.engine(), 'Firefox.app', 'Contents', 'Resources');
+  if (isMac) return path.join(macApp(), 'Contents', 'Resources');
   if (isWin) return paths.engine();
   return path.join(paths.engine(), 'firefox');
 }
 function exe() {
-  if (isMac) return path.join(paths.engine(), 'Firefox.app', 'Contents', 'MacOS', 'firefox');
+  if (isMac) return path.join(macApp(), 'Contents', 'MacOS', 'firefox');
   if (isWin) return path.join(paths.engine(), 'firefox.exe');
   return path.join(paths.engine(), 'firefox', 'firefox');
 }
@@ -115,7 +125,7 @@ async function install(onProgress = () => {}) {
         if (!team || team[1] !== MOZILLA_TEAM_ID) throw new Error('Signatur von Firefox ungültig – abgebrochen.');
         onProgress({ step: 'install' });
         fs.mkdirSync(target, { recursive: true });
-        await run('ditto', [src, path.join(target, 'Firefox.app')]);
+        await run('ditto', [src, path.join(target, MAC_APP)]);
       } finally { await run('hdiutil', ['detach', mount, '-quiet']).catch(() => {}); }
     } else {
       const arc = path.join(tmp, 'firefox.tar');
@@ -185,7 +195,7 @@ async function brandStrings() {
   if (running()) return false;
   const { path7za } = require('7zip-bin');
   const seven = path7za.replace('app.asar', 'app.asar.unpacked');
-  const root = isMac ? path.join(paths.engine(), 'Firefox.app', 'Contents', 'Resources') : paths.engine();
+  const root = isMac ? path.join(macApp(), 'Contents', 'Resources') : paths.engine();
   const NAME = 'ImmoAdv Browser';
   let done = false;
   for (const omni of [path.join(root, 'browser', 'omni.ja'), path.join(root, 'omni.ja')]) {
@@ -261,16 +271,28 @@ async function signEngineMac(appPath) {
       await run('codesign', ['--force', '--deep', '--options', 'runtime', '--entitlements', ent, '--sign', id, appPath], { timeout: 180000 });
       await run('codesign', ['--verify', '--deep', '--strict', appPath], { timeout: 120000 });
       log('Mac: Motor signiert mit ' + id.replace(/\s*\(.*\)$/, ''));
+      try { fs.writeFileSync(path.join(paths.engine(), '.immoadv-devid'), id); } catch { /* egal */ }
       return;
     } catch (e) { log('Signieren mit Zertifikat fehlgeschlagen, ad-hoc: ' + (e.message || e)); }
   }
   // ad-hoc: ohne „Hardened Runtime“ (sonst wären die Rechte nötig, die Apple ad-hoc nicht garantiert) – mit Rechte-Datei,
   // damit macOS Kamera/Mikrofon zuordnet.
+  try { fs.rmSync(path.join(paths.engine(), '.immoadv-devid'), { force: true }); } catch { /* egal */ }
   await run('codesign', ['--force', '--deep', '--entitlements', ent, '--sign', '-', appPath], { timeout: 120000 });
 }
 
 async function brandMac() {
-  const appPath = path.join(paths.engine(), 'Firefox.app');
+  // v6 (04.11.2026): Paket in „ImmoAdv Browser.app“ umbenennen + eigene Kennung (siehe MAC_APP oben).
+  if (running()) return false;
+  try {
+    const alt = path.join(paths.engine(), MAC_APP_OLD), neu = path.join(paths.engine(), MAC_APP);
+    if (fs.existsSync(alt) && !fs.existsSync(neu)) {
+      const LSR0 = '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister';
+      try { await run(LSR0, ['-u', alt]); } catch { /* egal */ }
+      fs.renameSync(alt, neu); log('Mac: Motor umbenannt in ' + MAC_APP);
+    }
+  } catch (e) { log('Mac-Umbenennen: ' + (e.message || e)); }
+  const appPath = macApp();
   const plist = path.join(appPath, 'Contents', 'Info.plist');
   // Merker v2 (02.11.2026): neu signieren mit Kamera-/Mikrofon-Rechten und – wenn vorhanden – Ferays Apple-Zertifikat.
   // Merker v3 (03.11.2026): zusätzlich festes ImmoAdv-Profil im Programmpaket (LSEnvironment), damit der Browser auch
@@ -281,7 +303,7 @@ async function brandMac() {
   // Merker v5 (03.11.2026, Feray: Dock zeigt beim Zeigen noch „Firefox“): Gibt es für die Systemsprache (z. B. Englisch)
   // keine übersetzte Namensdatei im Motor, nimmt macOS den Dateinamen „Firefox“. Jetzt wird sie für Englisch, Deutsch und
   // Base immer angelegt – Dock, Cmd+Tab, Finder und „Sofort beenden“ zeigen dann in jeder Sprache „ImmoAdv Browser“.
-  const mark = path.join(paths.engine(), '.immoadv-name5');
+  const mark = path.join(paths.engine(), '.immoadv-name6');
   let st; try { st = fs.statSync(plist); } catch { return false; }
   const key = `${st.size}:${st.mtimeMs}`;
   try { if (fs.readFileSync(mark, 'utf8') === key) return false; } catch { /* noch nie */ }
@@ -290,6 +312,7 @@ async function brandMac() {
   try {
     await run('plutil', ['-replace', 'CFBundleName', '-string', NAME, plist]);
     await run('plutil', ['-replace', 'CFBundleDisplayName', '-string', NAME, plist]);
+    await run('plutil', ['-replace', 'CFBundleIdentifier', '-string', MAC_BUNDLE_ID, plist]);
     await run('plutil', ['-replace', 'LSEnvironment', '-json', JSON.stringify({ XRE_PROFILE_PATH: paths.profile() }), plist]);
     await run('plutil', ['-replace', 'LSHasLocalizedDisplayName', '-bool', 'YES', plist]);
     try { await run('plutil', ['-remove', 'CFBundleDocumentTypes', plist]); } catch { /* nicht vorhanden */ }
@@ -438,7 +461,14 @@ function userJs() {
   // Mac (02.11.2026, Feray: „am Mac kommen keine Benachrichtigungen“): Der Motor ist nach dem ImmoAdv-Umbenennen nur
   // ad-hoc signiert – macOS stellt seine Mitteilungen dann nicht zu. Darum zeigt der Browser Mitteilungen selbst an
   // (eigene Einblendung oben rechts, funktioniert immer).
-  if (isMac) txt += '\nuser_pref("alerts.useSystemBackend", false);\n';
+  // 04.11.2026 (Feray: „Erlauben gedrückt, Benachrichtigungen gehen trotzdem nicht“): Ist der Motor mit Ferays Developer ID
+  // signiert und hat er seine eigene Kennung (siehe MAC_APP), stellt macOS die Mitteilungen zuverlässig zu – dann über die
+  // Mitteilungszentrale (erscheinen auch, wenn der Browser hinten ist; einstellbar unter Systemeinstellungen → Mitteilungen →
+  // ImmoAdv Browser). Sonst wie bisher die eigene Einblendung.
+  if (isMac) {
+    let devId = false; try { devId = fs.existsSync(path.join(paths.engine(), '.immoadv-devid')) && path.basename(macApp()) === MAC_APP; } catch { /* egal */ }
+    txt += `\nuser_pref("alerts.useSystemBackend", ${devId ? 'true' : 'false'});\n`;
+  }
   return txt;
 }
 
@@ -489,7 +519,7 @@ function launch(args = []) {
   // er nach dem Schließen des letzten Fensters aktiv), startete ein zweiter Prozess mit demselben Profil – macOS/Firefox
   // ignorierten ihn, es passierte nichts. Jetzt wird das laufende Programm über macOS geweckt: neues Fenster bzw. die Links.
   if (isMac && running()) {
-    const appPath = path.join(paths.engine(), 'Firefox.app');
+    const appPath = macApp();
     const urls = args.filter((a) => !String(a).startsWith('-'));
     const child = spawn('open', ['-a', appPath, ...urls], { detached: true, stdio: 'ignore' });
     child.on('error', (e) => log('Wecken fehlgeschlagen: ' + e.message));
@@ -520,9 +550,9 @@ async function version() {
 async function macProfileReady() {
   if (!isMac) return false;
   try {
-    const v = String(await run('plutil', ['-extract', 'LSEnvironment.XRE_PROFILE_PATH', 'raw', path.join(paths.engine(), 'Firefox.app', 'Contents', 'Info.plist')])).trim();
+    const v = String(await run('plutil', ['-extract', 'LSEnvironment.XRE_PROFILE_PATH', 'raw', path.join(macApp(), 'Contents', 'Info.plist')])).trim();
     return v === paths.profile();
   } catch { return false; }
 }
 
-module.exports = { macProfileReady, brandIcon, EXT_ID, EXT_UUID, paths, installed, install, running, waitClosed, deploy, writeProfile, writeEngineConfig, launch, extUrl, version, log, needsRestart: () => pendingRestart };
+module.exports = { macApp, macProfileReady, brandIcon, EXT_ID, EXT_UUID, paths, installed, install, running, waitClosed, deploy, writeProfile, writeEngineConfig, launch, extUrl, version, log, needsRestart: () => pendingRestart };

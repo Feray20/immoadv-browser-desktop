@@ -98,6 +98,7 @@ const handlers = {
   'vpn.logout': () => { store.set('vpnCreds', null); return true; },
   // Passwort-Tresor
   'vault.list': () => vault.list(),
+  'vault.warm': () => vault.warm(),
   'vault.forUrl': ({ url }) => vault.forUrl(String(url || '')),
   'vault.fill': async ({ id, url }) => {
     const entry = vault.list().find((x) => x.id === id);
@@ -154,6 +155,10 @@ const handlers = {
   // Updates
   // Links im Hintergrund öffnen (vom Start-Programm, z. B. aus der ImmoAdv-Software): an alle verbundenen Browserfenster
   // melden; Rückgabe = Anzahl erreichter Browser (ohne den Absender selbst).
+  // Dateien/Seiten vorne öffnen (04.11.2026, Feray: „Browser öffnet keine PDFs und Bilder“): Läuft der Browser schon, gingen
+  // Bilder (ImmoAdv-Betrachter = Seite der Erweiterung) über „open -a“ an macOS – das kennt diese Adressen nicht, es passierte
+  // nichts. Jetzt öffnet die Erweiterung selbst einen Tab vorne. Nur Webadressen und Seiten der eigenen Erweiterung.
+  'tabs.open': ({ urls }) => { const own = engine.extUrl(''); const list = (Array.isArray(urls) ? urls : []).map(String).filter((u) => /^https?:\/\//i.test(u) || u.startsWith(own)).slice(0, 20); if (!list.length) return 0; event('openFg', { urls: list }); return Math.max(0, outputs.size - 1); },
   'tabs.openBg': ({ urls }) => { const list = (Array.isArray(urls) ? urls : []).filter((u) => /^https?:\/\//i.test(String(u))).slice(0, 20); if (!list.length) return 0; event('openBg', { urls: list }); return Math.max(0, outputs.size - 1); },
   // Leistung (02.11.2026, Feray: „in den Einstellungen Leistung, damit ich sehe, wo es hakt“): nur Zahlen und die
   // letzten Protokollzeilen (ohne Passwörter, Adressen werden gekürzt) – nichts verlässt das Gerät.

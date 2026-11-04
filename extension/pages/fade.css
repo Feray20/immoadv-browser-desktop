@@ -97,3 +97,8 @@ button, .pill, .primary, .secondary, .danger { box-sizing: border-box; max-width
 
 /* Passwort hinzufügen (03.11.2026, Feray: Felder verrutscht/unterschiedlich): alle Felder und der Knopf gleich hoch, auf einer Linie */
 .pw-add > input, .pw-add > button { height: 40px; min-height: 40px; margin: 0; }
+/* 04.11.2026 (Feray: Einstellungen → KI „Fast fertig“ brach nach jedem Wort um, „Modell laden“ lag über dem Text):
+   Knöpfe in einer Zeile nehmen nur ihre eigene Breite, der Text links bekommt den Rest. */
+.row > span:first-child { flex: 1 1 auto; }
+.row > .primary, .row > .secondary, .row > .danger, .row > span > .primary, .row > span > .secondary { width: auto; flex: none; margin-top: 0; padding: 0 18px; white-space: nowrap; }
+.row .desc { display: block; }

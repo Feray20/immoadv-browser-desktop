@@ -6,7 +6,7 @@ const Settings = (() => {
     blockAds: true, blockMalware: true, blockPhishing: true, freshLists: true, allowlist: [], blocklist: [],
     httpsOnly: true, cleanLinks: true, dnsProvider: 'quad9',
     keepSignedIn: ['google.com', 'youtube.com', 'immoadv.de', 'apple.com', 'icloud.com', 'microsoft.com', 'live.com', 'office.com',
-      'ebay.de', 'amazon.de', 'autods.com', 'kleinanzeigen.de', 'claude.ai', 'github.com'],
+      'ebay.de', 'amazon.de', 'autods.com', 'kleinanzeigen.de', 'claude.ai', 'github.com', 'chatgpt.com', 'openai.com'],
     traceless: true, vpnCountry: 'auto', vpnServers: [], vpnLoggedIn: false,
     stats: { werbung: 0, malware: 0, phishing: 0, eigene: 0, since: null },
     autoUpdate: true, bookmarkBar: true, tabLayout: 'horizontal', suspendMinutes: 30, historyDays: 30, restoreSession: true,

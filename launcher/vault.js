@@ -188,5 +188,8 @@ module.exports = { removeMany, status, update, matches, plainEntries, applySync,
     const p = all().find((x) => x.id === id);
     return p ? { user: p.user, pass: dec(p.pass) } : null;
   },
+  // 04.11.2026 (Feray: „muss sofort ausfüllen, wenn ich drücke“): Schlüssel schon beim Antippen des Anmeldefelds aus dem
+  // Schlüsselbund holen (nur entschlüsseln, nichts herausgeben) – der Klick auf einen Eintrag füllt dann ohne Wartezeit aus.
+  warm() { const p = all()[0]; if (p) dec(p.pass); return true; },
   available: () => safeStorage.isEncryptionAvailable()
 };
