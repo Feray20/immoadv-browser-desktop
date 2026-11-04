@@ -78,7 +78,10 @@ else
     # dann mit Zertifikat OHNE Beglaubigung (reicht für eigene Updates), erst danach ad-hoc – mit klarer Meldung im Log.
     SAVED_ID="${MACID_FULL:-$CSC_NAME}"
     set +e; npx electron-builder --mac --arm64 --publish never 2>&1 | tee -a "$SIGNLOG"; EB=${PIPESTATUS[0]}; set -e
-    if [ "$EB" = "0" ] && ! codesign -dvv dist/mac-arm64/*.app 2>&1 | grep -q "Developer ID Application"; then echo "electron-builder fertig, aber ohne Developer ID – signiere neu" | tee -a "$SIGNLOG"; EB=1; fi
+    # Erst in eine Variable lesen (04.11.2026): „codesign | grep -q“ brach mit pipefail ab (grep beendet früh) und meldete
+    # fälschlich „ohne Developer ID“ – dann wurde unnötig ein zweites Mal signiert.
+    SIGINFO=$(codesign -dvv dist/mac-arm64/*.app 2>&1 || true)
+    if [ "$EB" = "0" ] && ! printf '%s' "$SIGINFO" | grep -q "Developer ID Application"; then echo "electron-builder fertig, aber ohne Developer ID – signiere neu" | tee -a "$SIGNLOG"; EB=1; fi
     [ "$EB" = "0" ] \
       || { echo "Signierter Bau über electron-builder fehlgeschlagen – signiere direkt per codesign mit $SAVED_ID."; SIGN_ID="$SAVED_ID" adhoc; } \
       || { echo "##[warning]Mac-Browser NICHT mit Developer ID signiert – ad-hoc. Folge: Schlüsselbund fragt nach jedem Update."; SIGN_ID="-" adhoc; }
