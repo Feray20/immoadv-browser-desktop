@@ -58,6 +58,7 @@
       "lib/uploads-core.js",
       "lib/uploadtrack.js",
       "lib/tools.js",
+      "lib/aicall.js",
       "background.js"
     ],
     "persistent": true
@@ -160,6 +161,16 @@
       ],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "https://*/*"
+      ],
+      "js": [
+        "content/summary.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
   "web_accessible_resources": [

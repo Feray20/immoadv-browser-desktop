@@ -10,7 +10,7 @@ const Settings = (() => {
     traceless: true, vpnCountry: 'auto', vpnServers: [], vpnLoggedIn: false,
     stats: { werbung: 0, malware: 0, phishing: 0, eigene: 0, since: null },
     autoUpdate: true, bookmarkBar: true, tabLayout: 'horizontal', suspendMinutes: 30, historyDays: 30, restoreSession: true,
-    searchEngine: 'google', watchlist: [], aiProvider: 'ollama', aiModels: {}, aiInstructions: '', aiKeepHistory: true,
+    searchEngine: 'google', watchlist: [], aiProvider: 'ollama', aiModels: {}, aiInstructions: '', aiKeepHistory: true, aiPill: true, aiPillOff: [],
     pwAsk: true, uploadHistory: true, spaces: [], firm: {}
   };
   let data = { ...DEFAULTS };

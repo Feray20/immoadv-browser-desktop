@@ -359,8 +359,10 @@ async function ki() {
       <button class="primary" id="aSave">Speichern</button></div>
     <div class="group"><h3>Eigene Vorgaben</h3><textarea id="aInstr" rows="4" style="width:100%" placeholder="z. B. Ich bin Immobilien-Investorin, rechne in Euro, antworte kurz.">${esc(s.aiInstructions || '')}</textarea>
       <p class="hint">Gilt für jede Antwort. Seiteninhalte können diese Vorgaben nicht ändern.</p></div>
-    <div class="group"><h3>Datenschutz</h3>${sw('aHist', s.aiKeepHistory !== false, 'KI-Gespräche speichern', 'nur lokal')}<p class="small">Seiteninhalte gehen nur an die KI, wenn „Seite einbeziehen“ an ist. Passwörter, Formulareingaben und Verlauf nie.</p></div>`);
+    <div class="group"><h3>Datenschutz</h3>${sw('aHist', s.aiKeepHistory !== false, 'KI-Gespräche speichern', 'nur lokal')}${sw('aPill', s.aiPill !== false, '„✦ Zusammenfassen“ auf Webseiten', `Knopf unten rechts auf Seiten mit viel Text${(s.aiPillOff || []).length ? ` · auf ${(s.aiPillOff || []).length} Seite(n) ausgeblendet` : ''}`)}${(s.aiPillOff || []).length ? '<button class="secondary" id="aPillReset">Ausgeblendete Seiten wieder anzeigen</button>' : ''}<p class="small">Seiteninhalte gehen nur an die KI, wenn „Seite einbeziehen“ an ist. Passwörter, Formulareingaben und Verlauf nie.</p></div>`);
   bindSwitch('aHist', 'aiKeepHistory');
+  bindSwitch('aPill', 'aiPill');
+  if ($('aPillReset')) $('aPillReset').onclick = async () => { await setS({ aiPillOff: [] }); toast('Wird wieder überall angezeigt'); ki(); };
   $('aProv').onchange = async () => { await setS({ aiProvider: $('aProv').value }); ki(); };
   $('aSave').onclick = async () => {
     const m = $('aModel').value.trim(); const next = { ...models }; if (m) next[p.id] = m; else delete next[p.id];

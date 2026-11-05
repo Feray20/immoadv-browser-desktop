@@ -71,6 +71,8 @@ const defaults = {
   aiModels: {},
   aiInstructions: '',
   aiKeepHistory: true,
+  aiPill: true,          // Knopf „✦ Zusammenfassen“ auf Webseiten mit viel Text (05.11.2026)
+  aiPillOff: [],         // Seiten, auf denen er ausgeblendet wurde
   migratedV3: false
 };
 
