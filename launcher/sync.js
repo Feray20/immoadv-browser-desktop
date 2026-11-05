@@ -419,8 +419,16 @@ function keepRecent(list) {
   return out;
 }
 
+// Claude-Connector (05.11.2026): Anmeldung des ImmoAdv-Kontos für Aufträge von Claude (extension/lib/remote.js).
+// Gibt nur den kurzlebigen Zugang (1 Std.) an die eigene Erweiterung – nie den Erneuerungs-Schlüssel.
+async function remoteAuth() {
+  try { await ensureToken(); } catch (e) { throw new Error('Für Claude bitte zuerst unter Einstellungen → Sync mit dem ImmoAdv-Konto anmelden.'); }
+  if (session.aal !== 'aal2' && pendingMfa) throw new Error('Bitte unter Einstellungen → Sync den Bestätigungscode eingeben.');
+  return { access: session.access, device: deviceId(), name: `ImmoAdv Browser · ${deviceName()}` };
+}
+
 module.exports = {
-  keepRecent,
+  keepRecent, remoteAuth,
   init, login, loginGoogle, mfa, setPassphrase, logout, runNow, tabsChanged: () => { if (state.status === 'on') { clearTimeout(pushTimer); pushTimer = setTimeout(runNow, 15000); } },
   state: () => ({ ...state, remoteTabs }), forSite: (u) => siteOf(u)
 };

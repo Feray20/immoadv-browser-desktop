@@ -37,6 +37,11 @@ async function start() {
   Vault.refreshSites();
   Traceless.init();
   UploadTrack.init();
+  // Claude-Connector (05.11.2026): nur wenn unter Einstellungen → KI eingeschaltet
+  if (typeof Remote !== 'undefined') {
+    Remote.apply(Settings.get('claudeRemote') === true);
+    Settings.onChange((d) => Remote.apply(d && d.claudeRemote === true));
+  }
   Blocker.refresh().catch(() => {});
   browser.alarms.create('lists', { periodInMinutes: 360 });
   browser.alarms.create('history', { delayInMinutes: 2, periodInMinutes: 720 });
@@ -312,6 +317,11 @@ browser.runtime.onMessage.addListener((m, sender) => {
       setTimeout(() => URL.revokeObjectURL(url), 60000);
       return true;
     })();
+    case 'remote:status': return Promise.resolve(Remote.status());
+    case 'remote:shared': return Promise.resolve(Remote.shared(m.tabId));
+    case 'remote:share': return Remote.share(m.tabId, !!m.on);
+    case 'remote:connections': return Remote.connections();
+    case 'remote:disconnect': return Remote.disconnect();
     case 'tool:pdf': return browser.tabs.get(m.tabId).then((t) => Tools.savePdf(t));
     case 'tool:fullshot': return browser.tabs.get(m.tabId).then((t) => Tools.fullShot(t));
     case 'shot:get': return Promise.resolve(Tools.takeShot(m.id));

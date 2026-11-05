@@ -26,7 +26,7 @@ function load({ creds = null } = {}) {
     fetch: async (u) => { const m = /lists\/(\w+)\.json/.exec(u); return m ? { ok: true, json: async () => lists[m[1]] } : { ok: false, status: 503, json: async () => null }; } };
   ctx.self = ctx; vm.createContext(ctx);
   let code = listsSrc + '\n;\n';
-  for (const f of ['lib/native.js', 'lib/settings.js', 'lib/theme.js', 'lib/blocker.js', 'lib/vpn.js', 'lib/traceless.js', 'lib/vault.js', 'lib/uploads-core.js', 'lib/uploadtrack.js', 'background.js']) code += fs.readFileSync(path.join(root, 'extension', f), 'utf8') + '\n;\n';
+  for (const f of ['lib/native.js', 'lib/settings.js', 'lib/theme.js', 'lib/blocker.js', 'lib/vpn.js', 'lib/traceless.js', 'lib/vault.js', 'lib/uploads-core.js', 'lib/uploadtrack.js', 'lib/remote.js', 'background.js']) code += fs.readFileSync(path.join(root, 'extension', f), 'utf8') + '\n;\n';
   vm.runInContext(code, ctx, { filename: 'background.js' });
   return { browser, sent };
 }

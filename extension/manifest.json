@@ -59,6 +59,7 @@
       "lib/uploadtrack.js",
       "lib/tools.js",
       "lib/aicall.js",
+      "lib/remote.js",
       "background.js"
     ],
     "persistent": true

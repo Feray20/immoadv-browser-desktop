@@ -1,3 +1,8 @@
+ImmoAdv Browser 4.1.48 – Claude-Connector
+- Neu: Claude (claude.ai / Claude-App) kann diesen Browser steuern – als eigener Connector „ImmoAdv Browser“. Einschalten unter Einstellungen → KI → „Claude darf diesen Browser steuern“ (Voraussetzung: unter Sync mit dem ImmoAdv-Konto angemeldet), dann in Claude die Connector-Adresse https://immoadv.de/api/mcp/browser hinzufügen
+- Claude öffnet Seiten in eigenen Tabs (oben markiert „✦ Claude steuert diesen Tab“), liest sie, macht Bildschirmfotos, klickt und tippt – mit deinen Anmeldungen. Eigene Tabs gibst du über das ImmoAdv-Menü „Mit Claude teilen“ frei
+- Gesperrt: Banken, Zahlungsdienste, Konto- und Behördenseiten, Passwort- und Zahlungsfelder. Aus = Claude kommt nicht an den Browser; „Alle trennen“ beendet jede Verbindung
+
 ImmoAdv Browser 4.1.47 – Updates automatisch, Passwörter in Anmelderahmen, Menü sofort da
 - Updates wie bei der ImmoAdv-Software: alle 30 Min. (und nach dem Aufwachen) wird gesucht; ein fertiges Update spielt sich ein, sobald 10 Min. niemand am Rechner arbeitet oder der Bildschirm gesperrt ist – der Browser öffnet sich danach mit allen Tabs wieder
 - „Passwort übernehmen“ füllt jetzt auch Anmeldungen in eingebetteten Rahmen aus (eBay, Microsoft, Banken) – vorher passierte dort nichts

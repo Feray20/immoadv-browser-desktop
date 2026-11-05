@@ -347,6 +347,25 @@ async function ollamaPull(model, onProgress) {
   }
   return true;
 }
+// Claude-Connector (05.11.2026, Feray: „MCP wie einen eigenen Connector, den ich verbinden kann“)
+const MCP_URL = 'https://immoadv.de/api/mcp/browser';
+async function claudeGroup() {
+  const on = st.settings.claudeRemote === true;
+  $('body').insertAdjacentHTML('beforeend', `<div class="group" id="cGroup"><h3>Claude-Connector</h3>
+    ${sw('cOn', on, 'Claude darf diesen Browser steuern', 'Claude (claude.ai / Claude-App) öffnet Seiten in eigenen, markierten Tabs, liest sie, klickt und tippt – mit deinen Anmeldungen. Gesperrt: Banken, Zahlungen, Konto- und Behördenseiten, Passwortfelder.')}
+    <div class="row"><span>Status<span class="desc" id="cSt">${on ? 'Prüft …' : 'aus'}</span></span></div>
+    <div class="row"><span>Connector-Adresse<span class="desc">${esc(MCP_URL)}</span></span><button class="pill" id="cCopy">Kopieren</button></div>
+    <p class="small">So verbindest du: In Claude → Einstellungen → Connectors → „Eigenen Connector hinzufügen“ → Name „ImmoAdv Browser“, Adresse oben einfügen → Verbinden → mit deinem ImmoAdv-Konto anmelden und erlauben. Voraussetzung: hier unter Sync mit demselben ImmoAdv-Konto angemeldet. Andere Tabs gibst du über das ImmoAdv-Menü „Mit Claude teilen“ frei.</p>
+    <div class="row"><span>Verbindungen<span class="desc" id="cCon">–</span></span><button class="pill" id="cOff">Alle trennen</button></div></div>`);
+  bindSwitch('cOn', 'claudeRemote');
+  $('cCopy').onclick = () => navigator.clipboard.writeText(MCP_URL).then(() => toast('Adresse kopiert'));
+  const paint = (x) => { const el = $('cSt'); if (!el || !x) return; el.textContent = !x.on ? 'aus' : x.state === 'bereit' ? `bereit${x.device ? ` · ${x.device}` : ''}` : x.state === 'anmelden' ? 'bitte unter Sync anmelden' : x.state === 'fehler' ? `Verbindung gestört – ${x.message || ''}` : 'verbindet …'; };
+  send({ type: 'remote:status' }).then(paint).catch(() => {});
+  send({ type: 'remote:connections' }).then((r) => { const el = $('cCon'); if (el) el.textContent = r && typeof r.connections === 'number' ? (r.connections ? `${r.connections} aktiv` : 'keine') : '–'; }).catch(() => {});
+  $('cOff').onclick = async (ev) => { if (!sure(ev.currentTarget, 'Wirklich trennen?')) return; try { await send({ type: 'remote:disconnect' }); toast('Getrennt'); $('cCon').textContent = 'keine'; } catch (e) { toast(String(e.message || e)); } };
+  if (!claudeGroup.l) { claudeGroup.l = true; browser.runtime.onMessage.addListener((m) => { if (m && m.type === 'remote:changed') paint({ ...m.status, on: st.settings.claudeRemote === true }); }); }
+}
+
 async function ki() {
   const info = await send({ type: 'ai:config' }).catch(() => ({}));
   const s = st.settings, models = s.aiModels || {};
@@ -368,6 +387,7 @@ async function ki() {
     <div class="group"><h3>Datenschutz</h3>${sw('aHist', s.aiKeepHistory !== false, 'KI-Gespräche speichern', 'nur lokal')}${sw('aPill', s.aiPill !== false, '„✦ Zusammenfassen“ auf Webseiten', `Knopf unten rechts auf Seiten mit viel Text${(s.aiPillOff || []).length ? ` · auf ${(s.aiPillOff || []).length} Seite(n) ausgeblendet` : ''}`)}${(s.aiPillOff || []).length ? '<button class="secondary" id="aPillReset">Ausgeblendete Seiten wieder anzeigen</button>' : ''}<p class="small">Seiteninhalte gehen nur an die KI, wenn „Seite einbeziehen“ an ist. Passwörter, Formulareingaben und Verlauf nie.</p></div>`);
   bindSwitch('aHist', 'aiKeepHistory');
   bindSwitch('aPill', 'aiPill');
+  claudeGroup();
   if ($('aPillReset')) $('aPillReset').onclick = async () => { await setS({ aiPillOff: [] }); toast('Wird wieder überall angezeigt'); ki(); };
   $('aProv').onchange = async () => { await setS({ aiProvider: $('aProv').value }); ki(); };
   $('aSave').onclick = async () => {

@@ -7,7 +7,7 @@ const K = (k) => (isMac ? k.replace('Strg+', '⌘').replace('Umschalt+', '⇧') 
 const siteOf = (h) => { h = String(h || '').toLowerCase(); const p = h.split('.'); if (p.length <= 2) return h; const l2 = p.slice(-2).join('.'); return /^(co|com|org|ac|gov|or|gen)\.[a-z]{2}$/.test(l2) ? p.slice(-3).join('.') : l2; };
 const page = (p) => browser.runtime.getURL('pages/' + p);
 const cmd = (c) => browser.tabs.create({ url: page('cmd.html?c=' + c), active: false });   // Befehle, die nur der Browser selbst ausführen darf
-let st = null, tab = null, site = '', isWeb = false;
+let st = null, tab = null, site = '', isWeb = false, shared = false;
 
 async function act(fn) { try { await fn(); } finally { window.close(); } }
 
@@ -20,6 +20,8 @@ function items() {
     ['↺', 'Geschlossenen Tab wieder öffnen', 'Strg+Umschalt+T', async () => { const [c] = await browser.sessions.getRecentlyClosed({ maxResults: 1 }); if (c) await browser.sessions.restore((c.tab || c.window).sessionId); }],
     '-',
     ['✦', 'KI-Assistent', 'Strg+Umschalt+A', () => browser.sidebarAction.open()],
+    // Claude-Connector (05.11.2026): diesen Tab für Claude freigeben (sonst steuert Claude nur eigene Tabs)
+    ...(st && st.settings && st.settings.claudeRemote === true && isWeb ? [['✦', shared ? 'Nicht mehr mit Claude teilen' : 'Mit Claude teilen', '', () => send({ type: 'remote:share', tabId: tab.id, on: !shared })]] : []),
     // LinkedIn/XING → ImmoAdv Sales & Growth (05.11.2026): übergibt nur Link und Seitentitel an den Web-Admin,
     // dort wählst du die Firma. Nichts wird von der Seite ausgelesen oder automatisch gespeichert.
     ...(/^https:\/\/([a-z0-9-]+\.)*(linkedin|xing)\.com\//i.test(u) ? [['in', 'Zu Sales & Growth', '', () => browser.tabs.create({ url: `https://admin.immoadv.de/?sa_profil=${encodeURIComponent(u.split('#')[0].split('?')[0])}&sa_name=${encodeURIComponent((tab.title || '').slice(0, 160))}#sa_firmen` })]] : []),
@@ -123,4 +125,5 @@ browser.runtime.onMessage.addListener((m) => { if (m && (m.type === 'vpn' || m.t
   try { await renderMenu(); } catch (e) { console.error(e); }
   try { st = await Promise.race([send({ type: 'state' }), new Promise((r) => setTimeout(() => r(null), 8000))]); } catch (e) { st = null; }
   if (st) { try { renderStatus(); } catch (e) { console.error(e); } } else $('sumText').textContent = 'Schutz wird geladen …';
+  if (st && st.settings && st.settings.claudeRemote === true && isWeb) { try { shared = !!(await send({ type: 'remote:shared', tabId: tab.id })); await renderMenu(); } catch (e) { console.error(e); } }
 })();
