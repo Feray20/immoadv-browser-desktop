@@ -333,6 +333,7 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'ai:config': return Native.call('ai.config').catch(() => ({}));
     case 'ai:pull': return Native.call('ai.pull', { model: m.model }).catch((e) => ({ status: 'error', error: e.message }));
     case 'ai:pullState': return Native.call('ai.pullState').catch(() => ({ status: 'idle' }));
+    case 'ai:ollama': return Native.call('ai.ollama', { model: m.model, messages: m.messages, think: m.think }, 180000);
     case 'ai:setKey': return Native.call('ai.setKey', { provider: m.provider, key: m.key });
     case 'report:save': return Native.call('report.save', { html: m.html, fileName: m.fileName }, 120000);
     // Passwörter

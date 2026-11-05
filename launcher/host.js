@@ -200,6 +200,19 @@ const handlers = {
   // sobald die Seite zu war oder die Verbindung stockte). Läuft im Hintergrund weiter, Stand über 'ai.pullState'.
   'ai.pull': ({ model }) => { startPull(String(model || localModel().model)); return pullState; },
   'ai.pullState': () => pullState,
+  // Lokale KI über das Programm (05.11.2026, Feray: „KI geht nicht – Schlüssel ungültig“): Ollama lehnt Anfragen aus der
+  // Erweiterung (Herkunft moz-extension://) mit 403 ab. Das Programm fragt ohne Browser-Herkunft an – nur 127.0.0.1,
+  // nur das gewählte Modell, Text bleibt auf dem Gerät.
+  'ai.ollama': async ({ model, messages, think }) => {
+    const list = (Array.isArray(messages) ? messages : []).slice(-40).map((m) => ({ role: ['system', 'user', 'assistant'].includes(m && m.role) ? m.role : 'user', content: String((m && m.content) || '').slice(0, 200000) }));
+    if (!list.length) throw new Error('Keine Nachricht');
+    const r = await fetch('http://127.0.0.1:11434/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(170000),
+      body: JSON.stringify({ model: String(model || localModel().model), stream: false, keep_alive: '30m', ...(think === false ? { think: false } : {}), messages: list }) });
+    if (r.status === 404) throw new Error('Das Modell ist noch nicht geladen – in Einstellungen → KI einmal „Modell laden“.');
+    if (!r.ok) throw new Error(`Die lokale KI meldet einen Fehler (${r.status}).`);
+    const j = await r.json();
+    return String((j && j.message && j.message.content) || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  },
   'ai.setKey': ({ provider, key }) => {
     if (!PROVIDERS[provider]) throw new Error('Unbekannter Anbieter');
     const all = { ...(store.get('aiKeys') || {}) };

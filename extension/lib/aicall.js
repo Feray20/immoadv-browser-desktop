@@ -54,8 +54,11 @@ const AiCall = (() => {
     }
     await ollamaReady(cfg);
     const think = /^qwen3/i.test(cfg.model) ? { think: false } : {};
+    const all = [{ role: 'system', content: sys }, ...messages];
     const res = await fetch(`${OLLAMA}/api/chat`, { method: 'POST', signal, headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ model: cfg.model, stream: true, keep_alive: '30m', ...think, messages: [{ role: 'system', content: sys }, ...messages] }) });
+      body: JSON.stringify({ model: cfg.model, stream: true, keep_alive: '30m', ...think, messages: all }) });
+    // 403 = Ollama lässt die Erweiterung nicht zu (Herkunft moz-extension://) → über das Programm fragen (05.11.2026).
+    if (res.status === 403) { const t = await Native.call('ai.ollama', { model: cfg.model, messages: all, think: think.think }, 180000).catch((e) => { throw fail(e.message || 'Die lokale KI antwortet nicht.', 'ollama'); }); if (t) onText(t); return; }
     if (!res.ok) throw fail(await errorText(res), 'settings');
     let inThink = false;
     for await (const l of lines(res)) {

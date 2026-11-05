@@ -112,7 +112,11 @@ async function call(sys, messages, signal, onText) {
     // Qwen 3 denkt sonst erst lange „laut“ – für schnelle Antworten aus (Ollama „think“), Reste von <think> werden entfernt.
     const think = /^qwen3/i.test(cfg.model) ? { think: false } : {};
     await ollamaReady();
-    const res = await fetch(`${OLLAMA}/api/chat`, { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, stream: true, keep_alive: '30m', ...think, messages: [{ role: 'system', content: sys }, ...messages] }) });
+    const all = [{ role: 'system', content: sys }, ...messages];
+    const res = await fetch(`${OLLAMA}/api/chat`, { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, stream: true, keep_alive: '30m', ...think, messages: all }) });
+    // 403 = Ollama lässt die Erweiterung nicht zu (Herkunft moz-extension://) – war die Meldung „Schlüssel ungültig“.
+    // Dann fragt das ImmoAdv-Programm selbst (05.11.2026).
+    if (res.status === 403) { const t = await send({ type: 'ai:ollama', model: cfg.model, messages: all, think: think.think }); if (t) onText(String(t)); return; }
     if (res.status === 404) throw new Error('Das Modell ist noch nicht geladen – in Einstellungen → KI auf „Modell laden“ tippen (einmalig).');
     if (!res.ok) throw new Error(await errorText(res));
     let inThink = false;

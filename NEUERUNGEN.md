@@ -1,3 +1,6 @@
+ImmoAdv Browser 4.1.45 – ImmoAdv KI antwortet wieder
+- KI-Assistent und „✦ Zusammenfassen“ auf Webseiten: Die Meldung „Schlüssel ungültig oder ohne Berechtigung“ bei der kostenlosen ImmoAdv KI ist behoben. Die lokale KI lehnte Anfragen aus dem Browser ab – jetzt fragt das ImmoAdv-Programm selbst an, alles bleibt auf deinem Computer
+
 ImmoAdv Browser 4.1.44 – Passwörter zuverlässig, Speicherort für Bildschirmfotos, LinkedIn/XING zu Sales & Growth
 - Passwörter: „Passwort speichern?“ erscheint jetzt auch bei Anmeldungen ohne neuen Seitenaufbau (eBay, Google, viele Apps)
 - Ausfüllen hängt nicht mehr bei „Wird übernommen …“: höchstens 20 s, ein neuer Versuch, sonst eine klare Meldung
