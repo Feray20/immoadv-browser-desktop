@@ -172,6 +172,19 @@
       ],
       "run_at": "document_idle",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "https://*.ebay.de/*",
+        "https://*.ebay.com/*",
+        "https://*.ebay.at/*",
+        "https://*.ebay.ch/*"
+      ],
+      "js": [
+        "content/ebay.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [

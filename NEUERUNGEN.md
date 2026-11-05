@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.49 – eBay: Antwort mit KI, Fenster gehen auf
+- eBay: Über jedem Nachrichtenfeld (Nachricht an Käufer, Antworten, Fragen zum Artikel) gibt es „✦ Antwort mit KI“ – schreibt einen Entwurf aus dem Gesprächsverlauf ins Feld, optional mit Wunsch („Versand morgen“). Gesendet wird nie automatisch
+- eBay, PayPal, Amazon: Fenster, die diese Seiten selbst öffnen (z. B. Nachricht an Käufer, Versandetikett), werden nicht mehr als Pop-up blockiert; mehr eBay-Adressen ohne Tracker-Schutz, damit Knöpfe reagieren
+
 ImmoAdv Browser 4.1.48 – Claude-Connector
 - Neu: Claude (claude.ai / Claude-App) kann diesen Browser steuern – als eigener Connector „ImmoAdv Browser“. Einschalten unter Einstellungen → KI → „Claude darf diesen Browser steuern“ (Voraussetzung: unter Sync mit dem ImmoAdv-Konto angemeldet), dann in Claude die Connector-Adresse https://immoadv.de/api/mcp/browser hinzufügen
 - Claude öffnet Seiten in eigenen Tabs (oben markiert „✦ Claude steuert diesen Tab“), liest sie, macht Bildschirmfotos, klickt und tippt – mit deinen Anmeldungen. Eigene Tabs gibst du über das ImmoAdv-Menü „Mit Claude teilen“ frei

@@ -67,7 +67,12 @@
         "https://accounts.google.com",
         "https://appleid.apple.com",
         "https://login.live.com",
-        "https://login.microsoftonline.com"
+        "https://login.microsoftonline.com",
+        "https://mesg.ebay.de",
+        "https://www.ebay.at",
+        "https://k2b-bulk.ebay.de",
+        "https://ebay.com",
+        "https://signin.ebay.com"
       ]
     },
     "HttpsOnlyMode": "enabled",
@@ -83,6 +88,20 @@
         "updates_disabled": false
       }
     },
-    "SkipTermsOfUse": true
+    "SkipTermsOfUse": true,
+    "PopupBlocking": {
+      "Allow": [
+        "https://www.ebay.de",
+        "https://ebay.de",
+        "https://mesg.ebay.de",
+        "https://signin.ebay.de",
+        "https://www.ebay.com",
+        "https://www.paypal.com",
+        "https://www.amazon.de",
+        "https://sellercentral.amazon.de"
+      ],
+      "Default": true,
+      "Locked": false
+    }
   }
 }
