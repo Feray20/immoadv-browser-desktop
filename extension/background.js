@@ -343,7 +343,10 @@ browser.runtime.onMessage.addListener((m, sender) => {
     // Passwörter
     case 'pw:forUrl': return Vault.forUrl(m.url);
     case 'pw:warm': return Native.call('vault.warm', {}, 130000).catch(() => false);
-    case 'pw:fill': return Vault.fill(m.id, sender.tab ? sender.tab.url : m.url).catch(() => null);
+    // Adresse des Rahmens, in dem das Feld steht (05.11.2026): Anmeldungen in einem eingebetteten Rahmen (eBay, Microsoft,
+    // Apple, Bank-Logins) bekamen die Einträge über die Rahmen-Adresse angeboten, das Ausfüllen prüfte aber die Tab-Adresse
+    // – passte nie, „Passwort übernehmen“ tat nichts. sender.url setzt Firefox selbst (nicht fälschbar durch die Seite).
+    case 'pw:fill': return Vault.fill(m.id, sender.url || (sender.tab ? sender.tab.url : m.url)).catch(() => null);
     case 'pw:submitted': Vault.offer(tabId, m); return Promise.resolve(true);
     case 'pw:pending': return Promise.resolve(Vault.takePending(tabId, m.url));
     case 'pw:decide': return Vault.decide(tabId, m.choice);

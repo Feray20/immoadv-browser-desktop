@@ -80,7 +80,33 @@ async function init(onState) {
     emit({ status: failures >= 3 ? 'error' : 'retry', message: 'Update-Server nicht erreichbar – neuer Versuch in Kürze' });
   });
   check();
-  setInterval(check, 4 * 60 * 60 * 1000);
+  // 05.11.2026 (Feray: „beim Browser automatische Updates wie bei der Admin-Software“): alle 30 Min. statt alle 4 Std.
+  // suchen, zusätzlich nach dem Aufwachen des Rechners – und ein fertiges Update auch bei offenem Browser einspielen,
+  // sobald niemand am Rechner arbeitet (siehe idleInstall).
+  setInterval(check, 30 * 60 * 1000);
+  try { const { powerMonitor } = require('electron'); powerMonitor.on('resume', () => setTimeout(check, 15_000)); powerMonitor.on('unlock-screen', () => setTimeout(check, 5_000)); } catch { /* egal */ }
+  setInterval(idleInstall, 60 * 1000);
+}
+
+// Wie die Admin-Software (05.11.2026): Ist ein Update fertig geladen und der Browser offen, wird es eingespielt, sobald
+// 10 Min. keine Eingabe kam oder der Bildschirm gesperrt ist. Der Browser schließt sich höflich (Tabs und Anmeldungen
+// bleiben), installiert und öffnet sich mit allen Tabs wieder. Nur im Hintergrund-Dienst, je Version ein Versuch,
+// abschaltbar über „Automatische Updates“.
+let idleTried = null;
+function idleInstall() {
+  if (!supported() || store.get('autoUpdate') === false || state.status !== 'ready' || !process.argv.includes('--host-server')) return;
+  if (idleNow()) return backgroundInstall();          // kein Fenster offen → stiller Weg
+  if (idleTried === state.version) return;
+  let idle = 0, locked = false;
+  try {
+    const { powerMonitor } = require('electron');
+    idle = powerMonitor.getSystemIdleTime();
+    locked = powerMonitor.getSystemIdleState(600) === 'locked';
+  } catch { return; }
+  if (!locked && idle < 600) return;
+  idleTried = state.version;
+  log(`Update ${state.version}: Rechner ${locked ? 'gesperrt' : `seit ${idle} s unbenutzt`} – wird eingespielt, Browser öffnet sich wieder`);
+  install();
 }
 
 function check() {

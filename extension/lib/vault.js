@@ -10,9 +10,16 @@ const Vault = (() => {
   async function forUrl(url) { try { return await Native.call('vault.forUrl', { url }); } catch (e) { return []; } }
   // Ausfüllen (05.11.2026, Feray: „hat nicht einmal geklappt, stand nur ‚wird übernommen‘“): höchstens 20 s warten und
   // bei getrennter Verbindung zum Programm einmal neu versuchen – statt bis zu 130 s still zu hängen.
+  // Nachtrag 05.11.2026: Windows entschlüsselt sofort – kommt nach 6 s nichts, hängt die Verbindung. Dann neu verbinden
+  // und noch einmal versuchen (insgesamt höchstens ~25 s). Am Mac kann die Schlüsselbund-Abfrage länger offen sein.
   async function fill(id, url) {
-    try { return await Native.call('vault.fill', { id, url }, 20000); }
-    catch (e) { await new Promise((r) => setTimeout(r, 1200)); return Native.call('vault.fill', { id, url }, 20000); }
+    const first = navigator.platform.startsWith('Mac') ? 20000 : 6000;
+    try { return await Native.call('vault.fill', { id, url }, first); }
+    catch (e) {
+      if (/Passt nicht|abgebrochen/.test(String(e && e.message))) throw e;
+      await Native.reset();
+      return Native.call('vault.fill', { id, url }, 15000);
+    }
   }
   async function offer(tabId, d) {
     if (!/^https:/.test(d.url) || !d.pass) return;

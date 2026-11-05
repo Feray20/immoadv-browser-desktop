@@ -119,7 +119,8 @@
     const wait0 = setTimeout(() => { if (sm && sm.isConnected) sm.textContent = 'Wird übernommen …'; }, 500);
     // Wartet die Freigabe länger (Mac: Schlüsselbund-Abfrage nach einem Update), sagen, was zu tun ist – statt still zu hängen.
     const slow = setTimeout(() => { if (sm && sm.isConnected) sm.textContent = navigator.platform.startsWith('Mac') ? 'Bitte die Mac-Abfrage „Schlüsselbund“ mit „Immer erlauben“ bestätigen …' : 'Bitte die Windows-Abfrage bestätigen …'; }, 4000);
-    const r = await send({ type: 'pw:fill', id: e.id, url: location.href });
+    // Nie länger als 30 s „Wird übernommen …“ (05.11.2026) – danach Hinweis und erneut tippen möglich.
+    const r = await Promise.race([send({ type: 'pw:fill', id: e.id, url: location.href }).catch(() => null), new Promise((res) => setTimeout(() => res(null), 30000))]);
     clearTimeout(slow); clearTimeout(wait0);
     if (!r || !r.pass) { if (sm) sm.textContent = 'Konnte nicht ausfüllen – ist der ImmoAdv Browser über sein Symbol gestartet? Erneut tippen.'; return; }
     const pw = [...document.querySelectorAll('input[type="password"]')].find(vis);

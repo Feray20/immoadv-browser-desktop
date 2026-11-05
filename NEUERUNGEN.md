@@ -1,3 +1,9 @@
+ImmoAdv Browser 4.1.47 – Updates automatisch, Passwörter in Anmelderahmen, Menü sofort da
+- Updates wie bei der ImmoAdv-Software: alle 30 Min. (und nach dem Aufwachen) wird gesucht; ein fertiges Update spielt sich ein, sobald 10 Min. niemand am Rechner arbeitet oder der Bildschirm gesperrt ist – der Browser öffnet sich danach mit allen Tabs wieder
+- „Passwort übernehmen“ füllt jetzt auch Anmeldungen in eingebetteten Rahmen aus (eBay, Microsoft, Banken) – vorher passierte dort nichts
+- Hängt die Verbindung zum Programm, verbindet sich der Browser nach 6 s neu und versucht es noch einmal (statt lange „Wird übernommen …“)
+- ImmoAdv-Menü oben rechts öffnet sich sofort, auch wenn der Hintergrund noch lädt
+
 ImmoAdv Browser 4.1.46 – Zusammenfassen und Übersetzen direkt auf Webseiten
 - „✦ Zusammenfassen“ erscheint jetzt auf viel mehr Seiten (schon ab etwas Fließtext, auch wenn der Text erst nachlädt)
 - Neu: „Übersetzen“ direkt daneben auf fremdsprachigen Seiten – die KI übersetzt den Hauptinhalt ins Deutsche, auf der Seite eingeblendet

@@ -38,6 +38,16 @@ const Native = (() => {
       port.postMessage({ id, cmd, ...args });
     });
   }
+  // Verbindung neu aufbauen (05.11.2026): Hing das Programm (z. B. nach einem Update im Hintergrund), blieb die alte
+  // Verbindung offen, aber nichts kam zurück – jeder Befehl lief erst nach 20 s in die Zeitüberschreitung.
+  function reset() {
+    const old = port; port = null; ready = false;
+    for (const [, w] of waiting) { clearTimeout(w.t); w.reject(new Error('Neu verbunden')); }
+    waiting.clear();
+    try { if (old) old.disconnect(); } catch (e) { /* schon weg */ }
+    retry = 0; connect();
+    return call('ping', {}, 4000).then(() => true, () => false);
+  }
   connect();
-  return { call, on: (fn) => listeners.add(fn), get connected() { return !!port && ready; } };
+  return { call, reset, on: (fn) => listeners.add(fn), get connected() { return !!port && ready; } };
 })();

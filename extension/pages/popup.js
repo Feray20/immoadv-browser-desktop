@@ -84,6 +84,8 @@ function renderStatus() {
 
 // ---------- Datenschutz-Center ----------
 async function showPrivacy() {
+  if (!st) st = await send({ type: 'state' }).catch(() => null);
+  if (!st) return;
   $('menu').classList.add('hidden'); $('privacy').classList.remove('hidden');
   const s = st.settings;
   let host = ''; try { const x = new URL(tab.url); if (/^https?:$/.test(x.protocol)) host = x.hostname; } catch (e) {}
@@ -113,10 +115,12 @@ $('vpnCountry').onchange = async (e) => { $('vpnText').textContent = 'Wechselt �
 $('upNow').onclick = async () => { $('upNow').disabled = true; $('upNow').textContent = 'Wird installiert …'; await send({ type: 'update:now' }); };
 
 browser.runtime.onMessage.addListener((m) => { if (m && (m.type === 'vpn' || m.type === 'update')) { if (m.type === 'vpn') st.vpn = m.data; else st.update = m.data; renderStatus(); } });
+// 05.11.2026 (Feray: „beim Knopf oben rechts passiert gar nichts“): Das Menü wartete auf den Zustand des Hintergrunds
+// (bis zu 6 s, bei einem Fehler für immer) – das Fenster blieb leer. Jetzt steht das Menü sofort, der Status kommt nach.
 (async () => {
-  [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  try { [tab] = await browser.tabs.query({ active: true, currentWindow: true }); } catch (e) { tab = null; }
   isWeb = !!tab && /^https?:/.test(tab.url || '');
-  st = await send({ type: 'state' });
-  renderStatus();
-  await renderMenu();
+  try { await renderMenu(); } catch (e) { console.error(e); }
+  try { st = await Promise.race([send({ type: 'state' }), new Promise((r) => setTimeout(() => r(null), 8000))]); } catch (e) { st = null; }
+  if (st) { try { renderStatus(); } catch (e) { console.error(e); } } else $('sumText').textContent = 'Schutz wird geladen …';
 })();
