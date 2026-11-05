@@ -54,11 +54,6 @@ async function render() {
     v.status === 'on' ? '<span class="status-chip"><i></i>NordVPN aktiv</span>' : v.loggedIn ? '<span class="status-chip warn"><i></i>NordVPN verbindet</span>' : '<span class="status-chip"><i></i>Verschlüsseltes DNS</span>',
     st.settings.traceless !== false ? '<span class="status-chip"><i></i>Spurlos surfen</span>' : ''
   ].join('');
-  const w = (st.settings.watchlist || []).filter((x) => /^https?:/.test(x.url || '')).slice(-4).reverse();
-  if (w.length) {
-    $('watch').classList.remove('hidden');
-    $('watchList').innerHTML = w.map((x) => `<a href="${esc(x.url)}"><span>${esc(x.title)}<br><small>${esc(x.city || x.source || '')}</small></span><span>${eur(x.price)}<br><small>${x.brutto ? x.brutto.toFixed(1).replace('.', ',') + ' % brutto' : ''}</small></span></a>`).join('');
-  }
 }
 render();
 // Lesezeichen kommen beim ersten Start erst nach und nach (Übernahme aus Version 3) – Favoriten sofort mitziehen

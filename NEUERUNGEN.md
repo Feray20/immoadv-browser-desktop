@@ -1,3 +1,10 @@
+ImmoAdv Browser 4.1.41 – Aufgeräumt, PDF speichern repariert
+- „Seite als PDF speichern“ funktioniert wieder und fragt jetzt nach Ordner und Dateinamen
+- Bildschirmfotos: Speichern fragt immer nach Ordner und Dateinamen
+- Mac: Im Programmmenü steht „Über ImmoAdv Browser“, „ImmoAdv Browser ausblenden“ und „ImmoAdv Browser beenden“ statt Firefox
+- Entfernt (samt gespeicherter Daten): Merkliste & Vergleich, Später-Liste mit Uhr-Knopf, Arbeitsbereiche, „Als Beleg an ImmoAdv Steuern“, „Formular mit Firmendaten füllen“
+- „KI: Seite zusammenfassen“ ist aus dem Menü raus – „Zusammenfassen“ gibt es weiter im KI-Assistenten
+
 ImmoAdv Browser 4.1.40 – Dock, KI, Passwörter und Updates repariert
 - Im Dock, bei Cmd+Tab und in den Mitteilungen steht jetzt überall „ImmoAdv Browser“ – nicht mehr „Firefox“ (eigener Name und eigene Kennung, getrennt vom installierten Firefox)
 - Mitteilungen von Webseiten (z. B. Google Meet) kommen nach „Erlauben“ wirklich an; die Abfrage ist übersichtlicher gestaltet

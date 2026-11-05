@@ -12,7 +12,7 @@ const { siteOf } = require('../src/shared/lists');
 
 const URL_BASE = 'https://mieoylqhtvghcnvaxutg.supabase.co';
 const APIKEY = 'sb_publishable_vlerR4aelUQdlXbZV8753w_mgTiWghM';   // öffentlicher Schlüssel (kein Geheimnis); Zugriff regeln die Datenbank-Regeln
-const SETTINGS_SYNCED = ['keepSignedIn', 'allowlist', 'blocklist', 'searchEngine', 'workspaces', 'aiInstructions', 'neverSave', 'googleExternal', 'spaces', 'firm'];
+const SETTINGS_SYNCED = ['keepSignedIn', 'allowlist', 'blocklist', 'searchEngine', 'aiInstructions', 'neverSave', 'googleExternal'];   // Arbeitsbereiche/Firmendaten entfernt (05.11.2026)
 
 let fetcher = null;
 let session = null;          // { access, refresh, exp, userId, email }

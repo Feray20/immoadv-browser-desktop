@@ -46,9 +46,19 @@ async function start() {
     if (a.name === 'history') { const d = Number(Settings.get('historyDays')); if (d > 0) browser.history.deleteRange({ startTime: 0, endTime: Date.now() - d * 86400000 }).catch(() => {}); }
   });
   menus();
+  removedData().catch((e) => console.warn('Aufräumen', e));
   // Daten aus Version 3 einmalig übernehmen (Lesezeichen)
   migrate().catch((e) => console.warn('Übernahme', e));
   try { updateState = await Native.call('update.state'); updateBadge(); setTimeout(offerUpdate, 4000); } catch (e) {}
+}
+// 05.11.2026 (Feray): Merkliste, Arbeitsbereiche und Firmendaten sind entfernt – gespeicherte Daten einmalig löschen.
+// (Die Später-Liste ist ein Lesezeichen-Ordner und wird im Motor gelöscht, siehe engine/immoadv.cfg.)
+async function removedData() {
+  const { removed0511 } = await browser.storage.local.get('removed0511');
+  if (removed0511) return;
+  const s = Settings.get('watchlist'), sp = Settings.get('spaces'), f = Settings.get('firm');
+  if ((Array.isArray(s) && s.length) || (Array.isArray(sp) && sp.length) || (f && Object.keys(f).length)) await Settings.set({ watchlist: [], spaces: [], firm: {} });
+  await browser.storage.local.set({ removed0511: Date.now() });
 }
 let bmChain = Promise.resolve();
 Native.on((ev, d) => {
@@ -204,14 +214,10 @@ browser.webRequest.onHeadersReceived.addListener((d) => {
 function menus() {
   browser.menus.removeAll().then(() => {
     browser.menus.create({ id: 'immo-check', title: 'Immobilien-Check', contexts: ['page'] });
-    browser.menus.create({ id: 'ai-page', title: 'KI: Seite zusammenfassen', contexts: ['page'] });
     browser.menus.create({ id: 'ai-sel', title: 'KI fragen zu „%s“', contexts: ['selection'] });
     browser.menus.create({ id: 'ai-translate', title: 'KI: Markierten Text übersetzen', contexts: ['selection'] });
     browser.menus.create({ id: 'ai-reply', title: 'KI: Antwort darauf entwerfen', contexts: ['selection'] });
     browser.menus.create({ id: 'sep-tools', type: 'separator', contexts: ['page', 'link', 'editable', 'image'] });
-    browser.menus.create({ id: 'later', title: 'Später ansehen', contexts: ['page', 'link'] });
-    browser.menus.create({ id: 'firm-fill', title: 'Mit Firmendaten ausfüllen', contexts: ['editable'] });
-    browser.menus.create({ id: 'beleg', title: 'Als Beleg an ImmoAdv Steuern senden', contexts: ['page', 'link', 'image'] });
     browser.menus.create({ id: 'full-shot', title: 'Bildschirmfoto der ganzen Seite …', contexts: ['page'] });
     browser.menus.create({ id: 'save-pdf', title: 'Seite als PDF speichern …', contexts: ['page'] });
     browser.menus.create({ id: 'clean-link', title: 'Link kopieren (ohne Tracking)', contexts: ['link'] });
@@ -222,12 +228,6 @@ function menus() {
       await navigator.clipboard.writeText(Blocker.cleanURL(info.linkUrl)).catch(() => {});
     } else if (info.menuItemId === 'immo-check') {
       browser.pageAction.openPopup().catch(() => browser.tabs.create({ url: browser.runtime.getURL(`pages/immo.html?tab=${tab.id}`) }));
-    } else if (info.menuItemId === 'later') {
-      await Tools.laterAdd(info.linkUrl || tab.url, info.linkUrl ? (info.linkText || info.linkUrl) : tab.title);
-    } else if (info.menuItemId === 'firm-fill') {
-      await Tools.fillFirm(tab, info.frameId).catch(() => {});
-    } else if (info.menuItemId === 'beleg') {
-      await Tools.beleg(info.srcUrl || info.linkUrl || tab.url, tab).catch(() => {});
     } else if (info.menuItemId === 'full-shot') {
       await Tools.fullShot(tab).catch(() => {});
     } else if (info.menuItemId === 'save-pdf') {
@@ -278,24 +278,13 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'screenshot': return (async () => {
       const data = await browser.tabs.captureVisibleTab(m.windowId);
       const url = URL.createObjectURL(await (await fetch(data)).blob());
-      await browser.downloads.download({ url, filename: `Bildschirmfoto ${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`, saveAs: false });
+      await browser.downloads.download({ url, filename: `Bildschirmfoto ${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`, saveAs: true });   // Ordner und Name wählbar (05.11.2026)
       setTimeout(() => URL.revokeObjectURL(url), 60000);
       return true;
     })();
     case 'tool:pdf': return browser.tabs.get(m.tabId).then((t) => Tools.savePdf(t));
     case 'tool:fullshot': return browser.tabs.get(m.tabId).then((t) => Tools.fullShot(t));
-    case 'tool:beleg': return browser.tabs.get(m.tabId).then((t) => Tools.beleg(t.url, t));
-    case 'tool:firm': return browser.tabs.get(m.tabId).then((t) => Tools.fillFirm(t));
     case 'shot:get': return Promise.resolve(Tools.takeShot(m.id));
-    case 'beleg:take': return Promise.resolve(sender.tab && /^https:\/\/(www\.)?immoadv\.de\//.test(sender.tab.url || '') ? Tools.takeBeleg(m.id) : null);
-    case 'beleg:done': if (sender.tab && /^https:\/\/(www\.)?immoadv\.de\//.test(sender.tab.url || '')) Tools.belegDone(m.id, m.ok, m.name); return Promise.resolve(true);
-    case 'spaces:list': return Promise.resolve(Tools.spaces());
-    case 'spaces:save': return Tools.spaceSave(m);
-    case 'spaces:open': return Tools.spaceOpen(m);
-    case 'spaces:remove': return Tools.spaceRemove(m);
-    case 'later:add': return Tools.laterAdd(m.url, m.title);
-    case 'later:list': return Tools.laterList();
-    case 'later:done': return Tools.laterDone(m.id);
     case 'update:later': return browser.storage.local.set({ updateLater: m.version }).then(() => true);
     case 'update:check': return Native.call('update.check').catch((e) => ({ status: 'error', message: e.message }));
     case 'update:now': return Native.call('update.now', {}, 30 * 60000).catch((e) => ({ status: 'error', message: e.message }));
@@ -311,8 +300,6 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'ai:config': return Native.call('ai.config').catch(() => ({}));
     case 'ai:setKey': return Native.call('ai.setKey', { provider: m.provider, key: m.key });
     case 'report:save': return Native.call('report.save', { html: m.html, fileName: m.fileName }, 120000);
-    case 'watch:add': { const w = [...(Settings.get('watchlist') || []), { ...m.item, id: Date.now(), added: Date.now() }].slice(-200); return Settings.set({ watchlist: w }).then(() => w); }
-    case 'watch:remove': { const w = (Settings.get('watchlist') || []).filter((x) => x.id !== m.id); return Settings.set({ watchlist: w }).then(() => w); }
     // Passwörter
     case 'pw:forUrl': return Vault.forUrl(m.url);
     case 'pw:warm': return Native.call('vault.warm', {}, 130000).catch(() => false);

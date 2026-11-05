@@ -11,7 +11,6 @@
 ## Bedienung
 | Was | Wo |
 |---|---|
-| Arbeitsbereiche | Punkte links oben (bzw. oben in der Seitenleiste), verwalten unter Einstellungen → Bereiche |
 | Tabs links statt oben | Einstellungen → Allgemein → „Tabs anzeigen“ |
 | Geteilte Ansicht | Rechtsklick auf Tab bzw. Strg/⌘+Umschalt+S |
 | KI-Assistent | ✦ oben rechts bzw. Strg/⌘+Umschalt+A; einrichten unter Einstellungen → KI |

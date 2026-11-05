@@ -1,5 +1,5 @@
 'use strict';
-// Immobilien-Check (wie Version 3): Eckdaten aus dem Inserat, Rechner, PDF, Merkliste – alles lokal berechnet.
+// Immobilien-Check (wie Version 3): Eckdaten aus dem Inserat, Rechner, PDF – alles lokal berechnet (Merkliste entfernt 05.11.2026).
 const C = window.ImmoCalc;
 const $ = (id) => document.getElementById(id);
 const send = (m) => browser.runtime.sendMessage(m);
@@ -41,16 +41,9 @@ function render() {
     <div class="group"><h3>Finanzierung</h3>${field('iEquity', 'Eigenkapital (€)', Math.round(price * 0.2))}${field('iZins', 'Zins % p. a.', 3.6)}${field('iTilg', 'Tilgung % p. a.', 2.0)}${field('iMakler', 'Makler %', 3.57)}${field('iNotar', 'Notar + Grundbuch %', 2.0)}${field('iCosts', 'Nicht umlagef. Kosten / Monat (€)', 0)}</div>
     <div class="group" id="iResult"></div>
     <button class="primary" id="iSave">Als PDF speichern</button>
-    <button class="secondary" id="iWatch">♡ Auf die Merkliste</button>
     <p class="hint">Unverbindliche Beispielrechnung, keine Finanzierungs- oder Steuerberatung. Alles wird nur auf diesem Computer berechnet.</p>`;
   $('body').querySelectorAll('input,select').forEach((el) => el.addEventListener('input', update));
   $('iSave').onclick = save;
-  $('iWatch').onclick = async () => {
-    const i = input(), r = C.calculate(i);
-    await send({ type: 'watch:add', item: { url: (tab && tab.url) || '', title: l.title || (tab && tab.title) || 'Inserat', city: [l.zip, l.city].filter(Boolean).join(' '), source: l.source || '',
-      price: i.price, area: i.area, rent: i.coldRent, land: i.land, total: r.total, sqm: r.pricePerSqm, brutto: r.brutto, cashflow: r.cashflow, rate: r.rate } });
-    $('iWatch').textContent = '♥ Auf der Merkliste';
-  };
   update();
 }
 async function save() {

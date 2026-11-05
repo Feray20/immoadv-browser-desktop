@@ -30,7 +30,7 @@ const bindSwitch = (id, key, after) => { const el = $(id); if (el) el.onchange =
 const foldList = (key, label, html, n) => `<details class="fold"><summary>${label} <span class="hint">${n}</span></summary>${html}</details>`;
 const dom = (v) => String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
 
-const SEGS = [['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['passwoerter', 'Passwörter'], ['adressen', 'Adressen'], ['sync', 'Sync'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['merkliste', 'Merkliste'], ['leistung', 'Leistung'], ['updates', 'Updates']];
+const SEGS = [['allgemein', 'Allgemein'], ['datenschutz', 'Datenschutz'], ['sicherheit', 'Sicherheit'], ['passwoerter', 'Passwörter'], ['adressen', 'Adressen'], ['sync', 'Sync'], ['vpn', 'NordVPN'], ['ki', 'KI'], ['leistung', 'Leistung'], ['updates', 'Updates']];
 function nav() {
   $('seg').innerHTML = SEGS.map(([k, l]) => `<button data-k="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
   $('seg').querySelectorAll('button').forEach((b) => { b.onclick = () => { tab = b.dataset.k; history.replaceState(null, '', '#' + tab); render(); }; });
@@ -41,7 +41,7 @@ async function render() {
   st = await send({ type: 'state' });
   $('ver').textContent = 'Version ' + st.version + (st.native ? '' : ' · Programm nicht verbunden');
   nav();
-  ({ allgemein, datenschutz, sicherheit, passwoerter, adressen, sync, vpn, ki, merkliste, leistung, updates }[tab] || allgemein)();
+  ({ allgemein, datenschutz, sicherheit, passwoerter, adressen, sync, vpn, ki, leistung, updates }[tab] || allgemein)();
 }
 
 function allgemein() {
@@ -391,15 +391,6 @@ async function ki() {
     box.innerHTML = `<span>🟢 Bereit<span class="desc">${esc(model)} läuft auf diesem Computer – kostenlos und offline.</span></span>`;
   };
   show();
-}
-
-function merkliste() {
-  const w = (st.settings.watchlist || []).filter((x) => /^https?:/.test(x.url || ''));
-  const eur = (n) => Number(n || 0).toLocaleString('de-DE', { maximumFractionDigits: 0 }) + ' €';
-  body(`<div class="group"><h3>Merkliste · ${w.length} Objekte</h3>
-    ${w.map((x) => `<div class="list-item"><div class="grow"><a href="${esc(x.url)}" target="_blank" rel="noopener"><b>${esc(x.title)}</b></a><span class="desc">${esc([x.city, x.source].filter(Boolean).join(' · '))}</span></div>
-      <span class="hint">${eur(x.price)}${x.brutto ? ` · ${x.brutto.toFixed(1).replace('.', ',')} % brutto` : ''}${x.cashflow != null ? ` · ${eur(x.cashflow)}/Monat` : ''}</span><button class="icon" data-w="${x.id}" aria-label="Entfernen">✕</button></div>`).join('') || '<p class="hint">Noch leer – im Immobilien-Check auf „Auf die Merkliste“ tippen.</p>'}</div>`);
-  $('body').querySelectorAll('[data-w]').forEach((b) => { b.onclick = async () => { await send({ type: 'watch:remove', id: Number(b.dataset.w) }); st = await send({ type: 'state' }); merkliste(); }; });
 }
 
 // Leistung (Feray 02.11.2026: „damit ich sehe, wo es hakt“): Ampeln für Verbindung zum Programm, Arbeitsspeicher, Tabs,
