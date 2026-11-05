@@ -161,7 +161,7 @@ user_pref("messaging-system.rsexperimentloader.enabled", false);
 
 // ---------- Downloads ----------
 user_pref("browser.download.autohideButton", false);   // Download-Knopf immer sichtbar
-user_pref("browser.download.useDownloadDir", true);
+user_pref("browser.download.useDownloadDir", {{useDownloadDir}});   // false = jedes Mal fragen, wo gespeichert wird (05.11.2026)
 user_pref("browser.download.dir", "{{downloadDir}}");
 user_pref("browser.download.folderList", 2);
 user_pref("browser.download.always_ask_before_handling_new_types", false);

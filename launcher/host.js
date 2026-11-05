@@ -19,9 +19,9 @@ const SECRET = ['vpnCreds', 'passwords', 'aiKeys', 'neverSave', 'lastSession'];
 const INTERNAL = ['uploads', 'syncSeen', 'syncCursor', 'syncAuth', 'syncKey'];
 const SETTABLE = ['blockAds', 'blockMalware', 'blockPhishing', 'freshLists', 'allowlist', 'blocklist', 'httpsOnly', 'cleanLinks', 'dnsProvider',
   'keepSignedIn', 'traceless', 'vpnCountry', 'vpnServers', 'stats', 'autoUpdate', 'bookmarkBar', 'tabLayout', 'suspendMinutes', 'historyDays',
-  'restoreSession', 'searchEngine', 'watchlist', 'uploadHistory', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'aiPill', 'aiPillOff', 'listsInfo',
+  'restoreSession', 'searchEngine', 'askDownload', 'watchlist', 'uploadHistory', 'aiProvider', 'aiModels', 'aiInstructions', 'aiKeepHistory', 'aiPill', 'aiPillOff', 'listsInfo',
   'spaces', 'firm'];   // Arbeitsbereiche und Firmendaten für Formulare (Feray 03.11.2026)
-const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine', 'downloadDir'];
+const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine', 'downloadDir', 'askDownload'];
 // KI (Feray 03.11.2026: „ImmoAdv (empfohlen) nein, keine Kosten – ersetz das mit einer KI, die kostenlos ist, aber höchstes
 // Niveau“): Standard ist jetzt die ImmoAdv KI lokal über Ollama – kostenlos, ohne Konto, nichts verlässt den Computer.
 // Das Modell richtet sich nach dem Arbeitsspeicher (stärkstes, das flüssig läuft). Claude/ChatGPT bleiben nur mit eigenem
@@ -34,9 +34,37 @@ const PROVIDERS = {
 /** Stärkstes lokales Modell, das mit diesem Arbeitsspeicher flüssig läuft (Qwen 3: sehr gutes Deutsch, frei nutzbar) */
 function localModel() {
   const gb = require('node:os').totalmem() / 1073741824;
-  if (gb >= 30) return { model: 'qwen3:30b', size: '19 GB' };
-  if (gb >= 15) return { model: 'qwen3:14b', size: '9 GB' };
+  // 05.11.2026: 16-GB-Macs nehmen qwen3:8b (5 GB) – 14b lief dort zäh und das Laden von 9 GB blieb hängen.
+  if (gb >= 30) return { model: 'qwen3:14b', size: '9 GB' };
   return { model: 'qwen3:8b', size: '5 GB' };
+}
+
+// ---------- Lokales KI-Modell laden (Ollama „pull“) ----------
+let pullState = { model: null, status: 'idle', pct: 0, error: null };
+function startPull(model) {
+  if (!/^[a-z0-9._:-]{2,60}$/i.test(model)) { pullState = { model, status: 'error', pct: 0, error: 'Ungültiger Modellname' }; return; }
+  if (pullState.status === 'pulling' && pullState.model === model) return;
+  pullState = { model, status: 'pulling', pct: 0, error: null };
+  const http = require('node:http');
+  const req = http.request({ host: '127.0.0.1', port: 11434, path: '/api/pull', method: 'POST', headers: { 'content-type': 'application/json' } }, (res) => {
+    let buf = '';
+    res.setEncoding('utf8');
+    res.on('data', (c) => {
+      buf += c; let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (!line) continue;
+        let d; try { d = JSON.parse(line); } catch { continue; }
+        if (d.error) { pullState = { model, status: 'error', pct: pullState.pct, error: String(d.error).slice(0, 200) }; continue; }
+        if (d.total && d.completed != null) pullState = { ...pullState, pct: Math.min(100, Math.round(100 * d.completed / d.total)) };
+        if (d.status === 'success') pullState = { model, status: 'done', pct: 100, error: null };
+      }
+    });
+    res.on('end', () => { if (pullState.status === 'pulling') pullState = { model, status: res.statusCode === 200 ? 'done' : 'error', pct: pullState.pct, error: res.statusCode === 200 ? null : `Ollama meldet ${res.statusCode}` }; event('aiPull', pullState); });
+    res.on('error', (e) => { pullState = { model, status: 'error', pct: pullState.pct, error: e.message }; });
+  });
+  req.on('error', (e) => { pullState = { model, status: 'error', pct: 0, error: /ECONNREFUSED/.test(e.message) ? 'Ollama läuft nicht – bitte das Programm Ollama öffnen.' : e.message }; });
+  req.setTimeout(0);
+  req.end(JSON.stringify({ model, stream: true }));
 }
 
 // ---------- Nachrichtenrahmen: 4 Byte Länge (Little Endian) + JSON ----------
@@ -145,6 +173,10 @@ const handlers = {
     return { provider, name: p.name, model: (store.get('aiModels') || {})[provider] || fallback, needsKey: p.needsKey, hasKey: !p.needsKey || !!key, key: key || '',
       local: { model: rec.model, size: rec.size, ramGb: Math.round(require('node:os').totalmem() / 1073741824) } };
   },
+  // Modell laden übernimmt das Programm (05.11.2026, Feray: KI geht nicht – „Modell laden“ in der Einstellungsseite brach ab,
+  // sobald die Seite zu war oder die Verbindung stockte). Läuft im Hintergrund weiter, Stand über 'ai.pullState'.
+  'ai.pull': ({ model }) => { startPull(String(model || localModel().model)); return pullState; },
+  'ai.pullState': () => pullState,
   'ai.setKey': ({ provider, key }) => {
     if (!PROVIDERS[provider]) throw new Error('Unbekannter Anbieter');
     const all = { ...(store.get('aiKeys') || {}) };

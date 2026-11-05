@@ -1,5 +1,6 @@
 html, body { height: 100%; }
-body { display: flex; flex-direction: column; padding: 10px 12px 12px; gap: 10px; background: var(--bg-1); }
+body { display: flex; flex-direction: column; padding: 10px 12px 12px; gap: 10px; background: var(--bg-1); overflow-x: hidden; }
+#compose, .box { min-width: 0; max-width: 100%; }
 
 /* Kopf: Gesprächsauswahl + Neu + Löschen in einer Zeile */
 .top { display: flex; align-items: center; gap: 4px; }
@@ -36,9 +37,10 @@ body { display: flex; flex-direction: column; padding: 10px 12px 12px; gap: 10px
 .box { border: 1px solid var(--line-2); border-radius: var(--r-l); background: rgba(255,255,255,.05); transition: border-color var(--t) var(--ease); }
 .box:focus-within { border-color: var(--blue-2); }
 #q { display: block; width: 100%; min-height: 64px; max-height: 200px; resize: none; border: 0; background: transparent; padding: 10px 12px 4px; outline: none; }
-.bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 6px 6px 10px; }
-.page { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: 12px; white-space: nowrap; cursor: pointer; }
-.send { flex: none; height: 32px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--fade); color: #fff; font-weight: 600; }
+/* Schmale Seitenleiste (05.11.2026: „Senden“ war rechts abgeschnitten): Leiste darf umbrechen, Knopf schrumpft nie aus dem Bild */
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; padding: 6px 6px 6px 10px; min-width: 0; }
+.page { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: 12px; min-width: 0; cursor: pointer; }
+.send { flex: none; margin-left: auto; height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--fade); color: #fff; font-weight: 600; }
 .send:hover { filter: brightness(1.08); }
 .send.stop { background: var(--surface-3); }
 .foot { margin: 0 2px; color: var(--text-3); font-size: 11px; line-height: 1.45; }

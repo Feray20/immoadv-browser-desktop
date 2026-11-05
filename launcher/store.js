@@ -43,6 +43,7 @@ const defaults = {
   uploads: [],
   searchEngine: 'google',
   downloadDir: null,
+  askDownload: true,     // bei jedem Download/Bildschirmfoto/PDF fragen, wohin (05.11.2026)
   bookmarks: [
     { title: 'ImmoAdv', url: 'https://immoadv.de' },
     { title: 'ImmoScout24', url: 'https://www.immobilienscout24.de' },

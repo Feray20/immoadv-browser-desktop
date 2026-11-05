@@ -28,7 +28,10 @@ const AiCall = (() => {
     catch (e) { throw fail('Ollama läuft gerade nicht – bitte das Programm „Ollama“ öffnen und erneut versuchen.', 'ollama'); }
     const want = String(cfg.model || '');
     const have = (tags.models || []).map((m) => m.name || m.model);
-    if (!have.some((n) => n === want || n === `${want}:latest` || n.split(':')[0] === want)) throw fail(`Das Modell „${want}“ ist noch nicht geladen – einmalig in Einstellungen → KI auf „Modell laden“ tippen.`, 'settings');
+    if (!have.some((n) => n === want || n === `${want}:latest` || n.split(':')[0] === want)) {
+      const p = await Native.call('ai.pull', { model: want }).catch(() => null);
+      throw fail(`Die ImmoAdv KI wird gerade einmalig eingerichtet (${want}${p && p.pct ? `, ${p.pct} %` : ''}) – in ein paar Minuten noch einmal versuchen.`, 'settings');
+    }
   }
 
   async function stream(cfg, sys, messages, signal, onText) {

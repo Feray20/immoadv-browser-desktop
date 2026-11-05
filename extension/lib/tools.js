@@ -14,6 +14,15 @@ const Tools = (() => {
   // Firefox öffnet dabei immer den Speichern-Dialog (Ordner und Dateiname frei wählbar).
   // 05.11.2026: hieß vorher saveAsPdf (falsch geschrieben) – der Menüpunkt tat deshalb gar nichts.
   async function savePdf(tab) {
+    // Mac (05.11.2026): Firefox bietet saveAsPDF am Mac nicht an – dort der Druckdialog von macOS, unten links „PDF“ →
+    // „Als PDF sichern …“ (Ordner und Name frei wählbar).
+    const mac = (await browser.runtime.getPlatformInfo().catch(() => ({}))).os === 'mac';
+    if (mac || typeof browser.tabs.saveAsPDF !== 'function') {
+      note('Als PDF speichern', 'Im Druckfenster unten links „PDF“ → „Als PDF sichern …“ wählen – dort Ordner und Namen festlegen.');
+      await browser.tabs.update(tab.id, { active: true }).catch(() => {});
+      await browser.tabs.print();
+      return 'print';
+    }
     const r = await browser.tabs.saveAsPDF({ toFileName: `${safe(tab && tab.title)}.pdf`, shrinkToFit: true, showBackgroundColors: true, headerLeft: '', headerRight: '', footerLeft: '', footerRight: '' }).catch((e) => e.message);
     if (r === 'saved' || r === 'replaced') note('Als PDF gespeichert', `„${safe(tab && tab.title)}.pdf“ liegt im gewählten Ordner.`);
     return r;

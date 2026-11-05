@@ -1,3 +1,10 @@
+ImmoAdv Browser 4.1.43 – KI richtet sich selbst ein, PDF am Mac, Speicherort wählen
+- ImmoAdv KI: Das Programm lädt das Modell jetzt selbst im Hintergrund – startet automatisch, läuft weiter, auch wenn die Einstellungen zu sind; Fortschritt in Einstellungen → KI und im Assistenten
+- Mac mit 16 GB: kleineres, schnelleres Modell (qwen3:8b, 5 GB statt 9 GB)
+- „Seite als PDF speichern“ am Mac: öffnet den Druckdialog – unten links „PDF“ → „Als PDF sichern …“ mit freier Wahl von Ordner und Namen
+- Neu: „Jedes Mal fragen, wo gespeichert wird“ (Einstellungen → Allgemein, Standard an) – für Downloads, Bildschirmfotos und PDFs
+- KI-Assistent: „Senden“ wird in der schmalen Seitenleiste nicht mehr abgeschnitten; ✦-Knopf oben rechts öffnet und schließt die Leiste zuverlässig
+
 ImmoAdv Browser 4.1.42 – KI-Assistent neu, Zusammenfassung auf der Seite, Menüleiste
 - KI-Assistent: zeigt sofort „KI denkt nach …“ bzw. „Modell wird geladen“ statt nichts; läuft Ollama nicht oder fehlt das Modell, kommt sofort eine klare Meldung mit Knopf; das Modell lädt schon beim Öffnen vor
 - KI-Assistent aufgeräumt: kein doppelter Titel, Eingabefeld mit „Seite einbeziehen“ und „Senden“ in einer Leiste

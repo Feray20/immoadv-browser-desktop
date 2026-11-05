@@ -81,7 +81,13 @@ async function ollamaReady() {
   const want = String(cfg.model || '');
   const have = (tags.models || []).map((m) => m.name || m.model);
   const ok = have.some((n) => n === want || n === `${want}:latest` || n.split(':')[0] === want);
-  if (!ok) { const er = new Error(`Das Modell „${want}“ ist auf diesem Computer noch nicht geladen. Einmalig in den Einstellungen auf „Modell laden“ tippen.`); er.action = 'settings'; throw er; }
+  if (!ok) {
+    // Modell fehlt → das Programm lädt es jetzt selbst (einmalig, im Hintergrund) und sagt, wie weit es ist.
+    let p = await send({ type: 'ai:pullState' }).catch(() => null);
+    if (!p || p.status !== 'pulling') p = await send({ type: 'ai:pull', model: want }).catch(() => null);
+    const er = new Error(p && p.status === 'error' ? `Das Modell „${want}“ konnte nicht geladen werden: ${p.error || 'unbekannter Fehler'}. Bitte erneut senden.` : `Die ImmoAdv KI wird gerade einmalig eingerichtet (${want}${p && p.pct ? `, ${p.pct} %` : ''}). Das dauert je nach Internet einige Minuten – danach einfach erneut senden.`);
+    er.action = 'settings'; throw er;
+  }
 }
 // Modell schon beim Öffnen in den Speicher laden – dann kommt die erste Antwort deutlich schneller
 function warmUp() {

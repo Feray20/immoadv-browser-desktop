@@ -5,7 +5,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 const isMac = navigator.platform.startsWith('Mac');
 const lockName = isMac ? 'Touch ID' : 'Windows Hello';
 let st = null, tab = (location.hash || '#allgemein').slice(1);
-const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine'];
+const ENGINE_KEYS = ['tabLayout', 'bookmarkBar', 'httpsOnly', 'dnsProvider', 'suspendMinutes', 'historyDays', 'restoreSession', 'searchEngine', 'askDownload'];
 
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.remove('hidden'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.add('hidden'), 2600); }
 // Zweimal tippen statt Bestätigungsfenster (02.11.2026: „ich kann nichts löschen“ – das Fenster von confirm() erschien in
@@ -59,7 +59,7 @@ function allgemein() {
       ${sw('sUploads', s.uploadHistory !== false, 'Upload-Verlauf aktiv', 'Merkt sich bei jedem Hochladen nur Dateiname, Fingerabdruck (SHA-256), Seite, Zeit und Gerät – nie die Datei selbst. Auf allen deinen Geräten sichtbar (Sync).')}
       <div class="row"><span>Verlauf ansehen und Dateien prüfen</span><button class="pill" id="sUpOpen">Upload-Verlauf öffnen</button></div></div>
     <div class="group"><h3>Suche</h3><div class="row"><span>Suchmaschine</span><select id="sEngine">${engines.map(([v, l]) => `<option value="${v}" ${s.searchEngine === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
-    <div class="group"><h3>Downloads</h3><div class="row"><span>Speichern in<span class="desc" id="dlDir">${esc(s.downloadDir || 'Download-Ordner')}</span></span><button class="pill" id="sDl">Ordner wählen …</button></div></div>
+    <div class="group"><h3>Downloads</h3><div class="row"><span>Speichern in<span class="desc" id="dlDir">${esc(s.downloadDir || 'Download-Ordner')}</span></span><button class="pill" id="sDl">Ordner wählen …</button></div>${sw('sAsk', s.askDownload !== false, 'Jedes Mal fragen, wo gespeichert wird', 'gilt für Downloads, Bildschirmfotos und PDFs')}</div>
     <div class="group"><h3>Tastenkürzel</h3>${[['Neuer Tab', 'Strg+T'], ['Tab schließen', 'Strg+W'], ['Geschlossenen Tab öffnen', 'Strg+Umschalt+T'], ['Adressleiste', 'Strg+L'], ['Suchen auf der Seite', 'Strg+F'], ['KI-Assistent', 'Strg+Umschalt+A'], ['ImmoAdv-Menü', 'Alt+Umschalt+I'], ['Verlauf', 'Strg+H'], ['Downloads', 'Strg+Umschalt+Y'], ['Lesezeichen setzen', 'Strg+D']].map(([l, k]) => `<div class="row"><span>${l}</span><span class="hint">${isMac ? k.replace('Strg', '⌘') : k}</span></div>`).join('')}</div>
     <div class="group"><h3>Erweitert</h3><p class="small">Selten gebrauchte Motor-Einstellungen (Schriften, Sprachen, Barrierefreiheit): <b>about:preferences?firefox</b> in die Adressleiste eingeben.</p></div>
     <p class="hint">ImmoAdv Browser ${esc(st.version)} · Motor-Version ${esc((navigator.userAgent.match(/rv:([\d.]+)/) || [])[1] || '')} (automatische Sicherheitsupdates)</p>`);
@@ -71,6 +71,7 @@ function allgemein() {
   $('sEngine').onchange = () => setS({ searchEngine: $('sEngine').value });
   $('defBtn').onclick = async () => { const r = await send({ type: 'engine:set', patch: { makeDefault: true } }); toast(r && r.message ? r.message : 'Windows-Einstellungen geöffnet: bei „ImmoAdv Browser“ auf „Als Standard festlegen“ klicken'); };
   dateienStandard();
+  bindSwitch('sAsk', 'askDownload');
   $('sDl').onclick = async () => { const r = await send({ type: 'engine:set', patch: { chooseDownloadDir: true } }); if (r && r.dir) { $('dlDir').textContent = r.dir; $('restart').classList.remove('hidden'); } };
 }
 
@@ -382,12 +383,23 @@ async function ki() {
       $('aCheck').onclick = show; return;
     }
     if (!o.hasModel) {
-      box.innerHTML = `<span>🟡 Fast fertig<span class="desc">Ollama läuft. Jetzt einmalig das Modell ${esc(model)} laden.</span></span><button class="primary" id="aPull">Modell laden</button>`;
-      $('aPull').onclick = async () => {
-        const btn = $('aPull'); btn.disabled = true; btn.textContent = 'Lädt … 0 %';
-        try { await ollamaPull(model, (pct) => { btn.textContent = `Lädt … ${pct} %`; }); toast('ImmoAdv KI ist bereit'); show(); }
-        catch (e) { btn.disabled = false; btn.textContent = 'Erneut versuchen'; toast(String(e.message || e)); }
+      // Das Programm lädt das Modell (läuft weiter, auch wenn diese Seite zu ist) – startet von selbst.
+      const paint = (p) => {
+        if (tab !== 'ki' || !document.body.contains(box)) return false;
+        const err = p && p.status === 'error';
+        box.innerHTML = `<span>🟡 ${err ? 'Laden unterbrochen' : 'Wird eingerichtet'}<span class="desc">${err ? esc(p.error || 'Unbekannter Fehler') : `Das Modell ${esc(model)} wird einmalig geladen – ${p && p.pct ? p.pct + ' %' : 'startet'} …`}</span></span>${err ? '<button class="primary" id="aPull">Erneut versuchen</button>' : ''}`;
+        if (err) $('aPull').onclick = () => { send({ type: 'ai:pull', model }).then(poll); };
+        return true;
       };
+      const poll = async () => {
+        const p = await send({ type: 'ai:pullState' }).catch(() => null);
+        if (p && p.status === 'done') { toast('ImmoAdv KI ist bereit'); return show(); }
+        if (!paint(p)) return;
+        if (!p || p.status !== 'error') setTimeout(poll, 1500);
+      };
+      const cur = await send({ type: 'ai:pullState' }).catch(() => null);
+      if (!cur || cur.status !== 'pulling') await send({ type: 'ai:pull', model }).catch(() => null);
+      poll();
       return;
     }
     box.innerHTML = `<span>🟢 Bereit<span class="desc">${esc(model)} läuft auf diesem Computer – kostenlos und offline.</span></span>`;

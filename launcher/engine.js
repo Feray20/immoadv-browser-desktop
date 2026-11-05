@@ -451,6 +451,8 @@ function userJs() {
     firefoxPasswords: 'false',
     keepHistory: String(Number(s.historyDays) !== 0),
     downloadDir: dl.replace(/\\/g, '\\\\').replace(/"/g, '\\"'),
+    // Speicherort jedes Mal wählen (Standard, 05.11.2026 – Feray: „PDF/Screenshots Speicherort auswählen fehlt“)
+    useDownloadDir: String(s.askDownload === false),
     extUuids: JSON.stringify(uuids).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
   };
   let txt = fs.readFileSync(path.join(paths.engineFiles(), 'user.js'), 'utf8').replace(/\{\{(\w+)\}\}/g, (_, k) => (k in vars ? vars[k] : ''));
