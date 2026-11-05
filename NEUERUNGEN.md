@@ -1,3 +1,11 @@
+ImmoAdv Browser 4.1.42 – KI-Assistent neu, Zusammenfassung auf der Seite, Menüleiste
+- KI-Assistent: zeigt sofort „KI denkt nach …“ bzw. „Modell wird geladen“ statt nichts; läuft Ollama nicht oder fehlt das Modell, kommt sofort eine klare Meldung mit Knopf; das Modell lädt schon beim Öffnen vor
+- KI-Assistent aufgeräumt: kein doppelter Titel, Eingabefeld mit „Seite einbeziehen“ und „Senden“ in einer Leiste
+- Neu: „✦ Zusammenfassen“ direkt auf Webseiten mit viel Text (unten rechts) – ein Klick blendet die Zusammenfassung auf der Seite ein; pro Seite ausblendbar, Schalter unter Einstellungen → KI
+- Menüleiste: „Extras“ mit KI-Assistent, Passwörtern, Datenschutz, NordVPN, PDF-Werkzeugen und Einstellungen; „Hilfe“ mit Updates statt Firefox-Hilfe; „Über ImmoAdv Browser“ zeigt die eigene Version
+- Bilder (PNG, JPG …) per Doppelklick öffnen jetzt immer – auch wenn der Browser gerade zu ist
+- eBay und andere Seiten: Knöpfe reagieren wieder zuverlässig (Ziehen zum Scrollen verschluckt keine Klicks mehr)
+
 ImmoAdv Browser 4.1.41 – Aufgeräumt, PDF speichern repariert
 - „Seite als PDF speichern“ funktioniert wieder und fragt jetzt nach Ordner und Dateinamen
 - Bildschirmfotos: Speichern fragt immer nach Ordner und Dateinamen
