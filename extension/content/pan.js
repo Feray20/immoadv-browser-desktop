@@ -23,12 +23,21 @@
     const root = document.scrollingElement || document.documentElement;
     return root && root.scrollHeight > root.clientHeight + 4 ? root : null;
   };
+  // Seiten bauen Knöpfe oft aus <div>/<span> (05.11.2026, Feray: „bei eBay gehen manche Knöpfe gar nicht“): Alles mit
+  // Hand-Zeiger, Klick-Attribut oder Tastaturfokus gilt als Knopf – dort wird nie gezogen und kein Klick verschluckt.
+  const clickable = (el) => {
+    for (let e = el, i = 0; e && e !== document.body && i < 6; e = e.parentElement, i++) {
+      if (e.hasAttribute('onclick') || e.hasAttribute('tabindex') || e.hasAttribute('data-track') || e.hasAttribute('jsaction')) return true;
+      try { if (getComputedStyle(e).cursor === 'pointer') return true; } catch (er) { return true; }
+    }
+    return false;
+  };
   const hasText = (el) => { for (const n of el.childNodes) if (n.nodeType === 3 && n.nodeValue.trim()) return true; return false; };
   let on = false, live = false, x0 = 0, y0 = 0, s0 = 0, sc = null, raf = 0, dx = 0, dy = 0, eatUntil = 0, ysc = null, v0 = 0, vert = false;
   addEventListener('pointerdown', (e) => {
     on = false;
     if (e.pointerType !== 'mouse' || e.button !== 0 || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.detail > 1 || e.defaultPrevented) return;
-    const t = e.target; if (!(t instanceof Element) || t.closest(NOGO)) return;
+    const t = e.target; if (!(t instanceof Element) || t.closest(NOGO) || clickable(t)) return;
     sc = scroller(t); ysc = hasText(t) || t instanceof HTMLImageElement ? null : scrollerY(t);
     if (!sc && !ysc) return;
     on = true; live = false; vert = false; x0 = e.clientX; y0 = e.clientY; s0 = sc ? sc.scrollLeft : 0; v0 = ysc ? ysc.scrollTop : 0; dx = 0; dy = 0;
@@ -38,8 +47,8 @@
     if (!(e.buttons & 1)) { on = false; return; }
     dx = e.clientX - x0; dy = e.clientY - y0;
     if (!live) {
-      if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) { if (!ysc) { on = false; return; } vert = true; }
-      else if (Math.abs(dx) < 6 || !sc) return;
+      if (Math.abs(dy) > 14 && Math.abs(dy) >= Math.abs(dx)) { if (!ysc) { on = false; return; } vert = true; }
+      else if (Math.abs(dx) < 12 || !sc) return;
       live = true;
       try { getSelection().removeAllRanges(); } catch (er) { /* egal */ }
       document.documentElement.style.setProperty('cursor', 'grabbing', 'important');

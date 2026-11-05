@@ -2,15 +2,22 @@
 <html lang="de">
 <head><meta charset="utf-8"><title>KI-Assistent</title><link rel="stylesheet" href="fade.css"><link rel="stylesheet" href="ai.css"></head>
 <body class="glow">
-  <header class="top"><div class="brand"><img src="../icons/icon48.png" alt=""><span><b>KI-Assistent</b></span></div>
-    <div><button class="icon" id="newConv" title="Neues Gespräch" aria-label="Neues Gespräch">＋</button><button class="icon" id="delConv" title="Gespräch löschen" aria-label="Gespräch löschen">🗑</button></div></header>
-  <select id="convs" aria-label="Gespräche"></select>
+  <!-- Kopf ohne zweiten Titel: „KI-Assistent“ steht schon oben in der Seitenleiste (05.11.2026, Feray: „optisch anpassen“) -->
+  <header class="top">
+    <select id="convs" aria-label="Gespräche"></select>
+    <button class="icon" id="newConv" title="Neues Gespräch" aria-label="Neues Gespräch"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="icon" id="delConv" title="Gespräch löschen" aria-label="Gespräch löschen"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
+  </header>
   <div id="log" aria-live="polite"></div>
   <form id="compose">
-    <div class="opts"><label><input type="checkbox" id="usePage" checked> Seite einbeziehen</label><span id="model" class="hint"></span></div>
-    <textarea id="q" rows="3" placeholder="Frage stellen … (Enter senden, Umschalt+Enter neue Zeile)"></textarea>
-    <button class="primary" id="send" type="submit">Senden</button>
-    <p class="hint">Webseiten-Inhalte gehen nur mit „Seite einbeziehen“ an den KI-Anbieter. Passwörter und Formulareingaben nie. KI kann Fehler machen.</p>
+    <div class="box">
+      <textarea id="q" rows="3" placeholder="Frage stellen … (Enter senden, Umschalt+Enter neue Zeile)"></textarea>
+      <div class="bar">
+        <label class="page"><input type="checkbox" id="usePage" checked> Seite einbeziehen</label>
+        <button class="send" id="send" type="submit" aria-label="Senden">Senden</button>
+      </div>
+    </div>
+    <p class="foot"><span id="model"></span><span class="sep">·</span>Passwörter und Formulareingaben werden nie gesendet. KI kann Fehler machen.</p>
   </form>
   <script src="ai.js"></script>
 <script src="../content/pan.js"></script></body>

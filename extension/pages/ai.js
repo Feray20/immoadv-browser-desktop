@@ -41,7 +41,7 @@ async function saveConvs() { const s = (await send({ type: 'state' })).settings;
 
 function render() {
   $('convs').innerHTML = `<option value="">Neues Gespräch</option>` + convs.map((c) => `<option value="${esc(c.id)}" ${conv && c.id === conv.id ? 'selected' : ''}>${esc(c.title)}</option>`).join('');
-  $('model').textContent = cfg && cfg.hasKey ? `${cfg.name} · ${cfg.model}` : '';
+  $('model').textContent = cfg && cfg.hasKey ? `${cfg.provider === 'ollama' ? 'ImmoAdv KI (lokal)' : cfg.name} · ${cfg.model}` : '';
   if (!cfg || !cfg.hasKey) {
     $('log').innerHTML = `<div class="group"><h3>Einrichten</h3><p>Der Assistent fasst Seiten zusammen, erklärt, übersetzt und beantwortet Fragen zur geöffneten Seite. </p>
       <ul><li><b>ImmoAdv KI</b> – kostenlos, ohne Konto, läuft komplett auf deinem Computer (einmal einrichten).</li><li>Wahlweise <b>Claude</b> oder <b>ChatGPT</b> mit eigenem, kostenpflichtigem Schlüssel.</li></ul><button class="primary" id="setup">Jetzt einrichten</button></div>`;
@@ -51,8 +51,8 @@ function render() {
   }
   $('compose').classList.remove('hidden');
   const msgs = conv ? conv.messages : [];
-  $('log').innerHTML = msgs.map((m) => `<div class="msg ${m.role}">${m.role === 'user' ? esc(m.content) : md(m.content)}${m.role === 'assistant' ? `<div class="meta"><span>${esc(m.source ? m.source.title : '')}</span><button data-copy>Kopieren</button></div>` : ''}</div>`).join('')
-    || `<p class="hint">Frag etwas zur geöffneten Seite – oder ganz allgemein.</p><div class="chips">${QUICK.map(([l, q]) => `<button class="chip" data-q="${esc(q)}">${l}</button>`).join('')}</div>`;
+  $('log').innerHTML = msgs.map((m) => `<div class="msg ${m.role}">${m.role === 'user' ? esc(m.content) : m.pending && !m.content ? waitHtml(m.wait) : md(m.content)}${m.role === 'assistant' ? `<div class="meta"><span>${esc(m.source ? m.source.title : '')}</span><button data-copy>Kopieren</button></div>` : ''}</div>`).join('')
+    || `<div class="empty"><p class="hint">Frag etwas zur geöffneten Seite – oder ganz allgemein.</p><div class="chips">${QUICK.map(([l, q]) => `<button class="chip" type="button" data-q="${esc(q)}">${l}</button>`).join('')}</div></div>`;
   $('log').querySelectorAll('[data-q]').forEach((b) => { b.onclick = () => ask(b.dataset.q); });
   $('log').querySelectorAll('[data-copy]').forEach((b, i) => { b.onclick = () => navigator.clipboard.writeText(msgs.filter((m) => m.role === 'assistant')[i].content); });
   $('log').scrollTop = $('log').scrollHeight;
@@ -69,6 +69,24 @@ async function errorText(res) {
   if (res.status === 429) return 'Zu viele Anfragen oder Guthaben aufgebraucht – kurz warten bzw. Guthaben beim Anbieter prüfen.';
   if (res.status === 404) return `Modell nicht gefunden – in den Einstellungen ein anderes Modell eintragen. ${msg}`.trim();
   return `Der KI-Anbieter meldet einen Fehler (${res.status}). ${typeof msg === 'string' ? msg : ''}`.trim();
+}
+const waitHtml = (t) => `<span class="wait"><i></i><i></i><i></i>${esc(t || 'KI denkt nach …')}</span>`;
+const OLLAMA = 'http://127.0.0.1:11434';
+// Ollama vorab prüfen (05.11.2026, Feray: „geht gar nicht, wenn ich was eingebe“): Läuft Ollama nicht oder fehlt das
+// Modell, kam die Meldung erst nach langem Warten – jetzt sofort und mit klarem nächsten Schritt.
+async function ollamaReady() {
+  let tags;
+  try { tags = await (await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(4000) })).json(); }
+  catch (e) { const er = new Error('Ollama läuft gerade nicht. Bitte das Programm „Ollama“ öffnen (Lama-Symbol oben in der Menüleiste bzw. unten in der Taskleiste) und erneut senden.'); er.action = 'ollama'; throw er; }
+  const want = String(cfg.model || '');
+  const have = (tags.models || []).map((m) => m.name || m.model);
+  const ok = have.some((n) => n === want || n === `${want}:latest` || n.split(':')[0] === want);
+  if (!ok) { const er = new Error(`Das Modell „${want}“ ist auf diesem Computer noch nicht geladen. Einmalig in den Einstellungen auf „Modell laden“ tippen.`); er.action = 'settings'; throw er; }
+}
+// Modell schon beim Öffnen in den Speicher laden – dann kommt die erste Antwort deutlich schneller
+function warmUp() {
+  if (!cfg || cfg.provider !== 'ollama' || !cfg.model) return;
+  fetch(`${OLLAMA}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, keep_alive: '30m' }) }).catch(() => {});
 }
 async function call(sys, messages, signal, onText) {
   if (!cfg || (cfg.needsKey && !cfg.key)) throw new Error('Kein Schlüssel hinterlegt – bitte unter Einstellungen → KI eintragen oder die kostenlose ImmoAdv KI wählen.');
@@ -87,7 +105,8 @@ async function call(sys, messages, signal, onText) {
   } else {
     // Qwen 3 denkt sonst erst lange „laut“ – für schnelle Antworten aus (Ollama „think“), Reste von <think> werden entfernt.
     const think = /^qwen3/i.test(cfg.model) ? { think: false } : {};
-    const res = await fetch('http://127.0.0.1:11434/api/chat', { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, stream: true, ...think, messages: [{ role: 'system', content: sys }, ...messages] }) });
+    await ollamaReady();
+    const res = await fetch(`${OLLAMA}/api/chat`, { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, stream: true, keep_alive: '30m', ...think, messages: [{ role: 'system', content: sys }, ...messages] }) });
     if (res.status === 404) throw new Error('Das Modell ist noch nicht geladen – in Einstellungen → KI auf „Modell laden“ tippen (einmalig).');
     if (!res.ok) throw new Error(await errorText(res));
     let inThink = false;
@@ -103,6 +122,15 @@ async function call(sys, messages, signal, onText) {
   }
 }
 
+let lastError = false;
+function showError(msg, action) {
+  lastError = true;
+  const btn = action === 'settings' ? '<br><button type="button" data-act="settings">Einstellungen → KI öffnen</button>' : '';
+  $('log').insertAdjacentHTML('beforeend', `<p class="err">${esc(msg)}${btn}</p>`);
+  const b = $('log').querySelector('[data-act="settings"]');
+  if (b) b.onclick = () => browser.tabs.create({ url: browser.runtime.getURL('pages/settings.html#ki') });
+  $('log').scrollTop = $('log').scrollHeight;
+}
 async function ask(question, selection = '') {
   const q = String(question || '').trim().slice(0, 8000);
   if (!q || ctrl) return;
@@ -120,32 +148,40 @@ async function ask(question, selection = '') {
   const sys = SYSTEM + (custom ? `\n\nPersönliche Vorgaben des Nutzers:\n${custom}` : '');
   const source = page ? { title: page.title, url: page.url } : null;
   conv.messages.push({ role: 'user', content: q, source });
-  const answer = { role: 'assistant', content: '', source };
+  const answer = { role: 'assistant', content: '', source, pending: true };
   conv.messages.push(answer);
+  ctrl = new AbortController(); $('send').textContent = 'Stopp'; $('send').classList.add('stop');
   render();
-  ctrl = new AbortController(); $('send').textContent = 'Stopp';
-  const bubble = [...$('log').querySelectorAll('.msg.assistant')].pop();
+  const bubble = () => [...$('log').querySelectorAll('.msg.assistant')].pop() || { set innerHTML(v) {} };
+  // Großes lokales Modell: das erste Laden dauert – das soll man sehen, nicht raten müssen
+  const slow = setTimeout(() => { if (!answer.content) bubble().innerHTML = waitHtml(answer.wait = cfg.provider === 'ollama' ? 'Modell wird geladen – beim ersten Mal bis zu einer Minute …' : 'Warte auf Antwort …'); }, 4000);
+  let timedOut = false;
+  const limit = setTimeout(() => { if (!answer.content) { timedOut = true; ctrl.abort(); } }, 180000);
   try {
-    await call(sys, [...history, { role: 'user', content }], ctrl.signal, (t) => { answer.content += t; bubble.innerHTML = md(answer.content); $('log').scrollTop = $('log').scrollHeight; });
+    await call(sys, [...history, { role: 'user', content }], ctrl.signal, (t) => { answer.pending = false; answer.content += t; bubble().innerHTML = md(answer.content); $('log').scrollTop = $('log').scrollHeight; });
+    answer.pending = false;
+    if (!answer.content) throw new Error('Die KI hat keine Antwort geliefert. Bitte noch einmal senden.');
     conv.updated = Date.now(); convs = [conv, ...convs.filter((c) => c !== conv)];
     await saveConvs();
   } catch (e) {
-    const aborted = ctrl.signal.aborted;
+    const aborted = ctrl.signal.aborted && !timedOut;
+    answer.pending = false;
     if (!answer.content) conv.messages.splice(-2, 2);
-    const msg = aborted ? 'Abgebrochen' : cfg.provider === 'ollama' && /fetch|NetworkError/i.test(String(e.message)) ? 'Die kostenlose ImmoAdv KI ist noch nicht bereit: Ollama öffnen (bzw. einmalig von ollama.com installieren) – Einrichtung unter Einstellungen → KI.' : String(e.message || 'Keine Verbindung zum KI-Anbieter');
-    render(); $('log').insertAdjacentHTML('beforeend', `<p class="err">${esc(msg)}</p>`);
-  } finally { ctrl = null; $('send').textContent = 'Senden'; render(); }
+    const msg = timedOut ? 'Keine Antwort nach 3 Minuten. Ist der Computer stark ausgelastet? Bitte erneut senden – oder in den Einstellungen ein kleineres Modell wählen.' : aborted ? 'Abgebrochen' : cfg.provider === 'ollama' && /fetch|NetworkError/i.test(String(e.message)) ? 'Die kostenlose ImmoAdv KI ist noch nicht bereit: Ollama öffnen (bzw. einmalig von ollama.com installieren) – Einrichtung unter Einstellungen → KI.' : String(e.message || 'Keine Verbindung zum KI-Anbieter');
+    render(); showError(msg, e && e.action);
+    if (!aborted) $('q').value = $('q').value || q;   // Frage nicht verlieren
+  } finally { clearTimeout(slow); clearTimeout(limit); ctrl = null; $('send').textContent = 'Senden'; $('send').classList.remove('stop'); if (!lastError) render(); lastError = false; }
 }
 
 $('compose').addEventListener('submit', (e) => { e.preventDefault(); if (ctrl) { ctrl.abort(); return; } const v = $('q').value; $('q').value = ''; ask(v); });
 $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('compose').requestSubmit(); } });
 $('convs').onchange = () => { conv = convs.find((c) => c.id === $('convs').value) || null; render(); };
 $('newConv').onclick = () => { conv = null; render(); $('q').focus(); };
-$('delConv').onclick = async (e) => { const b = e.currentTarget; if (!conv) return; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; const t = b.textContent; b.textContent = 'Löschen?'; setTimeout(() => { b.dataset.sure = ''; b.textContent = t; }, 4000); return; } b.dataset.sure = ''; convs = convs.filter((c) => c !== conv); conv = null; await browser.storage.local.set({ aiConvs: convs }); render(); };
+$('delConv').onclick = async (e) => { const b = e.currentTarget; if (!conv) return; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; const t = b.innerHTML; b.textContent = 'Löschen?'; setTimeout(() => { b.dataset.sure = ''; b.innerHTML = t; }, 4000); return; } b.dataset.sure = ''; convs = convs.filter((c) => c !== conv); conv = null; await browser.storage.local.set({ aiConvs: convs }); render(); };
 
 (async () => {
   try { cfg = await send({ type: 'ai:config' }); } catch (e) { cfg = null; }
-  await loadConvs(); render();
+  await loadConvs(); render(); warmUp();
   const queued = (await browser.storage.local.get('aiQueued')).aiQueued;
   if (queued) { await browser.storage.local.remove('aiQueued'); $('usePage').checked = false; ask(queued); }
   const p = await send({ type: 'ai:prompt' });
