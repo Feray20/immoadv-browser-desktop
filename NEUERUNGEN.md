@@ -1,3 +1,7 @@
+ImmoAdv Browser 4.1.46 – Zusammenfassen und Übersetzen direkt auf Webseiten
+- „✦ Zusammenfassen“ erscheint jetzt auf viel mehr Seiten (schon ab etwas Fließtext, auch wenn der Text erst nachlädt)
+- Neu: „Übersetzen“ direkt daneben auf fremdsprachigen Seiten – die KI übersetzt den Hauptinhalt ins Deutsche, auf der Seite eingeblendet
+
 ImmoAdv Browser 4.1.45 – ImmoAdv KI antwortet wieder
 - KI-Assistent und „✦ Zusammenfassen“ auf Webseiten: Die Meldung „Schlüssel ungültig oder ohne Berechtigung“ bei der kostenlosen ImmoAdv KI ist behoben. Die lokale KI lehnte Anfragen aus dem Browser ab – jetzt fragt das ImmoAdv-Programm selbst an, alles bleibt auf deinem Computer
 
