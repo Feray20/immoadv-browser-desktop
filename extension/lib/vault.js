@@ -8,7 +8,12 @@ const Vault = (() => {
     try { siteList = [...new Set((await Native.call('vault.list')).map((p) => p.site))]; } catch (e) { /* später */ }
   }
   async function forUrl(url) { try { return await Native.call('vault.forUrl', { url }); } catch (e) { return []; } }
-  async function fill(id, url) { return Native.call('vault.fill', { id, url }, 130000); }
+  // Ausfüllen (05.11.2026, Feray: „hat nicht einmal geklappt, stand nur ‚wird übernommen‘“): höchstens 20 s warten und
+  // bei getrennter Verbindung zum Programm einmal neu versuchen – statt bis zu 130 s still zu hängen.
+  async function fill(id, url) {
+    try { return await Native.call('vault.fill', { id, url }, 20000); }
+    catch (e) { await new Promise((r) => setTimeout(r, 1200)); return Native.call('vault.fill', { id, url }, 20000); }
+  }
   async function offer(tabId, d) {
     if (!/^https:/.test(d.url) || !d.pass) return;
     let mode = 'new';
@@ -17,6 +22,9 @@ const Vault = (() => {
     d = { ...d, mode };
     try { if (await Native.call('vault.never', { url: d.url })) return; } catch (e) {}
     pending.set(tabId, { ...d, at: Date.now() });
+    // Sofort an die Seite melden (05.11.2026): Bei Anmeldungen ohne neuen Seitenaufbau (z. B. eBay, Google, viele Apps)
+    // fragte bisher niemand nach „Passwort speichern?“ – die Frage kam nur, wenn eine neue Seite lud.
+    try { const t = await browser.tabs.get(tabId); const x = takePending(tabId, t.url || ''); if (x) browser.tabs.sendMessage(tabId, { type: 'pw:offer', p: x }).catch(() => null); } catch (e) { /* Tab weg */ }
     setTimeout(() => { const p = pending.get(tabId); if (p && Date.now() - p.at > 110000) pending.delete(tabId); }, 120000);
   }
   function takePending(tabId, url) {

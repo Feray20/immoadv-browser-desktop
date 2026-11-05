@@ -167,7 +167,10 @@ toolbar .toolbarbutton-1:hover { fill: var(--immo-text) !important; }
 #PersonalToolbar toolbarbutton.bookmark-item:hover { background: var(--immo-surface-2) !important; color: var(--immo-text) !important; }
 
 /* ---------- Menüs & Fenster im Fade-Stil ---------- */
-menupopup, panel {
+/* Vorschlagsliste unter Eingabefeldern bleibt im System-Stil (05.11.2026, Feray: „beim Schreiben einer eBay-Nachricht
+   erscheint kurz ein riesiges blaues Rechteck“) – ohne eigene Maße baute sie sich mit dem Fade-Stil kurz übergroß auf. */
+#PopupAutoComplete, #PopupAutoCompleteRichResult, .autocomplete-richlistbox { appearance: auto !important; --panel-shadow: none !important; }
+menupopup:not(#PopupAutoComplete), panel:not(#PopupAutoComplete):not(#PopupAutoCompleteRichResult) {
   --panel-border-radius: 14px !important;
   --panel-padding: 6px !important;
   --panel-shadow: 0 18px 48px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3) !important;

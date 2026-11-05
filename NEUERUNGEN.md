@@ -1,3 +1,11 @@
+ImmoAdv Browser 4.1.44 – Passwörter zuverlässig, Speicherort für Bildschirmfotos, LinkedIn/XING zu Sales & Growth
+- Passwörter: „Passwort speichern?“ erscheint jetzt auch bei Anmeldungen ohne neuen Seitenaufbau (eBay, Google, viele Apps)
+- Ausfüllen hängt nicht mehr bei „Wird übernommen …“: höchstens 20 s, ein neuer Versuch, sonst eine klare Meldung
+- Zweistufige Anmeldung (erst E-Mail, dann Passwort): das Passwort wird im zweiten Schritt automatisch eingesetzt
+- Einstellungen → Allgemein → „Bildschirmfotos & PDFs“: Speicherort wählen und öffnen; ist „Jedes Mal fragen“ aus, landen Bildschirmfotos direkt dort, die PDF-Abfrage startet in diesem Ordner
+- LinkedIn und XING: ⋯ → „Zu Sales & Growth“ übernimmt das Profil in ImmoAdv (Firma wählen, fertig)
+- Vorschlagsliste unter Eingabefeldern ohne kurzes großes blaues Rechteck (z. B. beim Schreiben einer eBay-Nachricht)
+
 ImmoAdv Browser 4.1.43 – KI richtet sich selbst ein, PDF am Mac, Speicherort wählen
 - ImmoAdv KI: Das Programm lädt das Modell jetzt selbst im Hintergrund – startet automatisch, läuft weiter, auch wenn die Einstellungen zu sind; Fortschritt in Einstellungen → KI und im Assistenten
 - Mac mit 16 GB: kleineres, schnelleres Modell (qwen3:8b, 5 GB statt 9 GB)

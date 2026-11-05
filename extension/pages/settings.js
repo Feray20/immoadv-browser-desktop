@@ -60,6 +60,8 @@ function allgemein() {
       <div class="row"><span>Verlauf ansehen und Dateien prüfen</span><button class="pill" id="sUpOpen">Upload-Verlauf öffnen</button></div></div>
     <div class="group"><h3>Suche</h3><div class="row"><span>Suchmaschine</span><select id="sEngine">${engines.map(([v, l]) => `<option value="${v}" ${s.searchEngine === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
     <div class="group"><h3>Downloads</h3><div class="row"><span>Speichern in<span class="desc" id="dlDir">${esc(s.downloadDir || 'Download-Ordner')}</span></span><button class="pill" id="sDl">Ordner wählen …</button></div>${sw('sAsk', s.askDownload !== false, 'Jedes Mal fragen, wo gespeichert wird', 'gilt für Downloads, Bildschirmfotos und PDFs')}</div>
+    <div class="group"><h3>Bildschirmfotos &amp; PDFs</h3><div class="row"><span>Speicherort<span class="desc" id="shDir">…</span></span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="pill" id="sShOpen">Öffnen</button><button class="pill" id="sSh">Ordner wählen …</button></span></div>
+      <p class="small" style="margin:6px 0 0">Ist „Jedes Mal fragen“ aus, landen Bildschirmfotos ohne Nachfrage direkt hier. Beim Speichern als PDF öffnet die Abfrage in diesem Ordner.</p></div>
     <div class="group"><h3>Tastenkürzel</h3>${[['Neuer Tab', 'Strg+T'], ['Tab schließen', 'Strg+W'], ['Geschlossenen Tab öffnen', 'Strg+Umschalt+T'], ['Adressleiste', 'Strg+L'], ['Suchen auf der Seite', 'Strg+F'], ['KI-Assistent', 'Strg+Umschalt+A'], ['ImmoAdv-Menü', 'Alt+Umschalt+I'], ['Verlauf', 'Strg+H'], ['Downloads', 'Strg+Umschalt+Y'], ['Lesezeichen setzen', 'Strg+D']].map(([l, k]) => `<div class="row"><span>${l}</span><span class="hint">${isMac ? k.replace('Strg', '⌘') : k}</span></div>`).join('')}</div>
     <div class="group"><h3>Erweitert</h3><p class="small">Selten gebrauchte Motor-Einstellungen (Schriften, Sprachen, Barrierefreiheit): <b>about:preferences?firefox</b> in die Adressleiste eingeben.</p></div>
     <p class="hint">ImmoAdv Browser ${esc(st.version)} · Motor-Version ${esc((navigator.userAgent.match(/rv:([\d.]+)/) || [])[1] || '')} (automatische Sicherheitsupdates)</p>`);
@@ -72,6 +74,9 @@ function allgemein() {
   $('defBtn').onclick = async () => { const r = await send({ type: 'engine:set', patch: { makeDefault: true } }); toast(r && r.message ? r.message : 'Windows-Einstellungen geöffnet: bei „ImmoAdv Browser“ auf „Als Standard festlegen“ klicken'); };
   dateienStandard();
   bindSwitch('sAsk', 'askDownload');
+  send({ type: 'shots:dir' }).then((x) => { $('shDir').textContent = (x && (x.dir || x.def)) || 'Bilder › ImmoAdv'; }).catch(() => {});
+  $('sSh').onclick = async () => { const r = await send({ type: 'shots:choose' }); if (r && r.dir) $('shDir').textContent = r.dir; };
+  $('sShOpen').onclick = () => send({ type: 'shots:open' });
   $('sDl').onclick = async () => { const r = await send({ type: 'engine:set', patch: { chooseDownloadDir: true } }); if (r && r.dir) { $('dlDir').textContent = r.dir; $('restart').classList.remove('hidden'); } };
 }
 

@@ -20,6 +20,9 @@ function items() {
     ['↺', 'Geschlossenen Tab wieder öffnen', 'Strg+Umschalt+T', async () => { const [c] = await browser.sessions.getRecentlyClosed({ maxResults: 1 }); if (c) await browser.sessions.restore((c.tab || c.window).sessionId); }],
     '-',
     ['✦', 'KI-Assistent', 'Strg+Umschalt+A', () => browser.sidebarAction.open()],
+    // LinkedIn/XING → ImmoAdv Sales & Growth (05.11.2026): übergibt nur Link und Seitentitel an den Web-Admin,
+    // dort wählst du die Firma. Nichts wird von der Seite ausgelesen oder automatisch gespeichert.
+    ...(/^https:\/\/([a-z0-9-]+\.)*(linkedin|xing)\.com\//i.test(u) ? [['in', 'Zu Sales & Growth', '', () => browser.tabs.create({ url: `https://admin.immoadv.de/?sa_profil=${encodeURIComponent(u.split('#')[0].split('?')[0])}&sa_name=${encodeURIComponent((tab.title || '').slice(0, 160))}#sa_firmen` })]] : []),
     ['⌂', 'Immobilien-Check', '', () => browser.tabs.create({ url: page(`immo.html?tab=${tab.id}&full=1`) }), !isWeb],
     ['⌕', 'Auf Seite suchen …', 'Strg+F', () => cmd('find'), !isWeb && !pdf],
     'zoom',

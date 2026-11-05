@@ -121,14 +121,27 @@
     const slow = setTimeout(() => { if (sm && sm.isConnected) sm.textContent = navigator.platform.startsWith('Mac') ? 'Bitte die Mac-Abfrage „Schlüsselbund“ mit „Immer erlauben“ bestätigen …' : 'Bitte die Windows-Abfrage bestätigen …'; }, 4000);
     const r = await send({ type: 'pw:fill', id: e.id, url: location.href });
     clearTimeout(slow); clearTimeout(wait0);
-    if (!r || !r.pass) { if (sm) sm.textContent = 'Nicht möglich – Freigabe abgelehnt oder abgelaufen. Erneut tippen.'; return; }
+    if (!r || !r.pass) { if (sm) sm.textContent = 'Konnte nicht ausfüllen – ist der ImmoAdv Browser über sein Symbol gestartet? Erneut tippen.'; return; }
     const pw = [...document.querySelectorAll('input[type="password"]')].find(vis);
-    const u = pw ? userFieldFor(pw) : anchorField();
+    // Feld, auf dem die Liste stand, zuerst – dann das zum Passwortfeld gehörende Benutzerfeld.
+    const u = chipFor && chipFor.type !== 'password' && vis(chipFor) ? chipFor : pw ? userFieldFor(pw) : anchorField();
     if (vis(u) && r.user) setVal(u, r.user);
     if (pw) setVal(pw, r.pass);
+    // Zweistufige Anmeldung (Google, Microsoft, eBay, Amazon): Passwortfeld kommt erst im nächsten Schritt – das Passwort
+    // 3 Minuten nur im Arbeitsspeicher dieser Seite bereithalten und einsetzen, sobald das Feld erscheint.
+    else { heldPass = { pass: r.pass, until: Date.now() + 180000 }; watchHeld(); }
     closeChip();
   }
   function closeChip() { if (chip) chip.remove(); chip = null; chipFor = null; }
+  let heldPass = null, heldMo = null;
+  function useHeld() {
+    if (!heldPass) return;
+    if (Date.now() > heldPass.until) { heldPass = null; if (heldMo) heldMo.disconnect(); heldMo = null; return; }
+    const pw = [...document.querySelectorAll('input[type="password"]')].find((i) => vis(i) && !i.value && !isNewPw(i));
+    if (!pw) return;
+    setVal(pw, heldPass.pass); heldPass = null; if (heldMo) heldMo.disconnect(); heldMo = null;
+  }
+  function watchHeld() { if (heldMo) return; heldMo = new MutationObserver(() => useHeld()); heldMo.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['type', 'style', 'class', 'hidden'] }); setTimeout(() => { heldPass = null; if (heldMo) heldMo.disconnect(); heldMo = null; }, 180000); }
   function offerFill(entries, field) {
     entriesNow = entries;
     const f = field || anchorField();
@@ -221,9 +234,13 @@
     const entries = await send({ type: 'pw:forUrl', url: location.href });
     if (entries && entries.length) { entriesNow = entries; const a = document.activeElement; if (a && isLoginField(a)) offerFill(entries, a); }
   }
+  // „Passwort speichern?“ auch ohne neuen Seitenaufbau (Hintergrund meldet sich nach dem Absenden selbst).
+  let offered = '';
+  const showOffer = (p) => { const k = `${p.user}|${p.site}|${p.mode}`; if (k === offered) return; offered = k; offerSave(p); };
+  browser.runtime.onMessage.addListener((m) => { if (m && m.type === 'pw:offer' && m.p) showOffer(m.p); });
   (async () => {
     const p = await send({ type: 'pw:pending', url: location.href });
-    if (p) offerSave(p);
+    if (p) showOffer(p);
     look();
     const mo = new MutationObserver(() => { look(); if (asked) mo.disconnect(); });
     mo.observe(document.documentElement, { childList: true, subtree: true });

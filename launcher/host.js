@@ -115,6 +115,29 @@ const handlers = {
     if (restart) { try { engine.writeEngineConfig(); } catch (e) { engine.log('Motor-Einstellungen: ' + e.message); } }
     return { restart };
   },
+  // Speicherort für Bildschirmfotos und PDFs (05.11.2026, Feray: „Bildschirmfoto/PDF-Speicherort in den Einstellungen“).
+  // Ordner wird hier gewählt (Systemdialog); Bildschirmfotos schreibt das Programm direkt hinein, wenn „Jedes Mal
+  // fragen“ aus ist. Die PDF-Abfrage des Motors startet in diesem Ordner (browser.download.lastDir).
+  'shots.dir': () => ({ dir: store.get('shotDir') || null, def: path.join(app.getPath('pictures'), 'ImmoAdv') }),
+  'shots.chooseDir': async () => {
+    const r = await dialog.showOpenDialog({ title: 'Speicherort für Bildschirmfotos und PDFs', properties: ['openDirectory', 'createDirectory'], defaultPath: store.get('shotDir') || app.getPath('pictures') });
+    if (r.canceled || !r.filePaths[0]) return { dir: null };
+    store.set('shotDir', r.filePaths[0]);
+    try { engine.writeEngineConfig(); } catch (e) { engine.log('Motor-Einstellungen: ' + e.message); }
+    return { dir: r.filePaths[0] };
+  },
+  'shots.save': async ({ dataUrl, name }) => {
+    const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+    if (!m) throw new Error('Ungültiges Bild');
+    const buf = Buffer.from(m[1], 'base64'); if (buf.length > 80 * 1024 * 1024) throw new Error('Bild zu groß');
+    const dir = store.get('shotDir') || path.join(app.getPath('pictures'), 'ImmoAdv');
+    fs.mkdirSync(dir, { recursive: true });
+    const base = String(name || 'Bildschirmfoto').replace(/[\\/:*?"<>|#%\x00-\x1f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'Bildschirmfoto';
+    let f = path.join(dir, `${base}.png`); for (let i = 2; fs.existsSync(f) && i < 1000; i++) f = path.join(dir, `${base} (${i}).png`);
+    fs.writeFileSync(f, buf);
+    return { path: f, dir };
+  },
+  'shots.open': () => { const dir = store.get('shotDir') || path.join(app.getPath('pictures'), 'ImmoAdv'); fs.mkdirSync(dir, { recursive: true }); return shell.openPath(dir).then(() => true); },
   // NordVPN-Zugangsdaten: verschlüsselt (DPAPI/Schlüsselbund), an die Erweiterung nur in den Arbeitsspeicher
   'vpn.creds': () => { const b = store.get('vpnCreds'); if (!b) return null; const j = dec(b); try { return j ? JSON.parse(j) : null; } catch { return null; } },
   'vpn.login': ({ user, pass }) => {

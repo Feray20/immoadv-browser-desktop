@@ -52,8 +52,18 @@ addEventListener('keydown', (e) => {
 const blob = () => new Promise((ok) => cv.toBlob(ok, 'image/png'));
 const say = (t) => { $('note').textContent = t; clearTimeout(say.t); say.t = setTimeout(() => { $('note').textContent = ''; }, 4000); };
 $('save').onclick = async () => {
-  const url = URL.createObjectURL(await blob());
+  const b = await blob();
   const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+  // Fester Speicherort (Einstellungen → Allgemein → Bildschirmfotos & PDFs): ohne Nachfrage direkt in den Ordner.
+  const ask = await browser.runtime.sendMessage({ type: 'settings:get' }).then((x) => !x || x.askDownload !== false).catch(() => true);
+  if (!ask) {
+    try {
+      const dataUrl = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(b); });
+      const x = await browser.runtime.sendMessage({ type: 'shots:save', dataUrl, name: `Bildschirmfoto ${title} ${stamp}` });
+      say(`Gespeichert in ${x.dir} ✓`); return;
+    } catch (e) { say('Direkt speichern ging nicht – bitte Ordner wählen.'); }
+  }
+  const url = URL.createObjectURL(b);
   try { await browser.downloads.download({ url, filename: `Bildschirmfoto ${title} ${stamp}.png`.replace(/[\\/:*?"<>|#%]+/g, ' '), saveAs: true }); say('Gespeichert ✓'); }
   catch (e) { if (!/cancel/i.test(e.message)) say('Nicht gespeichert: ' + e.message); }
   setTimeout(() => URL.revokeObjectURL(url), 60000);

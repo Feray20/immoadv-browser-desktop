@@ -292,6 +292,7 @@ browser.runtime.onMessage.addListener((m, sender) => {
       settings: Settings.all(), vpn: vpnState, update: updateState, lists: Blocker.info(), countries: Vpn.COUNTRIES,
       native: Native.connected, version: browser.runtime.getManifest().version
     }));
+    case 'settings:get': return Promise.resolve({ askDownload: Settings.get('askDownload') });
     case 'settings:set': return Settings.set(m.patch || {});
     case 'blocked:allow': Blocker.allowOnce(m.url); return Promise.resolve(true);
     case 'blocked:count': return Promise.resolve(Blocker.blockedOn(m.tabId));
@@ -310,6 +311,11 @@ browser.runtime.onMessage.addListener((m, sender) => {
     case 'tool:pdf': return browser.tabs.get(m.tabId).then((t) => Tools.savePdf(t));
     case 'tool:fullshot': return browser.tabs.get(m.tabId).then((t) => Tools.fullShot(t));
     case 'shot:get': return Promise.resolve(Tools.takeShot(m.id));
+    // Speicherort für Bildschirmfotos und PDFs (05.11.2026)
+    case 'shots:dir': return Native.call('shots.dir').catch(() => ({ dir: null }));
+    case 'shots:choose': return Native.call('shots.chooseDir', {}, 300000).catch((e) => ({ dir: null, error: e.message }));
+    case 'shots:open': return Native.call('shots.open').catch(() => false);
+    case 'shots:save': return Native.call('shots.save', { dataUrl: m.dataUrl, name: m.name }, 60000);
     case 'update:later': return browser.storage.local.set({ updateLater: m.version }).then(() => true);
     case 'update:check': return Native.call('update.check').catch((e) => ({ status: 'error', message: e.message }));
     case 'update:now': return Native.call('update.now', {}, 30 * 60000).catch((e) => ({ status: 'error', message: e.message }));
