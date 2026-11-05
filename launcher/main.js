@@ -67,6 +67,11 @@ function starter() {
   // ImmoAdv-Betrachter – mit Vorschau, Drehen, Zuschneiden, Helligkeit usw. –, nicht als nackte Datei-Seite.
   const OFFICE = /\.(docx?|xlsx?|xlsm|csv|pptx?|odt|ods|odp|rtf|png|jpe?g|gif|webp|bmp)$/i;
   const OPENABLE = /\.(pdf|html?|xhtml|svg|txt|avif|json|xml|md)$/i;
+  // Rückweg für Bilder (05.11.2026, Feray: „PNG Doppelklick – kommt nix“): Der ImmoAdv-Betrachter ist eine Seite der
+  // Erweiterung (moz-extension://…). Ist der Browser zu oder gerade nicht verbunden, ging genau diese Adresse an den Motor
+  // bzw. an macOS („open -a“) – beide kennen sie von außen nicht, es passierte nichts. Dann wird das Bild als Datei geöffnet.
+  const IMAGE = /\.(png|jpe?g|gif|webp|bmp)$/i;
+  const viewerFile = new Map();
   function targets(argv) {
     const out = [];
     for (const a of (argv || []).slice(1)) {
@@ -75,7 +80,7 @@ function starter() {
       if (/^immoadv-browser:/i.test(a)) continue;
       let f = a; try { if (/^file:/i.test(a)) f = require('node:url').fileURLToPath(a); } catch {}
       if (!path.isAbsolute(f) || !fs.existsSync(f) || !fs.statSync(f).isFile()) continue;
-      if (OFFICE.test(f)) out.push(engine.extUrl(`office/index.html?file=${share(f)}&name=${encodeURIComponent(path.basename(f))}`));
+      if (OFFICE.test(f)) { const u = engine.extUrl(`office/index.html?file=${share(f)}&name=${encodeURIComponent(path.basename(f))}`); out.push(u); if (IMAGE.test(f)) viewerFile.set(u, f); }
       // PDFs & Co. als Pfad übergeben (04.11.2026): Der Motor öffnet Pfade direkt; „file://…“ über „open -a“ kam am Mac nicht an.
       else if (OPENABLE.test(f)) out.push(f);
     }
@@ -206,6 +211,12 @@ function starter() {
           urls.length = 0; urls.push(...rest);
         }
       } catch (e) { engine.log('Vorne öffnen: ' + e.message); }
+    }
+    // Seiten der Erweiterung lassen sich nicht von außen öffnen → Bilder als Datei, sonst weglassen (nie „nichts passiert“)
+    const own = engine.extUrl('');
+    for (let i = urls.length - 1; i >= 0; i--) {
+      if (!urls[i].startsWith(own)) continue;
+      if (viewerFile.has(urls[i])) { engine.log('Bild als Datei öffnen'); urls[i] = viewerFile.get(urls[i]); } else urls.splice(i, 1);
     }
     if (installPending()) return true;
     if (!(await ensureEngine())) return false;
