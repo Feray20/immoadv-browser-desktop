@@ -41,3 +41,15 @@ test('Passwort vom anderen Gerät: neu, geändert, gelöscht – verschlüsselt 
   vault.applySync({ site: 'ebay.de', host: 'signin.ebay.de', user: 'feray' }, true);
   assert.equal(mem.passwords.length, 0);
 });
+
+test('Datenbank-Adresse (GO-3): nur erlaubte Adressen und öffentliche Schlüssel werden übernommen', () => {
+  const sync = require('../launcher/sync.js');
+  assert.equal(sync._db().url, 'https://mieoylqhtvghcnvaxutg.supabase.co');
+  assert.equal(sync.pruefeConfig({ url: 'https://boese.example.com', key: 'sb_publishable_abcdefghijkl' }), null);
+  assert.equal(sync.pruefeConfig({ url: 'https://db.immoadv.de', key: 'service_role_geheim' }), null);
+  assert.deepEqual(sync.pruefeConfig({ url: 'https://db.immoadv.de/', key: 'sb_publishable_abcdefghijkl' }), { url: 'https://db.immoadv.de', key: 'sb_publishable_abcdefghijkl' });
+  assert.equal(sync.setzeDatenbank({ url: 'https://boese.example.com', key: 'sb_publishable_abcdefghijkl' }), false);
+  assert.equal(sync._db().url, 'https://mieoylqhtvghcnvaxutg.supabase.co');
+  assert.equal(sync.setzeDatenbank({ url: 'https://db.immoadv.de', key: 'sb_publishable_abcdefghijkl' }), true);
+  assert.equal(sync._db().url, 'https://db.immoadv.de');
+});

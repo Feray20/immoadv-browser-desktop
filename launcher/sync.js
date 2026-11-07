@@ -10,8 +10,23 @@ const uploads = require('./uploads');
 const C = require('./synccrypto');
 const { siteOf } = require('../src/shared/lists');
 
-const URL_BASE = 'https://mieoylqhtvghcnvaxutg.supabase.co';
-const APIKEY = 'sb_publishable_vlerR4aelUQdlXbZV8753w_mgTiWghM';   // öffentlicher Schlüssel (kein Geheimnis); Zugriff regeln die Datenbank-Regeln
+// Datenbank-Adresse (GO-3 Vorbereitung, 08.11.2026): Standard ist die bisherige Adresse. Beim Start fragt der Browser
+// immoadv.de (/api/supabase-config), welche Datenbank gilt – so braucht der Umzug auf den eigenen Server (db.immoadv.de)
+// kein weiteres Browser-Update. Nur die beiden erlaubten Adressen werden angenommen (keine Umleitung an Fremde).
+const DEFAULT_BASE = 'https://mieoylqhtvghcnvaxutg.supabase.co';
+const DEFAULT_KEY = 'sb_publishable_vlerR4aelUQdlXbZV8753w_mgTiWghM';   // öffentlicher Schlüssel (kein Geheimnis); Zugriff regeln die Datenbank-Regeln
+const ERLAUBT = ['https://mieoylqhtvghcnvaxutg.supabase.co', 'https://db.immoadv.de'];
+const CONFIG_URL = 'https://immoadv.de/api/supabase-config';
+/** Nimmt eine Konfiguration nur an, wenn Adresse erlaubt und Schlüssel ein öffentlicher Schlüssel ist. */
+function pruefeConfig(c) {
+  const url = c && typeof c.url === 'string' ? c.url.replace(/\/+$/, '') : '';
+  const key = c && typeof c.key === 'string' ? c.key : '';
+  if (!ERLAUBT.includes(url)) return null;
+  if (!/^(sb_publishable_[A-Za-z0-9_-]{10,200}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/.test(key)) return null;
+  return { url, key };
+}
+let URL_BASE = DEFAULT_BASE;
+let APIKEY = DEFAULT_KEY;
 const SETTINGS_SYNCED = ['keepSignedIn', 'allowlist', 'blocklist', 'searchEngine', 'aiInstructions', 'neverSave', 'googleExternal'];   // Arbeitsbereiche/Firmendaten entfernt (05.11.2026)
 
 let fetcher = null;
@@ -348,7 +363,26 @@ function schedulePush(fast) {
   pushTimer = setTimeout(runNow, fast ? 300 : 2500);   // neuer Upload: sofort zu den anderen Geräten
 }
 
+// Gespeicherte bzw. frisch abgefragte Datenbank-Adresse übernehmen. Wechselt die Adresse, gilt die alte Anmeldung dort
+// nicht mehr – dann einmal neu anmelden (das Sync-Passwort bleibt auf dem Gerät).
+function setzeDatenbank(c) {
+  const ok = pruefeConfig(c); if (!ok) return false;
+  const wechsel = ok.url !== URL_BASE;
+  URL_BASE = ok.url; APIKEY = ok.key; store.set('syncDb', ok);
+  if (wechsel && store.get('syncDbLast') && store.get('syncDbLast') !== ok.url) { session = null; store.set('syncAuth', null); realtimeStop(); emit({ status: 'needLogin', message: 'ImmoAdv ist umgezogen – bitte einmal neu anmelden.' }); }
+  store.set('syncDbLast', ok.url);
+  return true;
+}
+async function ladeDatenbank() {
+  if (!fetcher) return;
+  try {
+    const r = await fetcher(CONFIG_URL, { credentials: 'omit', cache: 'no-store' });
+    if (r.ok) setzeDatenbank(await r.json());
+  } catch { /* offline: gespeicherte Adresse bleibt */ }
+}
+
 function init(fetchFn, openTabsFn, onState, onBm, onUp) {
+  { const saved = pruefeConfig(store.get('syncDb')); if (saved) { URL_BASE = saved.url; APIKEY = saved.key; } if (!store.get('syncDbLast')) store.set('syncDbLast', URL_BASE); }
   fetcher = fetchFn; getOpenTabs = openTabsFn || getOpenTabs; notify = onState || notify; onBookmark = onBm || onBookmark; onUploads = onUp || onUploads;
   store.onChange((k) => { if (k === 'uploads') schedulePush(true); else if (['passwords', 'bookmarks', ...SETTINGS_SYNCED].includes(k)) schedulePush(); });
   const k = store.get('syncKey') && decLocal(store.get('syncKey'));
@@ -361,6 +395,7 @@ function init(fetchFn, openTabsFn, onState, onBm, onUp) {
   } else emit({ status: auth ? 'needLogin' : 'off' });
   clearInterval(timer);
   timer = setInterval(runNow, 60000);
+  ladeDatenbank();
 }
 
 // ---------- Sofort-Abgleich (02.11.2026, Feray: Upload auf dem iPhone muss sofort am PC sichtbar sein) ----------
@@ -428,6 +463,7 @@ async function remoteAuth() {
 }
 
 module.exports = {
+  pruefeConfig, setzeDatenbank, _db: () => ({ url: URL_BASE, key: APIKEY }),
   keepRecent, remoteAuth,
   init, login, loginGoogle, mfa, setPassphrase, logout, runNow, tabsChanged: () => { if (state.status === 'on') { clearTimeout(pushTimer); pushTimer = setTimeout(runNow, 15000); } },
   state: () => ({ ...state, remoteTabs }), forSite: (u) => siteOf(u)
