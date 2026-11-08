@@ -14,9 +14,10 @@ concurrency:
 jobs:
   windows:
     runs-on: docker
-    # Offizielles Bau-Abbild von electron-builder mit Wine (Open Source). Feste Version, kein „latest“.
+    # Offizielles Bau-Abbild von electron-builder mit Wine (Open Source), empfohlen in electron.build → Multi Platform Build.
+    # Nach dem ersten erfolgreichen Lauf auf den genauen Stand (@sha256:…) festlegen, damit sich nichts unbemerkt ändert.
     container:
-      image: electronuserland/builder:22-wine-01.25
+      image: electronuserland/builder:wine
     timeout-minutes: 40
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # Windows ohne eigenes Zertifikat (wie bisher; Store signiert seine Version)
