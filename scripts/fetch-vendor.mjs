@@ -14,14 +14,30 @@ async function get(url, as = 'buffer') {
   return as === 'json' ? res.json() : as === 'text' ? res.text() : Buffer.from(await res.arrayBuffer());
 }
 
+// Neueste PDF.js-Version ermitteln – drei Wege nacheinander (09.11.2026: Build 4.1.50 brach auf PC und Mac mit
+// „PDF.js-Version nicht gefunden“ ab, weil die Weiterleitung von GitHub keinen Versionsnamen mehr lieferte).
+// 1. Weiterleitung /releases/latest (ohne API-Limit), 2. GitHub-API, 3. Atom-Feed der Releases.
+// Jeder Fehlversuch wird mit Grund protokolliert, damit ein Abbruch im Build-Protokoll erklärbar ist.
+const TAG_RE = /^v\d+\.\d+\.\d+$/;
+export async function pdfjsTag(f = fetch) {
+  const h = { 'User-Agent': 'immoadv-build' };
+  const wege = [
+    ['Weiterleitung', async () => { const r = await f('https://github.com/mozilla/pdf.js/releases/latest', { redirect: 'follow', headers: h }); await r.arrayBuffer().catch(() => {}); return { status: r.status, tag: String(r.url || '').split('/').pop() }; }],
+    ['API', async () => { const r = await f('https://api.github.com/repos/mozilla/pdf.js/releases/latest', { headers: { ...h, Accept: 'application/vnd.github+json' } }); const j = r.ok ? await r.json() : {}; return { status: r.status, tag: String(j.tag_name || '') }; }],
+    ['Feed', async () => { const r = await f('https://github.com/mozilla/pdf.js/releases.atom', { headers: h }); const t = r.ok ? await r.text() : ''; return { status: r.status, tag: (/\/releases\/tag\/(v\d+\.\d+\.\d+)/.exec(t) || [])[1] || '' }; }],
+  ];
+  const gruende = [];
+  for (const [name, weg] of wege) {
+    try { const { status, tag } = await weg(); if (TAG_RE.test(tag)) return tag; gruende.push(`${name}: HTTP ${status}, „${tag.slice(0, 40)}“`); }
+    catch (e) { gruende.push(`${name}: ${e.message}`); }
+  }
+  throw new Error(`PDF.js-Version nicht gefunden (${gruende.join(' · ')})`);
+}
+
 async function pdfjs() {
   const dest = path.join(vendor, 'pdfjs');
   if (fs.existsSync(path.join(dest, 'web', 'viewer.html'))) return;
-  // neueste Version über die Weiterleitung von GitHub (ohne API-Limit)
-  const res = await fetch('https://github.com/mozilla/pdf.js/releases/latest', { redirect: 'follow', headers: { 'User-Agent': 'immoadv-build' } });
-  await res.arrayBuffer().catch(() => {});
-  const tag = (res.url || '').split('/').pop();
-  if (!/^v\d+\.\d+\.\d+$/.test(tag)) throw new Error('PDF.js-Version nicht gefunden');
+  const tag = await pdfjsTag();
   const ver = tag.slice(1);
   console.log(`PDF.js ${ver}`);
   const zip = path.join(vendor, `pdfjs-${ver}-dist.zip`);
@@ -61,6 +77,9 @@ async function studio() {
   console.log('PDF-Studio-Bausteine bereit:', fs.readdirSync(dest).join(', '));
 }
 
+// Nur beim direkten Aufruf laden (der Test importiert nur pdfjsTag).
+const same = (a, b) => (process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b);
+if (process.argv[1] && same(path.resolve(process.argv[1]), fileURLToPath(import.meta.url))) {
 fs.mkdirSync(vendor, { recursive: true });
 try {
   await pdfjs();
@@ -69,4 +88,5 @@ try {
 } catch (e) {
   console.error('FEHLER:', (e && e.stack) || e);
   process.exit(1);
+}
 }
