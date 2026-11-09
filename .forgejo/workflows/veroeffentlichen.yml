@@ -47,14 +47,29 @@ jobs:
     env:
       IMMOADV_BUILD_KEY: ${{ secrets.IMMOADV_BUILD_KEY }}
     steps:
-      - uses: https://data.forgejo.org/actions/checkout@v4
+      # Der Mac holt den Code über die öffentliche Adresse – die schützt Cloudflare Access. Deshalb nicht actions/checkout,
+      # sondern git mit dem Access-Dienstschlüssel (Repo-Geheimnisse CF_ACCESS_ID/CF_ACCESS_SECRET) und dem Job-Token.
+      - name: Quelle holen (über Cloudflare Access)
+        env:
+          CF_ID: ${{ secrets.CF_ACCESS_ID }}
+          CF_SECRET: ${{ secrets.CF_ACCESS_SECRET }}
+          TOK: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          rm -rf src && git init -q src && cd src
+          git remote add origin "https://x-access-token:${TOK}@git.immoadv.de/${GITHUB_REPOSITORY}.git"
+          git -c "http.extraHeader=CF-Access-Client-Id: ${CF_ID}" -c "http.extraHeader=CF-Access-Client-Secret: ${CF_SECRET}" \
+            fetch -q --depth 1 origin "${GITHUB_SHA}"
+          git checkout -q FETCH_HEAD
+          git remote remove origin
+          git log --oneline -1
       - name: Bauen, signieren, hochladen (gleiches Skript wie bei Azure)
+        working-directory: src
         run: bash scripts/azure-build.sh mac
       - uses: https://data.forgejo.org/forgejo/upload-artifact@v4
         with:
           name: feed-mac
           retention-days: 7
-          path: feed
+          path: src/feed
   freigabe:
     needs: [windows, mac]
     runs-on: docker
