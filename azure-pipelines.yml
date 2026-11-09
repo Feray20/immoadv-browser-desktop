@@ -3,13 +3,10 @@
 # Baut bei jedem Push auf main. Neue Version = "version" in package.json erhöhen; gleiche Nummer wird nicht erneut
 # veröffentlicht. Updates gehen privat nach immoadv.de (/api/browser/update), nicht mehr zu GitHub.
 # Kein Geheimnis im Build: der Server fragt mit dem Kurzzeit-Zugang des Jobs bei Azure nach, ob der Build läuft.
-trigger:
-  # Gebündelt (05.11.2026): Azure führt bei uns immer nur einen Auftrag zur Zeit aus – mehrere Pushes hintereinander
-  # bauten jede Zwischenversion einzeln (4.1.45, 4.1.46, 4.1.47 je Windows + Mac + Freigabe). Jetzt wartet ein neuer Push,
-  # bis der laufende Bau fertig ist, und baut dann nur den neuesten Stand.
-  batch: true
-  branches:
-    include: [main]
+# Abgeschaltet (Feray 09.11.2026, Prompt „Bau auf eigenem Server“): Der Browser baut und veröffentlicht jetzt über
+# Forgejo (.forgejo/workflows/veroeffentlichen.yml – Windows auf dem Server, Mac auf dem MacBook-Runner, Testlauf 4 grün).
+# Diese Pipeline bleibt nur als Notweg zum Starten von Hand in Azure DevOps – nie beide gleichzeitig.
+trigger: none
 pr: none
 
 variables:

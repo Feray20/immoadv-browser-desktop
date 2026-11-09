@@ -2,12 +2,14 @@
 # Feray 09.11.2026). Windows baut der Server-Runner „contabo“ (Wine), Mac der MacBook-Runner (Label „macos“), die
 # gemeinsame Freigabe (latest.yml + latest-mac.yml) läuft erst, wenn BEIDE fertig sind – wie bisher bei Azure.
 # Anmeldung beim Server mit dem Bau-Schlüssel (Forgejo-Geheimnis IMMOADV_BUILD_KEY), der Server kennt nur die Prüfsumme.
-# VORERST NUR VON HAND (workflow_dispatch): Azure (azure-pipelines.yml) baut weiter bei jedem Push auf main. Erst wenn
-# der Mac-Runner läuft und zwei Läufe hier sauber waren, wechselt der Auslöser auf „push main“ und Azure wird abgeschaltet
-# – nie beide gleichzeitig (gleiche Version würde doppelt hochgeladen).
+# Seit 09.11.2026 der Hauptweg (Testlauf 4 grün: Windows Server + Mac MacBook + Freigabe): baut bei jedem Push auf main.
+# Azure (azure-pipelines.yml) ist abgeschaltet (trigger: none) und nur noch Notweg von Hand – nie beide gleichzeitig.
+# Ist der Mac aus, wartet der Mac-Teil (und damit die Freigabe), bis er wieder an ist.
 # Microsoft-Store-Paket (.appx) baut weiterhin Azure auf dem PC (braucht Windows-Werkzeuge) – bis zur Umstellung.
 name: Veröffentlichen (Server)
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 concurrency:
   group: browser-veroeffentlichen

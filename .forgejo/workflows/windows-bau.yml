@@ -4,9 +4,8 @@
 # (nur nach Ferays OK). Azure Pipelines (azure-pipelines.yml) bleibt unverändert, bis dieser Weg zweimal sauber lief.
 # Machbarkeit getestet 09.11.2026: electron-builder + Wine baut ImmoAdv-Browser-Setup-4.1.50.exe in ~1,5 Min.
 name: Windows bauen (Server)
+# Seit 09.11.2026 nur noch von Hand (Probebau) – der eigentliche Bau läuft in veroeffentlichen.yml.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 concurrency:
   group: windows-bau
