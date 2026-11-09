@@ -1,0 +1,59 @@
+# ImmoAdv Browser für Windows auf dem eigenen Server bauen (Build-Infrastruktur, Feray 09.11.2026: „Server baut Windows,
+# kein PC nötig“). Läuft mit dem Forgejo-Runner „contabo“ (0 €). Baut NUR – veröffentlicht NICHTS.
+# Ergebnis: Installer + Update-Datei + Prüfsumme als Forgejo-Artefakt. Freigabe/Veröffentlichung ist ein eigener Schritt
+# (nur nach Ferays OK). Azure Pipelines (azure-pipelines.yml) bleibt unverändert, bis dieser Weg zweimal sauber lief.
+# Machbarkeit getestet 09.11.2026: electron-builder + Wine baut ImmoAdv-Browser-Setup-4.1.50.exe in ~1,5 Min.
+name: Windows bauen (Server)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: windows-bau
+  cancel-in-progress: false
+jobs:
+  windows:
+    runs-on: docker
+    # Offizielles Bau-Abbild von electron-builder mit Wine (Open Source), empfohlen in electron.build → Multi Platform Build.
+    # Nach dem ersten erfolgreichen Lauf auf den genauen Stand (@sha256:…) festlegen, damit sich nichts unbemerkt ändert.
+    container:
+      image: electronuserland/builder:wine
+    timeout-minutes: 40
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # Windows ohne eigenes Zertifikat (wie bisher; Store signiert seine Version)
+      WINEDEBUG: '-all'
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - name: Pakete installieren
+        run: npm install --no-audit --no-fund
+      - name: Tests
+        run: npm test
+      - name: Bausteine laden (PDF.js, Texterkennung)
+        run: node scripts/fetch-vendor.mjs
+      - name: Schutzlisten (online – bricht ab, wenn eine Liste fehlt)
+        run: node scripts/build-rules.mjs
+      - name: Erweiterung bauen
+        run: node scripts/build-extension.mjs
+      - name: Installer bauen
+        run: |
+          rm -rf dist
+          npx electron-builder --win --x64 --publish never
+      - name: Prüfsumme und Bau-Angaben
+        run: |
+          V=$(node -p "require('./package.json').version")
+          cd dist
+          sha256sum ImmoAdv-Browser-Setup-$V.exe > ImmoAdv-Browser-Setup-$V.exe.sha256
+          printf '{"plattform":"windows","version":"%s","commit":"%s","lauf":"%s","erstellt":"%s","sha256":"%s"}\n' \
+            "$V" "$GITHUB_SHA" "$GITHUB_RUN_NUMBER" "$(date -u +%FT%TZ)" "$(cut -d' ' -f1 ImmoAdv-Browser-Setup-$V.exe.sha256)" > bau.json
+          cat bau.json
+      - name: Ergebnis ablegen (Forgejo-Artefakt, 30 Tage)
+        uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: browser-windows
+          retention-days: 30
+          path: |
+            dist/ImmoAdv-Browser-Setup-*.exe
+            dist/ImmoAdv-Browser-Setup-*.exe.blockmap
+            dist/ImmoAdv-Browser-Setup-*.exe.sha256
+            dist/latest.yml
+            dist/bau.json
