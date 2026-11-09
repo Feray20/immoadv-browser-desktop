@@ -9,6 +9,7 @@
 // die neue Version, während der Mac-Bau fehlte – die Geräte liefen auseinander.
 import fs from 'node:fs';
 import path from 'node:path';
+import { tusUpload, TUS_AB } from './tus-upload.mjs';
 
 const platform = process.argv[2];
 const API = 'https://immoadv.de/api/browser/release';
@@ -64,8 +65,13 @@ async function upload(filename) {
   if (!r.ok) throw new Error(`${filename}: Upload-Link fehlgeschlagen (${r.status}) ${await r.text()}`);
   const { url } = await r.json();
   const body = fs.readFileSync(path.join(dist, filename));
-  const put = await fetch(url, { method: 'PUT', headers: { 'Content-Type': filename.endsWith('.yml') ? 'text/yaml' : 'application/octet-stream', 'x-upsert': filename === feed ? 'true' : 'false' }, body });
-  if (!put.ok) throw new Error(`${filename}: Hochladen fehlgeschlagen (${put.status}) ${(await put.text()).slice(0, 300)}`);
+  const type = filename.endsWith('.yml') ? 'text/yaml' : 'application/octet-stream';
+  if (body.length > TUS_AB) {
+    await tusUpload(url, body, { contentType: type, upsert: filename === feed });
+  } else {
+    const put = await fetch(url, { method: 'PUT', headers: { 'Content-Type': type, 'x-upsert': filename === feed ? 'true' : 'false' }, body });
+    if (!put.ok) throw new Error(`${filename}: Hochladen fehlgeschlagen (${put.status}) ${(await put.text()).slice(0, 300)}`);
+  }
   console.log(`${filename} hochgeladen (${(body.length / 1048576).toFixed(1)} MB)`);
 }
 

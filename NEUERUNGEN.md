@@ -1,6 +1,7 @@
-ImmoAdv Browser 4.1.50 – Sync bereit für den eigenen ImmoAdv-Server
+ImmoAdv Browser 4.1.51 – Sync bereit für den eigenen ImmoAdv-Server
 - Die Synchronisation holt sich die Adresse der ImmoAdv-Datenbank jetzt beim Start von immoadv.de. Zieht ImmoAdv auf den eigenen Server um, läuft der Abgleich ohne weiteres Update weiter (einmal neu anmelden, das Sync-Passwort bleibt)
 - Es werden nur die beiden ImmoAdv-Adressen angenommen – keine Umleitung an fremde Server
+- (4.1.50 wurde gebaut, aber nicht veröffentlicht – große Update-Dateien werden jetzt stückweise hochgeladen)
 
 ImmoAdv Browser 4.1.49 – eBay: Antwort mit KI, Fenster gehen auf
 - eBay: Über jedem Nachrichtenfeld (Nachricht an Käufer, Antworten, Fragen zum Artikel) gibt es „✦ Antwort mit KI“ – schreibt einen Entwurf aus dem Gesprächsverlauf ins Feld, optional mit Wunsch („Versand morgen“). Gesendet wird nie automatisch
