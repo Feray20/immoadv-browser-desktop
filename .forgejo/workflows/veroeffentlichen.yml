@@ -1,0 +1,71 @@
+# ImmoAdv Browser bauen UND veröffentlichen – komplett über den eigenen Server (Prompt „Bau auf eigenem Server“,
+# Feray 09.11.2026). Windows baut der Server-Runner „contabo“ (Wine), Mac der MacBook-Runner (Label „macos“), die
+# gemeinsame Freigabe (latest.yml + latest-mac.yml) läuft erst, wenn BEIDE fertig sind – wie bisher bei Azure.
+# Anmeldung beim Server mit dem Bau-Schlüssel (Forgejo-Geheimnis IMMOADV_BUILD_KEY), der Server kennt nur die Prüfsumme.
+# VORERST NUR VON HAND (workflow_dispatch): Azure (azure-pipelines.yml) baut weiter bei jedem Push auf main. Erst wenn
+# der Mac-Runner läuft und zwei Läufe hier sauber waren, wechselt der Auslöser auf „push main“ und Azure wird abgeschaltet
+# – nie beide gleichzeitig (gleiche Version würde doppelt hochgeladen).
+# Microsoft-Store-Paket (.appx) baut weiterhin Azure auf dem PC (braucht Windows-Werkzeuge) – bis zur Umstellung.
+name: Veröffentlichen (Server)
+on:
+  workflow_dispatch:
+concurrency:
+  group: browser-veroeffentlichen
+  cancel-in-progress: false
+jobs:
+  windows:
+    runs-on: docker
+    container:
+      image: electronuserland/builder:wine
+    timeout-minutes: 45
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      WINEDEBUG: '-all'
+      IMMOADV_BUILD_KEY: ${{ secrets.IMMOADV_BUILD_KEY }}
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: node scripts/fetch-vendor.mjs
+      - run: node scripts/build-rules.mjs
+      - run: node scripts/build-extension.mjs
+      - name: Installer bauen
+        run: |
+          rm -rf dist
+          npx electron-builder --win --x64 --publish never
+      - name: Hochladen (Versionsangabe noch NICHT freigeben)
+        run: node scripts/publish-immoadv.mjs windows
+      - name: Versionsangabe für die gemeinsame Freigabe ablegen
+        uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: feed-windows
+          retention-days: 7
+          path: feed
+  mac:
+    runs-on: macos
+    timeout-minutes: 90
+    env:
+      IMMOADV_BUILD_KEY: ${{ secrets.IMMOADV_BUILD_KEY }}
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - name: Bauen, signieren, hochladen (gleiches Skript wie bei Azure)
+        run: bash scripts/azure-build.sh mac
+      - uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: feed-mac
+          retention-days: 7
+          path: feed
+  freigabe:
+    needs: [windows, mac]
+    runs-on: docker
+    container:
+      image: node:22-bookworm
+    env:
+      IMMOADV_BUILD_KEY: ${{ secrets.IMMOADV_BUILD_KEY }}
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - uses: https://data.forgejo.org/forgejo/download-artifact@v4
+        with:
+          path: feeds
+      - name: Update für beide Systeme freigeben
+        run: node scripts/publish-immoadv.mjs feed feeds

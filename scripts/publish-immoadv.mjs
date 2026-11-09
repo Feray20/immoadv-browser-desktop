@@ -15,12 +15,16 @@ const platform = process.argv[2];
 const API = 'https://immoadv.de/api/browser/release';
 const token = process.env.SYSTEM_ACCESSTOKEN;
 const buildId = process.env.BUILD_BUILDID;
+// Eigener Server (Forgejo, 09.11.2026): statt Azure-Zugang ein Bau-Schlüssel aus dem Forgejo-Actions-Geheimnis
+// IMMOADV_BUILD_KEY – der Server kennt nur dessen Prüfsumme. Ist er gesetzt, wird er bevorzugt.
+const buildKey = process.env.IMMOADV_BUILD_KEY;
+const AUTH = buildKey ? { 'x-immoadv-build-key': buildKey } : { Authorization: `Bearer ${token}`, 'X-Azure-Build-Id': buildId };
 const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 if (!['windows', 'mac', 'feed'].includes(platform)) { console.error('Plattform fehlt (windows|mac|feed)'); process.exit(1); }
-if (!token || !buildId) { console.error('Azure-Zugang fehlt (SYSTEM_ACCESSTOKEN / BUILD_BUILDID)'); process.exit(1); }
+if (!buildKey && (!token || !buildId)) { console.error('Zugang fehlt (IMMOADV_BUILD_KEY oder SYSTEM_ACCESSTOKEN / BUILD_BUILDID)'); process.exit(1); }
 
 async function link(filename) {
-  const r = await fetch(API, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'X-Azure-Build-Id': buildId, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'upload', version, filename }) });
+  const r = await fetch(API, { method: 'POST', headers: { ...AUTH, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'upload', version, filename }) });
   if (!r.ok) throw new Error(`${filename}: Upload-Link fehlgeschlagen (${r.status}) ${await r.text()}`);
   return (await r.json()).url;
 }
@@ -58,7 +62,7 @@ if (!files.length) { console.error(`Keine Dateien für ${version} in dist/`); pr
 async function upload(filename) {
   const r = await fetch(API, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'X-Azure-Build-Id': buildId, 'Content-Type': 'application/json' },
+    headers: { ...AUTH, 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'upload', version, filename })
   });
   if (r.status === 409 && filename !== feed) { console.log(`${filename}: gibt es schon – nichts überschrieben.`); return 'skip'; }
