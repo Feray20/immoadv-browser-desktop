@@ -6,6 +6,7 @@ const os = require('node:os');
 const { safeStorage } = require('electron');
 const store = require('./store');
 const vault = require('./vault');
+const { deletionsAllowed } = require('./syncguard'); // Audit B01/B09
 const uploads = require('./uploads');
 const C = require('./synccrypto');
 const { siteOf } = require('../src/shared/lists');
@@ -317,8 +318,18 @@ async function runNow() {
     // Upload-Verlauf: Löschungen nur für Einträge, die Feray selbst gelöscht hat (nie wegen fehlender/unlesbarer Einträge)
     const removed = uploads.removedIds();
     const removedRids = new Set(removed.map((id) => C.rid(syncKey, 'up', id)));
+    // Audit B01/B09 (10.11.2026): Löschungen von Passwörtern/Lesezeichen nur, wenn der lokale Bestand vollständig lesbar ist
+    // und nicht auf einen Schlag die Hälfte fehlt (launcher/syncguard.js).
+    const cnt = (k, f) => Object.entries(seen).filter(([rid, s]) => s.k === k && s.h !== 'x' && f(rid)).length;
+    const vh = vault.health();
+    const guard = deletionsAllowed({
+      pw: { ...vh, seen: cnt('pw', () => true), missing: cnt('pw', (rid) => !local.has(rid)) },
+      bm: { local: [...local.values()].filter((r) => r.kind === 'bm').length, seen: cnt('bm', () => true), missing: cnt('bm', (rid) => !local.has(rid)) },
+    });
+    if (guard.why.length) console.warn('[sync] ' + guard.why.join(' · '));
     for (const [rid, s] of Object.entries(seen)) {
       if (s.k === 'up' && !removedRids.has(rid)) continue;
+      if ((s.k === 'pw' && !guard.pw) || (s.k === 'bm' && !guard.bm)) continue;
       if ((s.k === 'pw' || s.k === 'bm' || s.k === 'up') && s.h !== 'x' && !local.has(rid)) {
         const changed = Math.max(now, s.c + 1);
         up.push({ user_id: session.userId, rid, kind: s.k, data: C.seal(syncKey, '{}'), deleted: true, device: deviceId(), changed_at: changed });

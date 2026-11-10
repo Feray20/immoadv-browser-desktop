@@ -25,3 +25,27 @@ test('Claude: gesperrte Seite lässt sich nicht teilen, Start ist aus', async ()
   assert.equal(R.shared(5), false);
   assert.equal(R.status().on, false);
 });
+
+// Audit 10.11.2026 (B02/B03/B04)
+test('Claude: Sperrliste ergänzt – weitere Banken, Microsoft-Login, Finanzamt, Konsolen, Webmail, lokale Netze', () => {
+  const R = load();
+  for (const u of ['https://www.hanseaticbank.de/', 'https://www.barclaycard.de/', 'https://www.1822direkt.de/', 'https://app.mercury.com/', 'https://login.microsoftonline.com/', 'https://www.elster.de/', 'https://www.finanzamt-frankfurt.de/', 'https://www.bzst.de/', 'https://www.irs.gov/', 'https://dash.cloudflare.com/', 'https://supabase.com/dashboard', 'https://admin.immoadv.de/', 'https://git.immoadv.de/', 'https://outlook.office.com/mail', 'https://mail.google.com/', 'http://fritz.box/', 'http://nas.local/', 'http://0.0.0.0:11434/', 'http://100.64.1.2/', 'http://router/']) assert.equal(R.allowedUrl(u), false, u);
+  for (const u of ['https://immoadv.de/wissen', 'https://www.kaufland.de/', 'https://www.amazon.de/dp/B000000000']) assert.equal(R.allowedUrl(u), true, u);
+});
+
+test('Claude: geteilte Tabs werden nach einem Neustart NICHT aus storage.local wiederhergestellt', async () => {
+  const src = fs.readFileSync(path.join(root, 'extension/lib/remote.js'), 'utf8');
+  assert.doesNotMatch(src, /storage\.local\.get\('remoteTabs'\)/);
+  assert.doesNotMatch(src, /storage\.local\.set\(\{ remoteTabs/);
+  assert.match(src, /storage\.session/);
+});
+
+test('Claude: Adresse wird direkt vor dem Ausführen erneut geprüft, die Seite vergleicht ihre Adresse', () => {
+  const src = fs.readFileSync(path.join(root, 'extension/lib/remote.js'), 'utf8');
+  const inPage = src.slice(src.indexOf('async function inPage'), src.indexOf('const info ='));
+  assert.match(inPage, /allowedUrl\(t\.url\)/);
+  assert.match(inPage, /host: new URL\(t\.url\)\.hostname/);
+  const cs = fs.readFileSync(path.join(root, 'extension/content/remote.js'), 'utf8');
+  assert.match(cs, /location\.hostname\)\.toLowerCase\(\) !== String\(m\.host\)/);
+  assert.match(cs, /SECRET_NAME\.test/);
+});
