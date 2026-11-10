@@ -1,0 +1,24 @@
+# Nur von Hand: prüft auf dem MacBook-Runner, ob die Developer ID und das Beglaubigungs-Profil „ImmoAdv“ für den
+# Bau sichtbar sind. Baut nichts, lädt nichts hoch. Ergebnis zusätzlich in ~/immoadv-runner/signatur-check.log.
+name: Mac-Signatur prüfen
+on:
+  workflow_dispatch:
+jobs:
+  pruefen:
+    runs-on: macos
+    timeout-minutes: 5
+    steps:
+      - name: Schlüsselbund und Profil prüfen
+        run: |
+          OUT="$HOME/immoadv-runner/signatur-check.log"
+          {
+            echo "== $(date -u +%FT%TZ) Benutzer: $(id -un) · Sitzung: $(launchctl managername 2>/dev/null || echo ?)"
+            echo "-- Schlüsselbund-Suchliste:"; security list-keychains -d user 2>&1
+            echo "-- Standard-Schlüsselbund:"; security default-keychain -d user 2>&1
+            echo "-- Signier-Identitäten (gültig):"; security find-identity -v -p codesigning 2>&1
+            LOGIN_KC="$HOME/Library/Keychains/login.keychain-db"
+            echo "-- Identitäten im login-Schlüsselbund direkt:"; security find-identity -v -p codesigning "$LOGIN_KC" 2>&1
+            echo "-- Schlüsselbund gesperrt?"; security show-keychain-info "$LOGIN_KC" 2>&1
+            echo "-- Beglaubigungs-Profil ImmoAdv:"; xcrun notarytool history --keychain-profile "ImmoAdv" 2>&1 | head -3
+          } > "$OUT" 2>&1
+          cat "$OUT"
