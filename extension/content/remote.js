@@ -22,6 +22,7 @@
     sh.innerHTML = '<div style="font:600 12px -apple-system,Segoe UI,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#0F2C59,#1E6FD9);padding:5px 14px;border-radius:0 0 12px 12px;box-shadow:0 6px 18px rgba(0,0,0,.25)">✦ Claude steuert diesen Tab</div>';
     (document.documentElement || document.body).appendChild(h);
   }
+  const SECRET_NAME = /pass|pwd|kennwort|passwort|\bpin\b|pin[-_]?code|\btan\b|otp|2fa|mfa|code|card|karte|kreditkarte|cvc|cvv|iban|bic|konto|account[-_]?n|secret|token|geheim/i;
   function read(maxChars) {
     refs.clear(); next = 1;
     const els = [];
@@ -33,7 +34,8 @@
       const e = { ref: id, tag, label: label(el) };
       const role = el.getAttribute('role'); if (role) e.role = role;
       if (tag === 'a') e.href = String(el.href).slice(0, 300);
-      if (tag === 'input') { e.type = el.type; if (el.type !== 'password' && !SENSITIVE.test(el.autocomplete || '')) e.value = String(el.value || '').slice(0, 120); }
+      // Audit B10 (10.11.2026): auch aufgedeckte Passwörter, PIN/TAN, Karten- und Kontonummern nie an Claude (Name/ID/Label).
+      if (tag === 'input') { e.type = el.type; if (el.type !== 'password' && !SENSITIVE.test(el.autocomplete || '') && !SECRET_NAME.test(`${el.name || ''} ${el.id || ''} ${el.getAttribute('aria-label') || ''} ${el.placeholder || ''} ${e.label || ''}`)) e.value = String(el.value || '').slice(0, 120); }
       if (el.disabled) e.disabled = true;
       els.push(e);
     }
@@ -50,7 +52,7 @@
   }
   function type(ref, text, enter) {
     const e = el(ref);
-    if ((e.type || '').toLowerCase() === 'password' || SENSITIVE.test(e.autocomplete || '') || /card|kreditkarte|cvc|cvv|iban/i.test(`${e.name} ${e.id}`)) throw new Error('Passwort- und Zahlungsfelder füllt Claude nie aus – das bitte selbst eingeben.');
+    if ((e.type || '').toLowerCase() === 'password' || SENSITIVE.test(e.autocomplete || '') || /card|kreditkarte|cvc|cvv|iban|\bpin\b|\btan\b|pass|kennwort/i.test(`${e.name} ${e.id} ${e.getAttribute('aria-label') || ''}`)) throw new Error('Passwort- und Zahlungsfelder füllt Claude nie aus – das bitte selbst eingeben.');
     e.focus();
     if (e.isContentEditable) { document.execCommand('selectAll', false); document.execCommand('insertText', false, text); }
     else {
@@ -70,6 +72,8 @@
     try {
       if (m.op === 'mark') { banner(true); return Promise.resolve({ ok: true }); }
       if (m.op === 'unmark') { banner(false); return Promise.resolve({ ok: true }); }
+      // Audit B03 (10.11.2026): Nur auf der Adresse arbeiten, die die Erweiterung eben geprüft hat (Umleitung dazwischen → Abbruch).
+      if (m.op !== 'unmark' && (!m.host || String(location.hostname).toLowerCase() !== String(m.host).toLowerCase())) return Promise.resolve({ error: 'Die Seite hat inzwischen die Adresse gewechselt – bitte erneut versuchen.' });
       banner(true);
       if (m.op === 'read') return Promise.resolve(read(m.maxChars));
       if (m.op === 'click') return Promise.resolve(click(m.ref));

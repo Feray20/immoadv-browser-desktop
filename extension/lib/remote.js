@@ -8,7 +8,7 @@
 'use strict';
 const Remote = (() => {
   const API = 'https://immoadv.de/api/browser/remote';
-  const BLOCK = /(^|\.)(paypal\.[a-z.]+|klarna\.[a-z.]+|stripe\.com|wise\.com|revolut\.com|n26\.com|dkb\.de|ing\.de|comdirect\.de|consorsbank\.de|commerzbank\.de|deutsche-bank\.de|db\.com|postbank\.de|hypovereinsbank\.de|targobank\.de|santander\.de|norisbank\.de|sparda[a-z-]*\.de|psd[a-z-]*\.de|vr\.de|volksbank[a-z-]*\.de|raiffeisen[a-z-]*\.de|sparkasse[a-z-]*\.de|[a-z-]*sparkasse\.de|kfw\.de|elster\.de|bundesagentur\.de|arbeitsagentur\.de|deutsche-rentenversicherung\.de|bund\.de|trade-republic\.com|traderepublic\.com|scalable\.capital|coinbase\.com|binance\.com|kraken\.com|bitpanda\.com|1password\.com|bitwarden\.com|lastpass\.com|accounts\.google\.com|myaccount\.google\.com|account\.microsoft\.com|account\.live\.com|appleid\.apple\.com|id\.apple\.com|icloud\.com)$/i;
+  const BLOCK = /(^|\.)(paypal\.[a-z.]+|klarna\.[a-z.]+|stripe\.com|wise\.com|revolut\.com|n26\.com|dkb\.de|ing\.de|comdirect\.de|consorsbank\.de|commerzbank\.de|deutsche-bank\.de|db\.com|postbank\.de|hypovereinsbank\.de|targobank\.de|santander\.de|norisbank\.de|sparda[a-z-]*\.de|psd[a-z-]*\.de|vr\.de|volksbank[a-z-]*\.de|raiffeisen[a-z-]*\.de|sparkasse[a-z-]*\.de|[a-z-]*sparkasse\.de|kfw\.de|elster\.de|bundesagentur\.de|arbeitsagentur\.de|deutsche-rentenversicherung\.de|bund\.de|trade-republic\.com|traderepublic\.com|scalable\.capital|coinbase\.com|binance\.com|kraken\.com|bitpanda\.com|1password\.com|bitwarden\.com|lastpass\.com|accounts\.google\.com|myaccount\.google\.com|account\.microsoft\.com|account\.live\.com|appleid\.apple\.com|id\.apple\.com|icloud\.com|hanseaticbank\.de|barclaycard\.de|barclays\.[a-z.]+|1822direkt\.de|c24\.de|bunq\.com|mercury\.com|chase\.com|amex\.[a-z.]+|americanexpress\.com|advanzia\.com|consors[a-z-]*\.de|ebase\.com|flatex\.[a-z.]+|smartbroker\.de|onvista\.de|finanzen\.net|login\.microsoftonline\.com|login\.live\.com|login\.microsoft\.com|portal\.azure\.com|aka\.ms|finanzamt[a-z-]*\.de|bzst\.de|zoll\.de|bundesfinanzministerium\.de|[a-z.-]*\.gov|[a-z.-]*\.gov\.[a-z]+|dash\.cloudflare\.com|cloudflareaccess\.com|supabase\.com|supabase\.co|vercel\.com|stripe\.network|contabo\.com|my\.contabo\.com|hostinger\.[a-z.]+|admin\.immoadv\.de|git\.immoadv\.de|approval\.immoadv\.de|db\.immoadv\.de|outlook\.office\.com|outlook\.live\.com|outlook\.office365\.com|mail\.google\.com|web\.de|gmx\.[a-z.]+|t-online\.de|posteo\.de|mailbox\.org|proton\.me|protonmail\.com|fritz\.box|[a-z0-9.-]*\.local|[a-z0-9.-]*\.internal|[a-z0-9.-]*\.lan|[a-z0-9.-]*\.home\.arpa)$/i;
   const BANKWORD = /(^|[.-])(bank|banking|sparkasse|volksbank|onlinebanking|broker|depot)([.-]|$)/i;
   let on = false, running = false, stopCtl = null, auth = null, status = { state: 'aus', message: '', last: 0, device: '' };
   const mine = new Set();   // Tabs, die Claude steuern darf
@@ -19,7 +19,7 @@ const Remote = (() => {
     if (x.protocol !== 'https:' && x.protocol !== 'http:') return false;
     const h = x.hostname.toLowerCase();
     if (BLOCK.test(h) || BANKWORD.test(h)) return false;
-    if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|\[)/.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false;
+    if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|0\.|\[)/.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h) || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(h) || !h.includes('.')) return false; // Audit B04: auch 0.x, CGNAT 100.64/10, Namen ohne Punkt
     return true;
   }
 
@@ -56,8 +56,12 @@ const Remote = (() => {
   async function inPage(tabId, msg) {
     const t = await browser.tabs.get(tabId);
     if (!/^https?:/.test(t.url || '')) throw new Error('Auf dieser Seite (Browser-intern) kann Claude nichts lesen oder steuern.');
-    let r = await browser.tabs.sendMessage(tabId, { immoadvRemote: true, ...msg }).catch(() => undefined);
-    if (r === undefined) { await browser.tabs.executeScript(tabId, { file: '/content/remote.js', runAt: 'document_idle' }); r = await browser.tabs.sendMessage(tabId, { immoadvRemote: true, ...msg }); }
+    // Audit B03 (10.11.2026): Adresse direkt vor dem Ausführen erneut prüfen – die Seite kann seit ownTab() umgeleitet haben.
+    if (!allowedUrl(t.url)) throw new Error('Diese Seite ist für Claude gesperrt (Bank, Zahlung, Konto oder Behörde).');
+    // Die Seite prüft selbst, ob sie noch auf der geprüften Adresse ist (sonst Abbruch, content/remote.js).
+    const m2 = { immoadvRemote: true, ...msg, host: new URL(t.url).hostname };
+    let r = await browser.tabs.sendMessage(tabId, m2).catch(() => undefined);
+    if (r === undefined) { await browser.tabs.executeScript(tabId, { file: '/content/remote.js', runAt: 'document_idle' }); r = await browser.tabs.sendMessage(tabId, m2); }
     if (r && r.error) throw new Error(r.error);
     return r;
   }
@@ -133,7 +137,10 @@ const Remote = (() => {
     running = false;
   }
 
-  async function save() { try { await browser.storage.local.set({ remoteTabs: [...mine] }); } catch (e) { /* egal */ } }
+  // Audit B02 (10.11.2026): Freigaben nur für diese Browser-Sitzung merken (storage.session, Firefox ≥ 115). Tab-Nummern
+  // werden nach jedem Neustart neu vergeben – aus storage.local wiederhergestellt, durfte Claude danach fremde Tabs steuern.
+  const sess = () => (browser.storage && browser.storage.session) || null;
+  async function save() { try { const s = sess(); if (s) await s.set({ remoteTabs: [...mine] }); } catch (e) { /* egal */ } }
   async function apply(enabled) {
     enabled = !!enabled;
     if (enabled === on) return;
@@ -147,7 +154,8 @@ const Remote = (() => {
   }
   browser.tabs.onRemoved.addListener((id) => { if (mine.delete(id)) save(); });
   (async () => {
-    try { const s = await browser.storage.local.get('remoteTabs'); const open = new Set((await browser.tabs.query({})).map((t) => t.id)); for (const id of s.remoteTabs || []) if (open.has(id)) mine.add(id); } catch (e) { /* egal */ }
+    try { browser.storage.local.remove('remoteTabs').catch(() => {}); } catch (e) { /* alter Stand aus storage.local nie übernehmen */ }
+    try { const st = sess(); if (!st) return; const s = await st.get('remoteTabs'); const open = new Set((await browser.tabs.query({})).map((t) => t.id)); for (const id of s.remoteTabs || []) if (open.has(id)) mine.add(id); } catch (e) { /* egal */ }
   })();
 
   return {

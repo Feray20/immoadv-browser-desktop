@@ -285,8 +285,12 @@ const handlers = {
   'migrate.v3': () => ({ bookmarks: store.get('bookmarks') || [] }),
   // Dateien vom Desktop (Office-Betrachter): nur Dateien, die das Programm selbst freigegeben hat
   'file.read': ({ token, offset = 0 }) => {
+    // Audit B07 (10.11.2026): Bei schon laufendem Browser per Doppelklick geöffnete Dateien trägt der Starter erst danach in
+    // freigaben.json ein – bei unbekanntem Schlüssel die Freigaben einmal neu lesen.
+    if (!files.has(String(token || ''))) loadShared();
     const f = files.get(String(token || ''));
     if (!f) throw new Error('Datei nicht freigegeben');
+    offset = Math.max(0, Math.floor(Number(offset) || 0)); // Audit B19: negative/ungültige Werte abfangen
     const fd = fs.openSync(f, 'r');
     try {
       const size = fs.fstatSync(fd).size;

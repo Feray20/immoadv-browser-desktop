@@ -1,3 +1,11 @@
+ImmoAdv Browser 4.1.52 – Sicherheit und Schutz vor Datenverlust beim Sync
+- Passwörter: Kann der Browser ein gespeichertes Passwort nicht lesen (z. B. weil der Mac-Schlüsselbund nach einem Update den Zugriff verweigert), schickt der Sync keine Löschungen mehr an die anderen Geräte
+- Lesezeichen: Eine leere oder plötzlich halbierte Lesezeichen-Liste wird nicht mehr als „alles gelöscht“ an alle Geräte verteilt
+- Claude-Fernsteuerung: Nach einem Neustart darf Claude keine Tabs mehr steuern, die du nicht in dieser Sitzung geteilt hast; die Adresse wird direkt vor jeder Aktion erneut geprüft
+- Gesperrt für Claude: weitere Banken und Kreditkarten, Microsoft-Anmeldung, Finanzamt/BZSt und Behörden, Cloudflare/Supabase-Konsolen, ImmoAdv-Admin, Webmail und Geräte im Heimnetz (z. B. fritz.box)
+- Claude bekommt keine Inhalte von aufgedeckten Passwort-, PIN-/TAN-, Karten- oder Kontofeldern mehr
+- Dateien, die per Doppelklick bei schon geöffnetem Browser geöffnet werden, laden jetzt zuverlässig
+
 ImmoAdv Browser 4.1.51 – Sync bereit für den eigenen ImmoAdv-Server
 - Die Synchronisation holt sich die Adresse der ImmoAdv-Datenbank jetzt beim Start von immoadv.de. Zieht ImmoAdv auf den eigenen Server um, läuft der Abgleich ohne weiteres Update weiter (einmal neu anmelden, das Sync-Passwort bleibt)
 - Es werden nur die beiden ImmoAdv-Adressen angenommen – keine Umleitung an fremde Server

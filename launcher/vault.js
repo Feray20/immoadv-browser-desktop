@@ -177,7 +177,12 @@ function applySync(b, deleted) {
   save(list);
 }
 
-module.exports = { removeMany, status, update, matches, plainEntries, applySync,
+/** Zustand für den Abgleich (Audit B01): wie viele gespeichert, wie viele lesbar, Verschlüsselung verfügbar? */
+function health() {
+  const enc = (() => { try { return safeStorage.isEncryptionAvailable(); } catch { return false; } })();
+  return { enc, total: all().length, readable: enc ? plainEntries().length : 0 };
+}
+module.exports = { removeMany, status, update, matches, plainEntries, applySync, health,
   forUrl, add, known, remove, unlock, reveal, importCSV,
   list: () => all().map(({ id, site, host, url, user, added }) => ({ id, site, host, url: url || '', user, added })),
   /** Für das Ausfüllen: Passwort erst nach Freigabe */
